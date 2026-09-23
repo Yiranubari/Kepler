@@ -1,4 +1,20 @@
 export {
+  KeplerError,
+  ConfigurationError,
+  ValidationError,
+  NotFoundError,
+  NetworkError,
+  RateLimitError,
+  PolicyError,
+  TaintError,
+  ProofError,
+  AIError,
+  ProtocolError,
+  InternalError
+} from './exceptions';
+export type { KeplerErrorJSON } from './exceptions';
+
+export {
   CanonicalJson
 } from './canonical';
 

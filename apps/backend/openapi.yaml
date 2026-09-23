@@ -30,6 +30,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/scenarios:
     post:
@@ -55,6 +61,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       summary: List all payment scenarios
       operationId: listScenarios
@@ -70,6 +82,12 @@ paths:
                   $ref: '#/components/schemas/Scenario'
         '400':
           description: Failed to retrieve scenarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -95,6 +113,12 @@ paths:
                 $ref: '#/components/schemas/Scenario'
         '400':
           description: Invalid scenario identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -129,6 +153,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/graph/{id}:
     get:
@@ -150,6 +180,12 @@ paths:
                 $ref: '#/components/schemas/TaintGraph'
         '400':
           description: Graph not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -179,6 +215,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/evidence/verify:
     post:
@@ -200,6 +242,12 @@ paths:
                 $ref: '#/components/schemas/VerificationResponse'
         '400':
           description: Verification failed or invalid bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -229,6 +277,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/nostr/log:
     post:
@@ -250,6 +304,12 @@ paths:
                 $ref: '#/components/schemas/NostrLogResponse'
         '400':
           description: Failed to publish Nostr log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -279,6 +339,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/policy:
     get:
@@ -294,6 +360,12 @@ paths:
                 $ref: '#/components/schemas/Policy'
         '400':
           description: Failed to retrieve policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -321,6 +393,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/policy/check:
     post:
@@ -342,6 +420,12 @@ paths:
                 $ref: '#/components/schemas/PolicyCheckResponse'
         '400':
           description: Invalid policy check request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -872,12 +956,18 @@ components:
       type: object
       properties:
         error:
-          type: string
-        message:
-          type: string
-        statusCode:
-          type: integer
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            context:
+              type: object
+              additionalProperties: true
+          required:
+            - code
+            - message
+            - context
       required:
         - error
-        - message
-        - statusCode

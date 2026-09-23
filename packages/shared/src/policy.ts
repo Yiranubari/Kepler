@@ -1,3 +1,5 @@
+import { ValidationError } from './exceptions/ValidationError';
+
 export enum PolicyScope {
   Read = 'Read',
   Propose = 'Propose',
@@ -37,16 +39,16 @@ export class Policy {
     updatedAt?: Date;
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('Policy id cannot be empty');
+      throw new ValidationError('Policy id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     if (params.dailyBudgetSats < 0) {
-      throw new Error('Policy dailyBudgetSats cannot be negative');
+      throw new ValidationError('Policy dailyBudgetSats cannot be negative', { field: 'dailyBudgetSats', receivedValue: params.dailyBudgetSats });
     }
     if (params.perTxBudgetSats < 0) {
-      throw new Error('Policy perTxBudgetSats cannot be negative');
+      throw new ValidationError('Policy perTxBudgetSats cannot be negative', { field: 'perTxBudgetSats', receivedValue: params.perTxBudgetSats });
     }
     if (params.perTxBudgetSats > params.dailyBudgetSats) {
-      throw new Error('Policy perTxBudgetSats cannot exceed dailyBudgetSats');
+      throw new ValidationError('Policy perTxBudgetSats cannot exceed dailyBudgetSats', { field: 'perTxBudgetSats', receivedValue: params.perTxBudgetSats, dailyBudgetSats: params.dailyBudgetSats });
     }
     this.id = params.id;
     this.dailyBudgetSats = params.dailyBudgetSats;

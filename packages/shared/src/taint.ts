@@ -1,3 +1,5 @@
+import { ValidationError } from './exceptions/ValidationError';
+
 export type ProtocolType = 'BITCOIN' | 'LIGHTNING' | 'NOSTR' | 'CASHU';
 
 export enum TaintNodeType {
@@ -35,10 +37,10 @@ export class EvidenceItem {
     data?: unknown;
   }) {
     if (!params.ref || params.ref.trim().length === 0) {
-      throw new Error('EvidenceItem ref cannot be empty');
+      throw new ValidationError('EvidenceItem ref cannot be empty', { field: 'ref', receivedValue: params.ref });
     }
     if (!params.description || params.description.trim().length === 0) {
-      throw new Error('EvidenceItem description cannot be empty');
+      throw new ValidationError('EvidenceItem description cannot be empty', { field: 'description', receivedValue: params.description });
     }
     this.kind = params.kind;
     this.ref = params.ref;
@@ -86,10 +88,10 @@ export class TaintNode {
     metadata?: Record<string, unknown>;
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('TaintNode id cannot be empty');
+      throw new ValidationError('TaintNode id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     if (!params.value || params.value.trim().length === 0) {
-      throw new Error('TaintNode value cannot be empty');
+      throw new ValidationError('TaintNode value cannot be empty', { field: 'value', receivedValue: params.value });
     }
     this.id = params.id;
     this.type = params.type;
@@ -143,19 +145,19 @@ export class TaintEdge {
     evidence: EvidenceItem[];
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('TaintEdge id cannot be empty');
+      throw new ValidationError('TaintEdge id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     if (!params.from || params.from.trim().length === 0) {
-      throw new Error('TaintEdge from cannot be empty');
+      throw new ValidationError('TaintEdge from cannot be empty', { field: 'from', receivedValue: params.from });
     }
     if (!params.to || params.to.trim().length === 0) {
-      throw new Error('TaintEdge to cannot be empty');
+      throw new ValidationError('TaintEdge to cannot be empty', { field: 'to', receivedValue: params.to });
     }
     if (!params.relationship || params.relationship.trim().length === 0) {
-      throw new Error('TaintEdge relationship cannot be empty');
+      throw new ValidationError('TaintEdge relationship cannot be empty', { field: 'relationship', receivedValue: params.relationship });
     }
     if (params.confidence < 0 || params.confidence > 1) {
-      throw new Error('TaintEdge confidence must be between 0 and 1');
+      throw new ValidationError('TaintEdge confidence must be between 0 and 1', { field: 'confidence', receivedValue: params.confidence, min: 0, max: 1 });
     }
     this.id = params.id;
     this.from = params.from;
@@ -206,7 +208,7 @@ export class EvidencePath {
     overallConfidence: number;
   }) {
     if (params.overallConfidence < 0 || params.overallConfidence > 1) {
-      throw new Error('EvidencePath overallConfidence must be between 0 and 1');
+      throw new ValidationError('EvidencePath overallConfidence must be between 0 and 1', { field: 'overallConfidence', receivedValue: params.overallConfidence, min: 0, max: 1 });
     }
     this.nodes = Object.freeze([...params.nodes]);
     this.edges = Object.freeze([...params.edges]);
@@ -257,10 +259,10 @@ export class TaintGraph {
     createdAt?: Date;
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('TaintGraph id cannot be empty');
+      throw new ValidationError('TaintGraph id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     if (!params.scenarioId || params.scenarioId.trim().length === 0) {
-      throw new Error('TaintGraph scenarioId cannot be empty');
+      throw new ValidationError('TaintGraph scenarioId cannot be empty', { field: 'scenarioId', receivedValue: params.scenarioId });
     }
     this.id = params.id;
     this.scenarioId = params.scenarioId;
@@ -304,15 +306,25 @@ export class TaintGraph {
 
   public addEdge(edge: TaintEdge): void {
     if (!this.nodesMap.has(edge.from)) {
-      throw new Error(`Source node ${edge.from} does not exist in graph`);
+      throw new ValidationError(`Source node does not exist in graph`, { field: 'from', missingNodeId: edge.from, edgeId: edge.id });
     }
     if (!this.nodesMap.has(edge.to)) {
-      throw new Error(`Target node ${edge.to} does not exist in graph`);
+      throw new ValidationError(`Target node does not exist in graph`, { field: 'to', missingNodeId: edge.to, edgeId: edge.id });
     }
     this.edgesMap.set(edge.id, edge);
   }
 
   public addPath(path: EvidencePath): void {
+    for (const nodeId of path.nodes) {
+      if (!this.nodesMap.has(nodeId)) {
+        throw new ValidationError(`Path references node that does not exist in graph`, { field: 'nodes', missingNodeId: nodeId });
+      }
+    }
+    for (const edgeId of path.edges) {
+      if (!this.edgesMap.has(edgeId)) {
+        throw new ValidationError(`Path references edge that does not exist in graph`, { field: 'edges', missingEdgeId: edgeId });
+      }
+    }
     this.pathsList.push(path);
   }
 
