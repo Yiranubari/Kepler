@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Scenario {
+  id            String             @id @default(cuid())
+  targetKind    String
+  targetData    Json
+  status        String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  taintGraphs   TaintGraphRecord[]
+  decisions     Decision[]
+  executionLogs ExecutionLog[]
+}
+
+model TaintGraphRecord {
+  id         String   @id @default(cuid())
+  scenarioId String
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  nodes      Json
+  edges      Json
+  paths      Json
+  createdAt  DateTime @default(now())
+
+  @@index([scenarioId])
+}
+
+model Decision {
+  id         String         @id @default(cuid())
+  scenarioId String
+  scenario   Scenario       @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  route      Json
+  evidenceId String
+  evidence   EvidenceRecord @relation(fields: [evidenceId], references: [id])
+  createdAt  DateTime       @default(now())
+
+  @@index([scenarioId])
+  @@index([evidenceId])
+}
+
+model EvidenceRecord {
+  id           String     @id @default(cuid())
+  claimType    String
+  claimText    String
+  rawDataRefs  Json
+  verification Json
+  confidence   Float?
+  riskScore    Float?
+  bundleHash   String     @unique
+  createdAt    DateTime   @default(now())
+  decisions    Decision[]
+}
+
+model ExecutionLog {
+  id           String   @id @default(cuid())
+  scenarioId   String
+  scenario     Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  protocol     String
+  status       String
+  detail       Json
+  nostrEventId String?
+  createdAt    DateTime @default(now())
+
+  @@index([scenarioId])
+}
+
+model PolicyRecord {
+  id                String   @id @default(cuid())
+  dailyBudgetSats   Int
+  perTxBudgetSats   Int
+  scopes            String[]
+  allowedMints      String[]
+  allowedRelays     String[]
+  allowedEsplora    String[]
+  updatedAt         DateTime @updatedAt
+}
+
+model NostrEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  pubkey    String
+  kind      Int
+  content   String
+  tags      Json
+  sig       String
+  relay     String
+  createdAt DateTime @default(now())
+}

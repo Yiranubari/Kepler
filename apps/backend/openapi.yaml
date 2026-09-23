@@ -1,0 +1,883 @@
+openapi: 3.1.0
+info:
+  title: Kepler API
+  version: 0.1.0
+  description: Kepler agent wallet API with cross-protocol taint analysis and proof-carrying AI decisions.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://127.0.0.1:3000
+    description: Local development server
+security:
+  - {}
+paths:
+  /api/health:
+    get:
+      summary: Health check endpoint
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/scenarios:
+    post:
+      summary: Create a new payment scenario
+      operationId: createScenario
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentTarget'
+      responses:
+        '200':
+          description: Scenario created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '400':
+          description: Invalid payment target
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List all payment scenarios
+      operationId: listScenarios
+      security: []
+      responses:
+        '200':
+          description: List of payment scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scenario'
+        '400':
+          description: Failed to retrieve scenarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/scenarios/{id}:
+    get:
+      summary: Get payment scenario by identifier
+      operationId: getScenarioById
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scenario details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '400':
+          description: Invalid scenario identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analyze:
+    post:
+      summary: Run cross-protocol taint analysis for a scenario
+      operationId: analyzeScenario
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scenarioId:
+                  type: string
+              required:
+                - scenarioId
+      responses:
+        '200':
+          description: Taint graph generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaintGraph'
+        '400':
+          description: Failed to analyze scenario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/graph/{id}:
+    get:
+      summary: Get taint graph by identifier
+      operationId: getGraphById
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Taint graph details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaintGraph'
+        '400':
+          description: Graph not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/decide:
+    post:
+      summary: Create route decision and evidence bundle for a scenario
+      operationId: decideRoute
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionRequest'
+      responses:
+        '200':
+          description: Decision and evidence created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '400':
+          description: Decision creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/evidence/verify:
+    post:
+      summary: Verify evidence bundle deterministically without AI
+      operationId: verifyEvidence
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Verification failed or invalid bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/execute:
+    post:
+      summary: Execute payment route
+      operationId: executeRoute
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '200':
+          description: Route execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteResponse'
+        '400':
+          description: Execution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/nostr/log:
+    post:
+      summary: Publish Nostr audit log event
+      operationId: logToNostr
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NostrLogRequest'
+      responses:
+        '200':
+          description: Nostr event published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NostrLogResponse'
+        '400':
+          description: Failed to publish Nostr log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/nostr/log/{id}:
+    get:
+      summary: Get Nostr audit log event by identifier
+      operationId: getNostrLogById
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Nostr event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NostrLogResponse'
+        '400':
+          description: Nostr log event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/policy:
+    get:
+      summary: Get active policy configuration
+      operationId: getPolicy
+      security: []
+      responses:
+        '200':
+          description: Active policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Failed to retrieve policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update policy configuration
+      operationId: updatePolicy
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Policy'
+      responses:
+        '200':
+          description: Updated policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Failed to update policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/policy/check:
+    post:
+      summary: Check action against policy limits and scopes
+      operationId: checkPolicy
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCheckRequest'
+      responses:
+        '200':
+          description: Policy check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyCheckResponse'
+        '400':
+          description: Invalid policy check request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    PaymentTargetKind:
+      type: string
+      enum:
+        - Lightning
+        - Bitcoin
+        - Cashu
+
+    PaymentTarget:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/PaymentTargetKind'
+        payload:
+          type: object
+          additionalProperties: true
+      required:
+        - kind
+        - payload
+
+    ScenarioStatus:
+      type: string
+      enum:
+        - Pending
+        - Analyzed
+        - Decided
+        - Executed
+        - Failed
+
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+        target:
+          $ref: '#/components/schemas/PaymentTarget'
+        status:
+          $ref: '#/components/schemas/ScenarioStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - target
+        - status
+        - createdAt
+        - updatedAt
+
+    TaintNodeType:
+      type: string
+      enum:
+        - Address
+        - Txid
+        - Invoice
+        - PaymentHash
+        - Preimage
+        - Npub
+        - EventId
+        - Mint
+        - Relay
+        - CashuToken
+
+    TaintNode:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TaintNodeType'
+        value:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      required:
+        - id
+        - type
+        - value
+        - metadata
+
+    EvidenceItem:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+            - RawData
+            - VerificationStep
+            - Correlation
+        ref:
+          type: string
+        description:
+          type: string
+        data:
+          description: Additional evidence payload
+      required:
+        - kind
+        - ref
+        - description
+
+    TaintEdge:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        relationship:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceItem'
+      required:
+        - id
+        - from
+        - to
+        - relationship
+        - confidence
+        - evidence
+
+    EvidencePath:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: string
+        edges:
+          type: array
+          items:
+            type: string
+        overallConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+      required:
+        - nodes
+        - edges
+        - overallConfidence
+
+    TaintGraph:
+      type: object
+      properties:
+        id:
+          type: string
+        scenarioId:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaintNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaintEdge'
+        paths:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidencePath'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scenarioId
+        - nodes
+        - edges
+        - paths
+        - createdAt
+
+    ClaimType:
+      type: string
+      enum:
+        - Transaction
+        - Nostr
+        - Lightning
+        - Routing
+        - Privacy
+        - Cashu
+
+    Claim:
+      type: object
+      properties:
+        text:
+          type: string
+        type:
+          $ref: '#/components/schemas/ClaimType'
+      required:
+        - text
+        - type
+
+    RawDataRef:
+      type: object
+      properties:
+        source:
+          type: string
+          enum:
+            - Bitcoin
+            - Lightning
+            - Nostr
+            - Cashu
+        ref:
+          type: string
+        payload:
+          description: Raw protocol payload
+        fetchedAt:
+          type: string
+          format: date-time
+      required:
+        - source
+        - ref
+        - payload
+        - fetchedAt
+
+    VerificationStep:
+      type: object
+      properties:
+        name:
+          type: string
+        endpoint:
+          type: string
+        input:
+          description: Verification function input
+        expected:
+          description: Expected verification outcome
+      required:
+        - name
+        - endpoint
+        - input
+        - expected
+
+    EvidenceBundle:
+      type: object
+      properties:
+        id:
+          type: string
+        claim:
+          $ref: '#/components/schemas/Claim'
+        rawDataRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RawDataRef'
+        verificationSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationStep'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 1
+        bundleHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - claim
+        - rawDataRefs
+        - verificationSteps
+        - confidence
+        - riskScore
+        - bundleHash
+        - createdAt
+
+    VerificationRequest:
+      type: object
+      properties:
+        bundleId:
+          type: string
+        bundle:
+          $ref: '#/components/schemas/EvidenceBundle'
+      required:
+        - bundleId
+
+    VerificationResponse:
+      type: object
+      properties:
+        bundleId:
+          type: string
+        isValid:
+          type: boolean
+        computedHash:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+      required:
+        - bundleId
+        - isValid
+        - computedHash
+        - verifiedAt
+
+    DecisionRequest:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+      required:
+        - scenarioId
+
+    DecisionResponse:
+      type: object
+      properties:
+        decisionId:
+          type: string
+        scenarioId:
+          type: string
+        route:
+          type: object
+          additionalProperties: true
+        evidence:
+          $ref: '#/components/schemas/EvidenceBundle'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - decisionId
+        - scenarioId
+        - route
+        - evidence
+        - createdAt
+
+    ExecuteRequest:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        decisionId:
+          type: string
+      required:
+        - scenarioId
+        - decisionId
+
+    ExecuteResponse:
+      type: object
+      properties:
+        executionId:
+          type: string
+        scenarioId:
+          type: string
+        protocol:
+          type: string
+        status:
+          type: string
+        nostrEventId:
+          type: string
+        detail:
+          type: object
+          additionalProperties: true
+        executedAt:
+          type: string
+          format: date-time
+      required:
+        - executionId
+        - scenarioId
+        - protocol
+        - status
+        - detail
+        - executedAt
+
+    PolicyScope:
+      type: string
+      enum:
+        - Read
+        - Propose
+        - Send
+        - Publish
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+        dailyBudgetSats:
+          type: integer
+          minimum: 0
+        perTxBudgetSats:
+          type: integer
+          minimum: 0
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyScope'
+        allowedMints:
+          type: array
+          items:
+            type: string
+        allowedRelays:
+          type: array
+          items:
+            type: string
+        allowedEsplora:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - dailyBudgetSats
+        - perTxBudgetSats
+        - scopes
+        - allowedMints
+        - allowedRelays
+        - allowedEsplora
+        - updatedAt
+
+    PolicyCheckRequest:
+      type: object
+      properties:
+        scope:
+          $ref: '#/components/schemas/PolicyScope'
+        amountSats:
+          type: integer
+          minimum: 0
+        spentTodaySats:
+          type: integer
+          minimum: 0
+        mint:
+          type: string
+        relay:
+          type: string
+        esplora:
+          type: string
+      required:
+        - scope
+        - amountSats
+        - spentTodaySats
+
+    PolicyCheckResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        remainingDailyBudgetSats:
+          type: integer
+      required:
+        - allowed
+        - reason
+        - remainingDailyBudgetSats
+
+    NostrLogRequest:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        decisionId:
+          type: string
+        content:
+          type: string
+      required:
+        - scenarioId
+        - decisionId
+        - content
+
+    NostrLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        pubkey:
+          type: string
+        kind:
+          type: integer
+        content:
+          type: string
+        tags:
+          type: object
+          additionalProperties: true
+        sig:
+          type: string
+        relay:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eventId
+        - pubkey
+        - kind
+        - content
+        - tags
+        - sig
+        - relay
+        - createdAt
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - timestamp
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+      required:
+        - error
+        - message
+        - statusCode
