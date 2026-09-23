@@ -1,6 +1,11 @@
-import 'dotenv/config';
+import path from 'node:path';
+import dotenv from 'dotenv';
 import { z } from 'zod';
 import { ConfigurationError } from '@kepler/shared';
+
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
 const positiveInt = z.string().transform((v, ctx) => {
   const n = Number(v);
