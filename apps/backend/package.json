@@ -9,7 +9,9 @@
     "start": "node dist/index.js",
     "test": "jest",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate dev",
+    "openapi:lint": "npx @redocly/cli lint openapi.yaml"
   },
   "dependencies": {
     "@kepler/shared": "*",
