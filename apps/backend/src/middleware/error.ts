@@ -13,6 +13,8 @@ import {
   ProtocolError,
   InternalError
 } from '@kepler/shared';
+import { getLogger } from '../services/logger';
+import { LOG_SERVICE_NAMES } from '../config/constants';
 
 function statusForError(err: KeplerError): number {
   if (err instanceof ConfigurationError) return 500;
@@ -29,12 +31,16 @@ function statusForError(err: KeplerError): number {
   return 500;
 }
 
+const httpLogger = getLogger(LOG_SERVICE_NAMES.http);
+
 export function errorMiddleware(
   err: unknown,
   _req: Request,
   res: Response,
   _next: NextFunction
 ): void {
+  res.locals.error = err;
+
   if (err instanceof KeplerError) {
     const status = statusForError(err);
     if (err instanceof RateLimitError) {
@@ -42,6 +48,7 @@ export function errorMiddleware(
       res.setHeader('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
     }
     const serialized = err.toJSON();
+    httpLogger.error(err.message, err, serialized.context);
     res.status(status).json({
       error: {
         code: serialized.code,
@@ -52,7 +59,8 @@ export function errorMiddleware(
     return;
   }
 
-  console.error(err);
+  const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+  httpLogger.error(message, err);
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',

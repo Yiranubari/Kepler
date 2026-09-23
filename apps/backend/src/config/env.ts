@@ -12,7 +12,7 @@ const positiveInt = z.string().transform((v, ctx) => {
 });
 
 const EnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']),
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),
@@ -24,7 +24,9 @@ const EnvSchema = z.object({
   RATE_LIMIT_READ_PER_MINUTE: positiveInt,
   RATE_LIMIT_PROPOSE_PER_MINUTE: positiveInt,
   RATE_LIMIT_SEND_PER_HOUR: positiveInt,
-  RATE_LIMIT_PUBLISH_PER_HOUR: positiveInt
+  RATE_LIMIT_PUBLISH_PER_HOUR: positiveInt,
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']),
+  LOG_DIR: z.string().min(1)
 });
 
 function loadEnv() {
