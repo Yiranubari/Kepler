@@ -1,3 +1,5 @@
+export * from './logger';
+
 export {
   KeplerError,
   ConfigurationError,
