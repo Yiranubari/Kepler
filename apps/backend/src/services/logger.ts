@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import winston from 'winston';
 import { ConfigurationError, KeplerError } from '@kepler/shared';
+import type { KeplerLogger as KeplerLoggerContract } from '@kepler/shared';
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 export type Environment = 'development' | 'test' | 'production';
@@ -31,7 +32,7 @@ const customColors = {
 
 winston.addColors(customColors);
 
-export class KeplerLogger {
+export class KeplerLogger implements KeplerLoggerContract {
   public readonly serviceName: string;
   protected readonly winstonLogger: winston.Logger;
 
