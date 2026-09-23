@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CanonicalJson } from './canonical';
+import { ValidationError } from './exceptions/ValidationError';
+import { ProofError } from './exceptions/ProofError';
 
 export enum ClaimType {
   Transaction = 'Transaction',
@@ -21,7 +23,7 @@ export class Claim {
 
   constructor(params: { text: string; type: ClaimType }) {
     if (!params.text || params.text.trim().length === 0) {
-      throw new Error('Claim text cannot be empty');
+      throw new ValidationError('Claim text cannot be empty', { field: 'text', receivedValue: params.text });
     }
     this.text = params.text;
     this.type = params.type;
@@ -65,7 +67,7 @@ export class RawDataRef {
     fetchedAt?: Date;
   }) {
     if (!params.ref || params.ref.trim().length === 0) {
-      throw new Error('RawDataRef ref cannot be empty');
+      throw new ValidationError('RawDataRef ref cannot be empty', { field: 'ref', receivedValue: params.ref });
     }
     this.source = params.source;
     this.ref = params.ref;
@@ -113,10 +115,10 @@ export class VerificationStep {
     expected: unknown;
   }) {
     if (!params.name || params.name.trim().length === 0) {
-      throw new Error('VerificationStep name cannot be empty');
+      throw new ValidationError('VerificationStep name cannot be empty', { field: 'name', receivedValue: params.name });
     }
     if (!params.endpoint || params.endpoint.trim().length === 0) {
-      throw new Error('VerificationStep endpoint cannot be empty');
+      throw new ValidationError('VerificationStep endpoint cannot be empty', { field: 'endpoint', receivedValue: params.endpoint });
     }
     this.name = params.name;
     this.endpoint = params.endpoint;
@@ -227,13 +229,13 @@ export class EvidenceBundle {
     createdAt?: Date;
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('EvidenceBundle id cannot be empty');
+      throw new ValidationError('EvidenceBundle id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     if (params.confidence < 0 || params.confidence > 1) {
-      throw new Error('EvidenceBundle confidence must be between 0 and 1');
+      throw new ValidationError('EvidenceBundle confidence must be between 0 and 1', { field: 'confidence', receivedValue: params.confidence, min: 0, max: 1 });
     }
     if (params.riskScore < 0 || params.riskScore > 1) {
-      throw new Error('EvidenceBundle riskScore must be between 0 and 1');
+      throw new ValidationError('EvidenceBundle riskScore must be between 0 and 1', { field: 'riskScore', receivedValue: params.riskScore, min: 0, max: 1 });
     }
     this.id = params.id;
     this.claim = params.claim;
@@ -274,11 +276,11 @@ export class EvidenceBundle {
         reason: 'Bundle hash matches computed hash'
       });
     }
-    return new ClaimVerificationResult({
-      valid: false,
-      reason: 'Bundle hash mismatch',
-      expected: this.bundleHash,
-      actual: recomputedHash
+    throw new ProofError('Evidence bundle hash mismatch — bundle may have been tampered with', {
+      claimType: this.claim.type,
+      bundleId: this.id,
+      storedHash: this.bundleHash,
+      computedHash: recomputedHash
     });
   }
 

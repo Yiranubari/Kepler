@@ -1,3 +1,5 @@
+import { ValidationError } from './exceptions/ValidationError';
+
 export enum PaymentTargetKind {
   Lightning = 'Lightning',
   Bitcoin = 'Bitcoin',
@@ -40,26 +42,26 @@ export class PaymentTarget {
     if (params.kind === PaymentTargetKind.Lightning) {
       const p = params.payload as Partial<LightningTargetPayload>;
       if (!p.invoice || typeof p.invoice !== 'string' || p.invoice.trim().length === 0) {
-        throw new Error('Lightning target requires a non-empty invoice string');
+        throw new ValidationError('Lightning target requires a non-empty invoice string', { field: 'invoice', kind: PaymentTargetKind.Lightning, receivedValue: p.invoice });
       }
       this.payload = Object.freeze({ invoice: p.invoice });
     } else if (params.kind === PaymentTargetKind.Bitcoin) {
       const p = params.payload as Partial<BitcoinTargetPayload>;
       if (!p.address || typeof p.address !== 'string' || p.address.trim().length === 0) {
-        throw new Error('Bitcoin target requires a non-empty address string');
+        throw new ValidationError('Bitcoin target requires a non-empty address string', { field: 'address', kind: PaymentTargetKind.Bitcoin, receivedValue: p.address });
       }
       if (typeof p.amountSats !== 'number' || p.amountSats <= 0) {
-        throw new Error('Bitcoin target requires a positive amountSats number');
+        throw new ValidationError('Bitcoin target requires a positive amountSats number', { field: 'amountSats', kind: PaymentTargetKind.Bitcoin, receivedValue: p.amountSats });
       }
       this.payload = Object.freeze({ address: p.address, amountSats: p.amountSats });
     } else if (params.kind === PaymentTargetKind.Cashu) {
       const p = params.payload as Partial<CashuTargetPayload>;
       if (!p.request || typeof p.request !== 'string' || p.request.trim().length === 0) {
-        throw new Error('Cashu target requires a non-empty request string');
+        throw new ValidationError('Cashu target requires a non-empty request string', { field: 'request', kind: PaymentTargetKind.Cashu, receivedValue: p.request });
       }
       this.payload = Object.freeze({ request: p.request });
     } else {
-      throw new Error(`Unsupported payment target kind: ${params.kind}`);
+      throw new ValidationError(`Unsupported payment target kind`, { field: 'kind', receivedValue: params.kind });
     }
 
     Object.freeze(this);
@@ -111,7 +113,7 @@ export class Scenario {
     updatedAt?: Date;
   }) {
     if (!params.id || params.id.trim().length === 0) {
-      throw new Error('Scenario id cannot be empty');
+      throw new ValidationError('Scenario id cannot be empty', { field: 'id', receivedValue: params.id });
     }
     this.id = params.id;
     this.target = params.target;
@@ -129,21 +131,33 @@ export class Scenario {
   }
 
   public markAnalyzed(): void {
+    if (this._status !== ScenarioStatus.Pending) {
+      throw new ValidationError('Scenario can only be marked Analyzed from Pending', { field: 'status', currentStatus: this._status, requiredStatus: ScenarioStatus.Pending, scenarioId: this.id });
+    }
     this._status = ScenarioStatus.Analyzed;
     this._updatedAt = new Date();
   }
 
   public markDecided(): void {
+    if (this._status !== ScenarioStatus.Analyzed) {
+      throw new ValidationError('Scenario can only be marked Decided from Analyzed', { field: 'status', currentStatus: this._status, requiredStatus: ScenarioStatus.Analyzed, scenarioId: this.id });
+    }
     this._status = ScenarioStatus.Decided;
     this._updatedAt = new Date();
   }
 
   public markExecuted(): void {
+    if (this._status !== ScenarioStatus.Decided) {
+      throw new ValidationError('Scenario can only be marked Executed from Decided', { field: 'status', currentStatus: this._status, requiredStatus: ScenarioStatus.Decided, scenarioId: this.id });
+    }
     this._status = ScenarioStatus.Executed;
     this._updatedAt = new Date();
   }
 
   public markFailed(): void {
+    if (this._status === ScenarioStatus.Executed) {
+      throw new ValidationError('Scenario cannot be marked Failed after Executed', { field: 'status', currentStatus: this._status, scenarioId: this.id });
+    }
     this._status = ScenarioStatus.Failed;
     this._updatedAt = new Date();
   }

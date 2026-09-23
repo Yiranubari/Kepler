@@ -1,3 +1,5 @@
+import { ValidationError } from './exceptions/ValidationError';
+
 export class CanonicalJson {
   public static stringify(value: unknown): string {
     return JSON.stringify(CanonicalJson.canonicalize(value));
@@ -9,19 +11,19 @@ export class CanonicalJson {
     }
 
     if (value === undefined) {
-      throw new Error('CanonicalJson does not support undefined values');
+      throw new ValidationError('CanonicalJson does not support undefined values', { receivedType: 'undefined' });
     }
 
     if (typeof value === 'function') {
-      throw new Error('CanonicalJson does not support function values');
+      throw new ValidationError('CanonicalJson does not support function values', { receivedType: 'function' });
     }
 
     if (typeof value === 'symbol') {
-      throw new Error('CanonicalJson does not support symbol values');
+      throw new ValidationError('CanonicalJson does not support symbol values', { receivedType: 'symbol' });
     }
 
     if (typeof value === 'bigint') {
-      throw new Error('CanonicalJson does not support BigInt values');
+      throw new ValidationError('CanonicalJson does not support BigInt values', { receivedType: 'bigint' });
     }
 
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
