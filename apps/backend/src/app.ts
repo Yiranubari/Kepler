@@ -1,14 +1,12 @@
-import express from 'express';
+import express, { Express } from 'express';
 import { env } from './config/env';
 import { RATE_LIMIT_WINDOWS_MS } from './config/constants';
 import { RateLimiter } from './services/rateLimiter';
+import { KeplerLogger } from './services/logger';
+import { requestLogger } from './middleware/requestLogger';
 import { errorMiddleware } from './middleware/error';
 
-const app = express();
-
-app.use(express.json());
-
-const limiterInstance = new RateLimiter({
+const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
   propose: { limit: env.RATE_LIMIT_PROPOSE_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.propose },
   send: { limit: env.RATE_LIMIT_SEND_PER_HOUR, windowMs: RATE_LIMIT_WINDOWS_MS.send },
@@ -16,9 +14,15 @@ const limiterInstance = new RateLimiter({
 });
 
 export function getLimiter(): RateLimiter {
-  return limiterInstance;
+  return defaultLimiterInstance;
 }
 
-app.use(errorMiddleware);
+export function createApp(limiter: RateLimiter, logger: KeplerLogger): Express {
+  const app = express();
 
-export { app };
+  app.use(requestLogger(logger));
+  app.use(express.json());
+  app.use(errorMiddleware);
+
+  return app;
+}
