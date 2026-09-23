@@ -3,7 +3,6 @@ import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Load .env values
 function loadEnv() {
   const envPath = existsSync(resolve(process.cwd(), '.env'))
     ? resolve(process.cwd(), '.env')
@@ -32,7 +31,6 @@ function curlGet(url, headers = {}, timeoutSec = 8) {
   const headerArgs = Object.entries(headers)
     .map(([k, v]) => `-H "${k}: ${v}"`)
     .join(' ');
-  // First try standard curl, then fallback with -4
   try {
     const cmd = `curl -s -S --max-time ${timeoutSec} ${headerArgs} "${url}"`;
     return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -48,7 +46,6 @@ console.log('====================================================\n');
 
 let allPassed = true;
 
-// 1. PostgreSQL
 function verifyPostgres() {
   process.stdout.write('1. PostgreSQL: ');
   const dbUrl = process.env.DATABASE_URL;
@@ -70,7 +67,6 @@ function verifyPostgres() {
   }
 }
 
-// 2. Bitcoin Esplora
 function verifyEsplora() {
   process.stdout.write('2. Bitcoin Esplora API: ');
   const endpoints = [
@@ -87,9 +83,7 @@ function verifyEsplora() {
         verified = true;
         break;
       }
-    } catch (err) {
-      // try next
-    }
+    } catch (err) {}
   }
   if (!verified) {
     console.log('❌ FAILED to reach any Esplora endpoint');
@@ -97,7 +91,6 @@ function verifyEsplora() {
   return verified;
 }
 
-// 3. Groq Cloud AI API
 function verifyGroq() {
   process.stdout.write('3. Groq Cloud AI API: ');
   const key = process.env.GROQ_API_KEY;
@@ -119,7 +112,6 @@ function verifyGroq() {
   }
 }
 
-// 4. Cashu Mint
 function verifyCashu() {
   process.stdout.write('4. Cashu Mint: ');
   const mints = [
@@ -135,9 +127,7 @@ function verifyCashu() {
       console.log(`✅ OK (${mint}) - Name: "${data.name || 'Mint'}", Pubkey: ${data.pubkey?.slice(0, 16)}...`);
       verified = true;
       break;
-    } catch (err) {
-      // try next
-    }
+    } catch (err) {}
   }
   if (!verified) {
     console.log('❌ FAILED to connect to any Cashu mint');
@@ -145,7 +135,6 @@ function verifyCashu() {
   return verified;
 }
 
-// 5. Nostr Public Relays
 function verifyNostr() {
   console.log('5. Nostr Public Relays:');
   const relays = (process.env.RELAYS || 'wss://nos.lol,wss://relay.damus.io')
@@ -169,7 +158,6 @@ function verifyNostr() {
   return successCount > 0;
 }
 
-// 6. Credentials audit
 function verifyPendingCredentials() {
   console.log('6. Wallet & Backup Status:');
   const nwc = process.env.NWC_CONNECTION_STRING;
