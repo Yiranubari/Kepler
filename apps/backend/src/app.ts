@@ -1,10 +1,20 @@
 import express, { Express } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { env } from './config/env';
 import { RATE_LIMIT_WINDOWS_MS } from './config/constants';
 import { RateLimiter } from './services/rateLimiter';
 import { KeplerLogger } from './services/logger';
 import { requestLogger } from './middleware/requestLogger';
 import { errorMiddleware } from './middleware/error';
+import {
+  TaintConfig,
+  TaintRuleRegistry,
+  TaintScorer,
+  TaintController,
+  createTaintRoutes
+} from './modules/taint';
+import { TaintRepository } from './modules/taint/taint.repository';
+import { TaintService } from './modules/taint/taint.service';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -22,6 +32,24 @@ export function createApp(limiter: RateLimiter, logger: KeplerLogger): Express {
 
   app.use(requestLogger(logger));
   app.use(express.json());
+
+  const prisma = new PrismaClient();
+  const taintConfig = TaintConfig.fromEnv();
+  const taintRegistry = new TaintRuleRegistry();
+  const taintScorer = new TaintScorer();
+  const taintRepository = new TaintRepository(prisma);
+  const taintService = new TaintService(
+    taintConfig,
+    taintRegistry,
+    taintScorer,
+    taintRepository,
+    logger
+  );
+  const taintController = new TaintController(taintService);
+  const taintRoutes = createTaintRoutes(taintController, limiter);
+
+  app.use('/api', taintRoutes);
+
   app.use(errorMiddleware);
 
   return app;

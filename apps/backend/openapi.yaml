@@ -134,19 +134,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                scenarioId:
-                  type: string
-              required:
-                - scenarioId
+              $ref: '#/components/schemas/AnalyzeRequest'
       responses:
         '200':
-          description: Taint graph generated
+          description: Taint analysis result generated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaintGraph'
+                $ref: '#/components/schemas/AnalyzeResponse'
         '400':
           description: Failed to analyze scenario
           content:
@@ -159,6 +154,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
 
   /api/graph/{id}:
     get:
@@ -178,8 +174,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaintGraph'
-        '400':
+        '404':
           description: Graph not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
@@ -190,6 +192,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
 
   /api/decide:
     post:
@@ -582,7 +585,65 @@ components:
         - edges
         - overallConfidence
 
+    AnalyzeRequest:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        ingestData:
+          $ref: '#/components/schemas/TaintIngestPayload'
+        bitcoin:
+          type: object
+        lightning:
+          type: object
+        nostr:
+          type: object
+        cashu:
+          type: object
+      required:
+        - scenarioId
+
+    TaintIngestPayload:
+      type: object
+      properties:
+        bitcoin:
+          type: object
+        lightning:
+          type: object
+        nostr:
+          type: object
+        cashu:
+          type: object
+
+    AnalyzeResponse:
+      type: object
+      properties:
+        graph:
+          $ref: '#/components/schemas/TaintGraph'
+        scenarioId:
+          type: string
+        analyzedAt:
+          type: string
+          format: date-time
+        ruleCount:
+          type: integer
+        nodeCount:
+          type: integer
+        edgeCount:
+          type: integer
+        pathCount:
+          type: integer
+      required:
+        - graph
+        - scenarioId
+        - analyzedAt
+        - ruleCount
+        - nodeCount
+        - edgeCount
+        - pathCount
+
     TaintGraph:
+
       type: object
       properties:
         id:
