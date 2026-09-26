@@ -108,7 +108,7 @@ export const TaintIngestPayloadSchema = z.object({
 });
 
 export const AnalyzeRequestSchema = z.object({
-  scenarioId: z.string().min(1),
+  scenarioId: z.string().trim().min(1),
   ingestData: TaintIngestPayloadSchema.optional(),
   bitcoin: bitcoinIngestSchema.optional(),
   lightning: lightningIngestSchema.optional(),
@@ -136,7 +136,7 @@ export const AnalyzeResponseSchema = z.object({
 });
 
 export const FindPathsRequestSchema = z.object({
-  scenarioId: z.string().min(1),
+  scenarioId: z.string().trim().min(1),
   fromNodeId: z.string().min(1),
   toNodeId: z.string().min(1),
   maxPaths: z.number().int().positive().optional()

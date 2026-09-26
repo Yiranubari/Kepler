@@ -17,6 +17,20 @@ export class TaintRepository {
     this.prisma = prisma;
   }
 
+  public async scenarioExists(scenarioId: string): Promise<boolean> {
+    const trimmedScenarioId = scenarioId ? scenarioId.trim() : '';
+    if (trimmedScenarioId.length === 0) {
+      return false;
+    }
+
+    const scenario = await this.prisma.scenario.findUnique({
+      where: { id: trimmedScenarioId },
+      select: { id: true }
+    });
+
+    return scenario !== null;
+  }
+
   public async saveGraph(
     scenarioId: string,
     result: TaintAnalysisResult
@@ -80,7 +94,13 @@ export class TaintRepository {
                     ? strongestEdge.to
                     : strongestEdge.from;
 
-                const engine = new TaintEngine(result.graph);
+                const engine = new TaintEngine(
+                  undefined,
+                  undefined,
+                  undefined,
+                  undefined,
+                  result.graph
+                );
                 const computedPaths = engine.findPaths(
                   targetNodeId,
                   strongestCorrelatedNodeId,
@@ -132,7 +152,13 @@ export class TaintRepository {
         });
       }
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const prismaCode = (error as { code?: unknown })?.code;
+      const reason =
+        prismaCode === 'P2003'
+          ? 'FOREIGN_KEY_VIOLATION'
+          : error instanceof Error
+            ? error.message
+            : String(error);
       throw new TaintPersistenceError(
         'Failed to save taint graph to database',
         {

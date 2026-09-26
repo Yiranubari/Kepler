@@ -60,49 +60,28 @@ export class TaintEngine {
   private readonly logger: KeplerLogger;
 
   constructor(
-    config: TaintConfig,
-    registry: TaintRuleRegistry,
-    scorer: TaintScorer,
-    logger: KeplerLogger
-  );
-  constructor(
     config?: TaintConfig,
     registry?: TaintRuleRegistry,
     scorer?: TaintScorer,
-    logger?: KeplerLogger
-  );
-  constructor(
-    graph: TaintGraph,
-    config?: TaintConfig,
-    scorer?: TaintScorer
-  );
-  constructor(
-    configOrGraph?: TaintConfig | TaintGraph,
-    registryOrConfig?: TaintRuleRegistry | TaintConfig,
-    scorer?: TaintScorer,
-    logger?: KeplerLogger
+    logger?: KeplerLogger,
+    graph?: TaintGraph
   ) {
-    if (configOrGraph instanceof TaintGraph) {
-      this.graph = configOrGraph;
-      this.config = registryOrConfig instanceof TaintConfig ? registryOrConfig : new TaintConfig();
-      this.registry = new TaintRuleRegistry();
-      this.scorer = scorer ?? new TaintScorer();
-      this.logger = logger ?? new DefaultNoopLogger();
-      this.scenarioId = configOrGraph.scenarioId;
-      this.ingested = new Set<string>();
+    this.config = config ?? new TaintConfig();
+    this.registry = registry ?? new TaintRuleRegistry();
+    this.scorer = scorer ?? new TaintScorer();
+    this.logger = logger ?? new DefaultNoopLogger();
+    if (graph) {
+      this.graph = graph;
+      this.scenarioId = graph.scenarioId;
     } else {
-      this.config = configOrGraph instanceof TaintConfig ? configOrGraph : new TaintConfig();
-      this.registry = registryOrConfig instanceof TaintRuleRegistry ? registryOrConfig : new TaintRuleRegistry();
-      this.scorer = scorer ?? new TaintScorer();
-      this.logger = logger ?? new DefaultNoopLogger();
       this.scenarioId = null;
       this.graph = new TaintGraph({
         id: 'graph_default',
         scenarioId: 'default',
         createdAt: new Date(0)
       });
-      this.ingested = new Set<string>();
     }
+    this.ingested = new Set<string>();
   }
 
   public getScenarioId(): string | null {

@@ -12,7 +12,8 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",
-    "openapi:lint": "npx @redocly/cli lint openapi.yaml"
+    "openapi:lint": "npx @redocly/cli lint openapi.yaml",
+    "test:schemathesis": "bash tests/schemathesis/run.sh"
   },
   "dependencies": {
     "@kepler/shared": "*",

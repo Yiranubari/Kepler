@@ -7,8 +7,8 @@ info:
     name: MIT
     identifier: MIT
 servers:
-  - url: http://127.0.0.1:3000
-    description: Local development server
+  - url: http://localhost:3000
+    description: Local development
 security:
   - {}
 paths:
@@ -148,6 +148,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: Rate limit exceeded
           content:
@@ -193,6 +199,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/paths:
+    post:
+      summary: Find evidence paths between two nodes in a scenario
+      operationId: findPaths
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindPathsRequest'
+      responses:
+        '200':
+          description: Evidence paths found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindPathsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario graph not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/decide:
     post:
@@ -584,6 +626,33 @@ components:
         - nodes
         - edges
         - overallConfidence
+
+    FindPathsRequest:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        fromNodeId:
+          type: string
+        toNodeId:
+          type: string
+        maxPaths:
+          type: integer
+          minimum: 1
+      required:
+        - scenarioId
+        - fromNodeId
+        - toNodeId
+
+    FindPathsResponse:
+      type: object
+      properties:
+        paths:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidencePath'
+      required:
+        - paths
 
     AnalyzeRequest:
       type: object
