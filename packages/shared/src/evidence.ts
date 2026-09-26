@@ -203,7 +203,7 @@ export interface EvidenceBundleJSON {
   readonly rawDataRefs: readonly RawDataRefJSON[];
   readonly verificationSteps: readonly VerificationStepJSON[];
   readonly confidence: number;
-  readonly riskScore: number;
+  readonly riskScore: number | null;
   readonly bundleHash: string;
   readonly createdAt: string;
 }
@@ -214,7 +214,7 @@ export class EvidenceBundle {
   public readonly rawDataRefs: readonly RawDataRef[];
   public readonly verificationSteps: readonly VerificationStep[];
   public readonly confidence: number;
-  public readonly riskScore: number;
+  public readonly riskScore: number | null;
   public readonly bundleHash: string;
   public readonly createdAt: Date;
 
@@ -224,7 +224,7 @@ export class EvidenceBundle {
     rawDataRefs: RawDataRef[];
     verificationSteps: VerificationStep[];
     confidence: number;
-    riskScore: number;
+    riskScore?: number | null;
     bundleHash?: string;
     createdAt?: Date;
   }) {
@@ -234,15 +234,17 @@ export class EvidenceBundle {
     if (params.confidence < 0 || params.confidence > 1) {
       throw new ValidationError('EvidenceBundle confidence must be between 0 and 1', { field: 'confidence', receivedValue: params.confidence, min: 0, max: 1 });
     }
-    if (params.riskScore < 0 || params.riskScore > 1) {
-      throw new ValidationError('EvidenceBundle riskScore must be between 0 and 1', { field: 'riskScore', receivedValue: params.riskScore, min: 0, max: 1 });
+    if (params.riskScore !== null && params.riskScore !== undefined) {
+      if (params.riskScore < 0 || params.riskScore > 1) {
+        throw new ValidationError('EvidenceBundle riskScore must be between 0 and 1', { field: 'riskScore', receivedValue: params.riskScore, min: 0, max: 1 });
+      }
     }
     this.id = params.id;
     this.claim = params.claim;
     this.rawDataRefs = Object.freeze([...params.rawDataRefs]);
     this.verificationSteps = Object.freeze([...params.verificationSteps]);
     this.confidence = params.confidence;
-    this.riskScore = params.riskScore;
+    this.riskScore = params.riskScore ?? null;
     this.createdAt = params.createdAt ?? new Date();
     this.bundleHash = params.bundleHash ?? this.computeHash();
     Object.freeze(this);
@@ -304,7 +306,7 @@ export class EvidenceBundle {
       rawDataRefs: json.rawDataRefs.map((r) => RawDataRef.fromJSON(r)),
       verificationSteps: json.verificationSteps.map((s) => VerificationStep.fromJSON(s)),
       confidence: json.confidence,
-      riskScore: json.riskScore,
+      riskScore: json.riskScore ?? null,
       bundleHash: json.bundleHash,
       createdAt: new Date(json.createdAt)
     });

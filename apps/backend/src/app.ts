@@ -15,6 +15,13 @@ import {
 } from './modules/taint';
 import { TaintRepository } from './modules/taint/taint.repository';
 import { TaintService } from './modules/taint/taint.service';
+import {
+  ProofRepository,
+  ClaimRegistry,
+  ProofService,
+  ProofController,
+  createProofRoutes
+} from './modules/proof';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -48,7 +55,14 @@ export function createApp(limiter: RateLimiter, logger: KeplerLogger): Express {
   const taintController = new TaintController(taintService);
   const taintRoutes = createTaintRoutes(taintController, limiter);
 
+  const proofRepository = new ProofRepository(prisma);
+  const proofRegistry = ClaimRegistry.createDefault();
+  const proofService = new ProofService(proofRegistry, proofRepository, logger);
+  const proofController = new ProofController(proofService);
+  const proofRoutes = createProofRoutes(proofController, limiter);
+
   app.use('/api', taintRoutes);
+  app.use('/api/proof', proofRoutes);
 
   app.use(errorMiddleware);
 
