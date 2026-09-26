@@ -10,3 +10,4 @@ coverage/
 prisma/migrations/dev.db
 kepler-prd.pdf
 AGENTS.md
+.env.test

@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { EvidenceItem, TaintEdge } from '@kepler/shared';
+import { EvidenceItem, TaintEdge, TaintGraph } from '@kepler/shared';
 import { TaintEngine } from '../../src/modules/taint/taint.engine';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
 import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
@@ -551,5 +551,24 @@ describe('TaintEngine', () => {
       const taintError = error as TaintRuleError;
       expect(taintError.context.reason).toBe('MAX_EDGES_EXCEEDED');
     }
+  });
+
+  test('constructs engine with unified Option A signature accepting graph as fifth parameter', () => {
+    const existingGraph = new TaintGraph({
+      id: 'graph_option_a',
+      scenarioId: 'scenario_option_a',
+      createdAt: new Date(1700000000000)
+    });
+    const customConfig = new TaintConfig();
+    const customRegistry = new TaintRuleRegistry();
+    const customScorer = new TaintScorer();
+    const customEngine = new TaintEngine(
+      customConfig,
+      customRegistry,
+      customScorer,
+      undefined,
+      existingGraph
+    );
+    expect(customEngine.getScenarioId()).toBe('scenario_option_a');
   });
 });

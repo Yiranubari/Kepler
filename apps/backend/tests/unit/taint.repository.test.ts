@@ -220,4 +220,21 @@ describeWithDb('TaintRepository', () => {
     const loadedAfter = await repository.getGraph(scenario3);
     expect(loadedAfter).toBeNull();
   }, 15000);
+
+  test('scenarioExists returns true for an existing scenario', async () => {
+    if (!isConnected) {
+      return;
+    }
+    const exists = await repository.scenarioExists(scenario1);
+    expect(exists).toBe(true);
+  }, 15000);
+
+  test('scenarioExists returns false for a random non-existent scenario id', async () => {
+    if (!isConnected) {
+      return;
+    }
+    const exists = await repository.scenarioExists('random_nonexistent_scenario_99999999');
+    expect(exists).toBe(false);
+  }, 15000);
 });
+

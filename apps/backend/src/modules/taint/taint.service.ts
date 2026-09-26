@@ -1,10 +1,15 @@
-import { TaintGraph, EvidencePath, KeplerLogger } from '@kepler/shared';
+import {
+  TaintGraph,
+  EvidencePath,
+  KeplerLogger,
+  NotFoundError
+} from '@kepler/shared';
 import {
   TaintConfig,
   TaintIngestPayload,
-  TaintAnalysisResult,
-  TaintRepository
+  TaintAnalysisResult
 } from './taint.types';
+import { TaintRepository } from './taint.repository';
 import { TaintRuleRegistry } from './rules/registry';
 import { TaintScorer } from './taint.scorer';
 import { TaintEngine } from './taint.engine';
@@ -43,6 +48,14 @@ export class TaintService {
     }
 
     const trimmedScenarioId = scenarioId.trim();
+    const exists = await this.repository.scenarioExists(trimmedScenarioId);
+    if (!exists) {
+      throw new NotFoundError('Scenario not found', {
+        resource: 'Scenario',
+        id: trimmedScenarioId
+      });
+    }
+
     const engine = new TaintEngine(
       this.config,
       this.registry,
@@ -69,7 +82,24 @@ export class TaintService {
     try {
       await this.repository.saveGraph(trimmedScenarioId, result);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const prismaCode =
+        (error as { code?: unknown })?.code ??
+        ((error as { cause?: unknown })?.cause as { code?: unknown })?.code;
+      const contextReason = (
+        error as { context?: { reason?: unknown } }
+      )?.context?.reason;
+      const isForeignKey =
+        prismaCode === 'P2003' ||
+        contextReason === 'FOREIGN_KEY_VIOLATION' ||
+        (typeof contextReason === 'string' &&
+          contextReason.includes('Foreign key constraint')) ||
+        (error instanceof Error &&
+          error.message.includes('Foreign key constraint'));
+      const reason = isForeignKey
+        ? 'FOREIGN_KEY_VIOLATION'
+        : error instanceof Error
+          ? error.message
+          : String(error);
       throw new TaintPersistenceError(
         'Failed to persist taint graph',
         {
@@ -90,25 +120,8 @@ export class TaintService {
     }
     const trimmed = scenarioId.trim();
     try {
-      if (typeof this.repository.getGraph === 'function') {
-        const graph = await this.repository.getGraph(trimmed);
-        return graph ?? null;
-      }
-      if (
-        typeof (
-          this.repository as {
-            getLatestGraphByScenarioId?: (id: string) => Promise<TaintGraph | null>;
-          }
-        ).getLatestGraphByScenarioId === 'function'
-      ) {
-        const graph = await (
-          this.repository as {
-            getLatestGraphByScenarioId: (id: string) => Promise<TaintGraph | null>;
-          }
-        ).getLatestGraphByScenarioId(trimmed);
-        return graph ?? null;
-      }
-      return null;
+      const graph = await this.repository.getGraph(trimmed);
+      return graph ?? null;
     } catch {
       return null;
     }
@@ -128,15 +141,21 @@ export class TaintService {
     }
 
     const trimmedScenarioId = scenarioId.trim();
-    const graph = await this.getGraph(trimmedScenarioId);
+    const graph = await this.repository.getGraph(trimmedScenarioId);
     if (!graph) {
-      throw new TaintEngineError('Graph not found for scenario', {
-        scenarioId: trimmedScenarioId,
-        reason: 'GRAPH_NOT_FOUND'
+      throw new NotFoundError('Taint graph not found', {
+        resource: 'TaintGraph',
+        id: trimmedScenarioId
       });
     }
 
-    const engine = new TaintEngine(graph, this.config, this.scorer);
+    const engine = new TaintEngine(
+      this.config,
+      this.registry,
+      this.scorer,
+      this.logger,
+      graph
+    );
     const resolvedMaxPaths = maxPaths !== undefined ? maxPaths : 5;
     return engine.findPaths(fromNodeId, toNodeId, resolvedMaxPaths);
   }

@@ -16,6 +16,14 @@ import {
 import { getLogger } from '../services/logger';
 import { LOG_SERVICE_NAMES } from '../config/constants';
 
+interface BodyParserError extends Error {
+  type: string;
+}
+
+function isBodyParserError(err: unknown): err is BodyParserError {
+  return err instanceof Error && typeof (err as { type?: unknown }).type === 'string';
+}
+
 function statusForError(err: KeplerError): number {
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
@@ -39,16 +47,42 @@ export function errorMiddleware(
   res: Response,
   _next: NextFunction
 ): void {
-  res.locals.error = err;
+  let processedError: unknown = err;
 
-  if (err instanceof KeplerError) {
-    const status = statusForError(err);
-    if (err instanceof RateLimitError) {
-      const retryAfterMs = typeof err.context['retryAfterMs'] === 'number' ? err.context['retryAfterMs'] : 0;
+  if (err instanceof SyntaxError && isBodyParserError(err) && err.type === 'entity.parse.failed') {
+    processedError = new ValidationError('Request body is not valid JSON', {
+      field: 'body',
+      reason: 'INVALID_JSON'
+    });
+  } else if (isBodyParserError(err)) {
+    if (err.type === 'entity.too.large') {
+      processedError = new ValidationError('Request entity too large', {
+        field: 'body',
+        reason: 'ENTITY_TOO_LARGE'
+      });
+    } else if (err.type === 'encoding.unsupported') {
+      processedError = new ValidationError('Unsupported content encoding', {
+        field: 'body',
+        reason: 'ENCODING_UNSUPPORTED'
+      });
+    } else if (err.type === 'charset.unsupported') {
+      processedError = new ValidationError('Unsupported charset', {
+        field: 'body',
+        reason: 'CHARSET_UNSUPPORTED'
+      });
+    }
+  }
+
+  res.locals.error = processedError;
+
+  if (processedError instanceof KeplerError) {
+    const status = statusForError(processedError);
+    if (processedError instanceof RateLimitError) {
+      const retryAfterMs = typeof processedError.context['retryAfterMs'] === 'number' ? processedError.context['retryAfterMs'] : 0;
       res.setHeader('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
     }
-    const serialized = err.toJSON();
-    httpLogger.error(err.message, err, serialized.context);
+    const serialized = processedError.toJSON();
+    httpLogger.error(processedError.message, processedError, serialized.context);
     res.status(status).json({
       error: {
         code: serialized.code,
@@ -59,8 +93,8 @@ export function errorMiddleware(
     return;
   }
 
-  const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-  httpLogger.error(message, err);
+  const message = processedError instanceof Error ? processedError.message : 'An unexpected error occurred';
+  httpLogger.error(message, processedError);
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
@@ -69,3 +103,4 @@ export function errorMiddleware(
     }
   });
 }
+

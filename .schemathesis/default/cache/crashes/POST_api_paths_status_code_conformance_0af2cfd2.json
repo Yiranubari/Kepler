@@ -1,0 +1,83 @@
+{
+  "operation": "POST /api/paths",
+  "method": "POST",
+  "path_template": "/api/paths",
+  "fingerprint": "0af2cfd2",
+  "case_id": "LCTUXu",
+  "code_sample": "curl -X POST -H 'Content-Type: application/json' -d '\"AAA\"' http://localhost:3000/api/paths",
+  "sequence": [
+    {
+      "method": "POST",
+      "url": "http://localhost:3000/api/paths",
+      "url_template": "http://localhost:3000/api/paths",
+      "headers": {
+        "User-Agent": "schemathesis/4.24.3",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "LCTUXu",
+        "Content-Type": "application/json",
+        "Content-Length": "5"
+      },
+      "response": {
+        "status_code": 500,
+        "headers": {
+          "x-powered-by": "Express",
+          "x-request-id": "09f6ee82-b65f-4ed1-afaf-2319b0f758ab",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "89",
+          "etag": "W/\"59-S7oZdlUOQYHGcmeNgq5T/UYs1eo\"",
+          "date": "Thu, 24 Sep 2026 12:25:41 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "body": "{\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"An unexpected error occurred\",\"context\":{}}}"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "status_code_conformance",
+          "status": "failure",
+          "message": "Undocumented HTTP status code\n\nReceived: 500\nDocumented: 200, 400, 404, 429"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 3.599599585868418e-05,
+          "mode": "negative"
+        },
+        "components": {
+          "BODY": "negative"
+        },
+        "phase": {
+          "name": "coverage",
+          "data": {
+            "type": "CoveragePhaseData",
+            "description": "Incorrect type",
+            "location": "/type",
+            "parameter": "application/json",
+            "parameter_location": "BODY",
+            "scenario": "incorrect_type"
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/api/paths",
+      "path_parameters": {},
+      "query": {},
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "json",
+        "value": "AAA"
+      },
+      "media_type": "application/json",
+      "parent_index": null
+    }
+  ]
+}
