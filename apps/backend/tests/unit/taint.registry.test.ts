@@ -74,12 +74,14 @@ describe('TaintRuleRegistry', () => {
   test('createDefaultRuleRegistry creates registry with default rules in specified order', () => {
     const defaultRegistry = createDefaultRuleRegistry();
     const rules = defaultRegistry.getRules();
-    expect(rules).toHaveLength(4);
+    expect(rules).toHaveLength(6);
     expect(rules.map((r) => r.name)).toEqual([
       'published_by',
       'same_payment_hash',
       'same_preimage',
-      'temporal_window'
+      'temporal_window',
+      'shared_mint',
+      'cashu_quote_invoice'
     ]);
   });
 });

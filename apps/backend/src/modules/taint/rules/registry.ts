@@ -4,6 +4,8 @@ import { PublishedByRule } from './publishedBy.rule';
 import { SamePaymentHashRule } from './samePaymentHash.rule';
 import { SamePreimageRule } from './samePreimage.rule';
 import { TemporalWindowRule } from './temporalWindow.rule';
+import { SharedMintRule } from './sharedMint.rule';
+import { CashuQuoteInvoiceRule } from './cashuQuoteInvoice.rule';
 
 export class TaintRuleRegistry {
   private readonly rulesMap: Map<string, TaintRule>;
@@ -49,5 +51,7 @@ export function createDefaultRuleRegistry(): TaintRuleRegistry {
   registry.register(new SamePaymentHashRule());
   registry.register(new SamePreimageRule());
   registry.register(new TemporalWindowRule());
+  registry.register(new SharedMintRule());
+  registry.register(new CashuQuoteInvoiceRule());
   return registry;
 }

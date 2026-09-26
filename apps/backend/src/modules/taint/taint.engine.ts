@@ -77,8 +77,7 @@ export class TaintEngine {
       this.scenarioId = null;
       this.graph = new TaintGraph({
         id: 'graph_default',
-        scenarioId: 'default',
-        createdAt: new Date(0)
+        scenarioId: 'default'
       });
     }
     this.ingested = new Set<string>();
@@ -116,8 +115,7 @@ export class TaintEngine {
     this.ingested.clear();
     this.graph = new TaintGraph({
       id: 'graph_default',
-      scenarioId: 'default',
-      createdAt: new Date(0)
+      scenarioId: 'default'
     });
   }
 
@@ -396,6 +394,8 @@ export class TaintEngine {
       this.ingested.add(recordHash);
     }
 
+    const extractedQuoteHashes: string[] = [];
+
     for (const quote of data.quotes) {
       const recordHash = this.hashRecord('CASHU:QUOTE', quote);
       if (this.ingested.has(recordHash)) {
@@ -403,6 +403,11 @@ export class TaintEngine {
       }
 
       if (quote.request && quote.request.trim().length > 0) {
+        const hexMatch = quote.request.match(/[0-9a-f]{64}/);
+        if (hexMatch) {
+          extractedQuoteHashes.push(hexMatch[0].toLowerCase());
+        }
+
         const invoiceNode = this.createNode(
           TaintNodeType.Invoice,
           quote.request,
@@ -418,6 +423,31 @@ export class TaintEngine {
       }
 
       this.ingested.add(recordHash);
+    }
+
+    if (extractedQuoteHashes.length > 0) {
+      const sortedUnique = Array.from(new Set(extractedQuoteHashes)).sort();
+      for (const node of this.graph.nodes) {
+        if (node.type === TaintNodeType.Mint) {
+          const existingHashes =
+            node.metadata && Array.isArray(node.metadata.quoteHashes)
+              ? (node.metadata.quoteHashes as string[])
+              : [];
+          const merged = Array.from(
+            new Set([...existingHashes, ...sortedUnique])
+          ).sort();
+          const updated = new TaintNode({
+            id: node.id,
+            type: node.type,
+            value: node.value,
+            metadata: {
+              ...node.metadata,
+              quoteHashes: merged
+            }
+          });
+          this.graph.addNode(updated);
+        }
+      }
     }
   }
 
@@ -537,70 +567,25 @@ export class TaintEngine {
       ].slice(0, maxPaths);
     }
 
-    const adjacency = new Map<string, EdgeHop[]>();
-    for (const edge of this.graph.edges) {
-      if (this.scorer.aboveThreshold(edge.confidence, this.config)) {
-        const fromHops = adjacency.get(edge.from) ?? [];
-        fromHops.push({ neighborNodeId: edge.to, edge });
-        adjacency.set(edge.from, fromHops);
-
-        const toHops = adjacency.get(edge.to) ?? [];
-        toHops.push({ neighborNodeId: edge.from, edge });
-        adjacency.set(edge.to, toHops);
-      }
-    }
-
-    let currentLevel: PathQueueItem[] = [
-      {
-        currentNodeId: fromNodeId,
-        nodes: [fromNodeId],
-        edges: []
-      }
-    ];
-
-    const collectedPaths: EvidencePath[] = [];
-
-    for (let depth = 1; depth <= this.config.maxPathDepth; depth++) {
-      const nextLevel: PathQueueItem[] = [];
-
-      for (const item of currentLevel) {
-        const hops = adjacency.get(item.currentNodeId) ?? [];
-        for (const hop of hops) {
-          if (item.nodes.includes(hop.neighborNodeId)) {
-            continue;
-          }
-
-          const nextNodes = [...item.nodes, hop.neighborNodeId];
-          const nextEdges = [...item.edges, hop.edge];
-
-          if (hop.neighborNodeId === toNodeId) {
-            const overallConfidence = this.scorer.scorePath(nextEdges);
-            collectedPaths.push(
-              new EvidencePath({
-                nodes: nextNodes,
-                edges: nextEdges.map((e) => e.id),
-                overallConfidence
-              })
-            );
-          } else {
-            nextLevel.push({
-              currentNodeId: hop.neighborNodeId,
-              nodes: nextNodes,
-              edges: nextEdges
-            });
-          }
+    const collectedPaths = this.traversePaths(
+      fromNodeId,
+      this.config.maxPathDepth,
+      (item) => {
+        if (item.currentNodeId === toNodeId) {
+          const overallConfidence = this.scorer.scorePath(item.edges as TaintEdge[]);
+          return {
+            collect: new EvidencePath({
+              nodes: [...item.nodes],
+              edges: item.edges.map((e) => e.id),
+              overallConfidence
+            }),
+            continueSearch: false
+          };
         }
-      }
-
-      if (collectedPaths.length >= maxPaths) {
-        break;
-      }
-
-      currentLevel = nextLevel;
-      if (currentLevel.length === 0) {
-        break;
-      }
-    }
+        return { continueSearch: true };
+      },
+      maxPaths
+    );
 
     collectedPaths.sort((a, b) => {
       if (a.edges.length !== b.edges.length) {
@@ -615,6 +600,140 @@ export class TaintEngine {
     });
 
     return collectedPaths.slice(0, maxPaths);
+  }
+
+  public findTopPaths(
+    startNodeId: string,
+    maxPaths: number = 5,
+    maxDepth: number = 5
+  ): EvidencePath[] {
+    const startNode = this.graph.getNode(startNodeId);
+    if (!startNode) {
+      throw new TaintPathError('Node not found in graph', {
+        from: startNodeId,
+        to: '',
+        reason: 'NODE_NOT_FOUND'
+      });
+    }
+
+    if (maxPaths <= 0 || maxDepth <= 0) {
+      return [];
+    }
+
+    const collectedPaths = this.traversePaths(
+      startNodeId,
+      maxDepth,
+      (item) => {
+        const candidateNode = this.graph.getNode(item.currentNodeId);
+        let collect: EvidencePath | undefined;
+        if (candidateNode && candidateNode.type !== startNode.type) {
+          const overallConfidence = this.scorer.scorePath(item.edges as TaintEdge[]);
+          collect = new EvidencePath({
+            nodes: [...item.nodes],
+            edges: item.edges.map((e) => e.id),
+            overallConfidence
+          });
+        }
+        return {
+          collect,
+          continueSearch: true
+        };
+      }
+    );
+
+    collectedPaths.sort((a, b) => {
+      if (b.overallConfidence !== a.overallConfidence) {
+        return b.overallConfidence - a.overallConfidence;
+      }
+      if (a.edges.length !== b.edges.length) {
+        return a.edges.length - b.edges.length;
+      }
+      const keyA = a.nodes.join('|');
+      const keyB = b.nodes.join('|');
+      return keyA.localeCompare(keyB);
+    });
+
+    return collectedPaths.slice(0, maxPaths);
+  }
+
+  private buildAdjacency(): Map<string, EdgeHop[]> {
+    const adjacency = new Map<string, EdgeHop[]>();
+    for (const edge of this.graph.edges) {
+      if (this.scorer.aboveThreshold(edge.confidence, this.config)) {
+        const fromHops = adjacency.get(edge.from) ?? [];
+        fromHops.push({ neighborNodeId: edge.to, edge });
+        adjacency.set(edge.from, fromHops);
+
+        const toHops = adjacency.get(edge.to) ?? [];
+        toHops.push({ neighborNodeId: edge.from, edge });
+        adjacency.set(edge.to, toHops);
+      }
+    }
+    return adjacency;
+  }
+
+  private traversePaths(
+    startNodeId: string,
+    maxDepth: number,
+    onVisit: (item: PathQueueItem) => {
+      collect?: EvidencePath;
+      continueSearch: boolean;
+    },
+    earlyExitCount?: number
+  ): EvidencePath[] {
+    const adjacency = this.buildAdjacency();
+    let currentLevel: PathQueueItem[] = [
+      {
+        currentNodeId: startNodeId,
+        nodes: [startNodeId],
+        edges: []
+      }
+    ];
+
+    const collectedPaths: EvidencePath[] = [];
+
+    for (let depth = 1; depth <= maxDepth; depth++) {
+      const nextLevel: PathQueueItem[] = [];
+
+      for (const item of currentLevel) {
+        const hops = adjacency.get(item.currentNodeId) ?? [];
+        for (const hop of hops) {
+          if (item.nodes.includes(hop.neighborNodeId)) {
+            continue;
+          }
+
+          const nextNodes = [...item.nodes, hop.neighborNodeId];
+          const nextEdges = [...item.edges, hop.edge];
+          const nextItem: PathQueueItem = {
+            currentNodeId: hop.neighborNodeId,
+            nodes: nextNodes,
+            edges: nextEdges
+          };
+
+          const visitResult = onVisit(nextItem);
+          if (visitResult.collect) {
+            collectedPaths.push(visitResult.collect);
+          }
+          if (visitResult.continueSearch) {
+            nextLevel.push(nextItem);
+          }
+        }
+      }
+
+      if (
+        earlyExitCount !== undefined &&
+        collectedPaths.length >= earlyExitCount
+      ) {
+        break;
+      }
+
+      currentLevel = nextLevel;
+      if (currentLevel.length === 0) {
+        break;
+      }
+    }
+
+    return collectedPaths;
   }
 
   private ensureScenarioId(data?: unknown): void {
@@ -643,10 +762,7 @@ export class TaintEngine {
   private addOrMergeNode(node: TaintNode, protocol: string): void {
     const existing = this.graph.getNode(node.id);
     if (existing) {
-      const mergedMetadata: Record<string, unknown> = {
-        ...node.metadata,
-        ...existing.metadata
-      };
+      const mergedMetadata = this.mergeMetadata(existing.metadata, node.metadata);
       const updated = new TaintNode({
         id: existing.id,
         type: existing.type,
@@ -664,6 +780,100 @@ export class TaintEngine {
       });
     }
     this.graph.addNode(node);
+  }
+
+  private mergeMetadata(
+    existing: Record<string, unknown>,
+    incoming: Record<string, unknown>
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    const allKeys = new Set([...Object.keys(incoming), ...Object.keys(existing)]);
+
+    for (const key of allKeys) {
+      const hasExisting = key in existing;
+      const hasIncoming = key in incoming;
+
+      if (hasExisting && !hasIncoming) {
+        result[key] = existing[key];
+        continue;
+      }
+      if (!hasExisting && hasIncoming) {
+        result[key] = incoming[key];
+        continue;
+      }
+
+      const existingVal = existing[key];
+      const incomingVal = incoming[key];
+
+      const existingIsArr = Array.isArray(existingVal);
+      const incomingIsArr = Array.isArray(incomingVal);
+
+      if (existingIsArr && incomingIsArr) {
+        result[key] = this.unionArrays(existingVal, incomingVal);
+      } else if (existingIsArr) {
+        result[key] = existingVal;
+      } else if (incomingIsArr) {
+        result[key] = incomingVal;
+      } else if (
+        existingVal !== null &&
+        typeof existingVal === 'object' &&
+        incomingVal !== null &&
+        typeof incomingVal === 'object'
+      ) {
+        result[key] = {
+          ...(incomingVal as Record<string, unknown>),
+          ...(existingVal as Record<string, unknown>)
+        };
+      } else {
+        result[key] = existingVal !== undefined ? existingVal : incomingVal;
+      }
+    }
+
+    return result;
+  }
+
+  private unionArrays(
+    first: readonly unknown[],
+    second: readonly unknown[]
+  ): unknown[] {
+    const combined = [...first, ...second];
+    const primitiveSet = new Set<unknown>();
+    const nonPrimitives: unknown[] = [];
+    let allStrings = true;
+    let allNumbers = true;
+
+    for (const item of combined) {
+      if (item !== null && typeof item === 'object') {
+        allStrings = false;
+        allNumbers = false;
+        nonPrimitives.push(item);
+      } else {
+        if (typeof item !== 'string') {
+          allStrings = false;
+        }
+        if (typeof item !== 'number') {
+          allNumbers = false;
+        }
+        primitiveSet.add(item);
+      }
+    }
+
+    const uniquePrimitives = Array.from(primitiveSet);
+    const allStringOrNumber = uniquePrimitives.every(
+      (item) => typeof item === 'string' || typeof item === 'number'
+    );
+
+    if (allStringOrNumber && nonPrimitives.length === 0) {
+      if (allStrings) {
+        return (uniquePrimitives as string[]).sort((a, b) => a.localeCompare(b));
+      }
+      if (allNumbers) {
+        return (uniquePrimitives as number[]).sort((a, b) => a - b);
+      }
+      return uniquePrimitives.sort((a, b) => String(a).localeCompare(String(b)));
+    }
+
+    return [...uniquePrimitives, ...nonPrimitives];
   }
 
   private mergeEvidence(

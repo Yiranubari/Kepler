@@ -4,7 +4,7 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.20s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.19s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
@@ -20,20 +20,20 @@ Schemathesis v4.24.3
                                                                                 
      ⏭  3 skipped                                                               
 
- ✅  Coverage (in 2.72s)                                                        
+ ✅  Coverage (in 2.57s)                                                        
                                                                                 
      ✅ 3 passed                                                                
 
- ✅  Fuzzing (in 56.86s)                                                        
+ ✅  Fuzzing (in 58.58s)                                                        
                                                                                 
      ✅ 3 passed                                                                
 
- ✅  Stateful (in 63.06s)                                                       
+ ✅  Stateful (in 77.03s)                                                       
 
-     Scenarios:    126                                                          
+     Scenarios:    115                                                          
      API Links:    0 covered / 1 selected / 1 total (1 inferred)                
 
-     ✅ 126 passed                                                              
+     ✅ 115 passed                                                              
 
 =================================== WARNINGS ===================================
 
@@ -69,11 +69,11 @@ Warnings:
   ⚠️ Schema validation mismatch: 2 operations mostly rejected generated data
 
 Test cases:
-  919 generated, 919 passed, 1 skipped
+  899 generated, 899 passed, 1 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 99373965720959961248986362347081973040
+Seed: 156814324492480467352058505835422259757
 
-============================ 2 warnings in 122.83s =============================
+============================ 2 warnings in 138.36s =============================

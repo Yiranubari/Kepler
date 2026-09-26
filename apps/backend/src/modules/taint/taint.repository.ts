@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, Scenario } from '@prisma/client';
 import {
   TaintGraph,
   TaintNodeJSON,
@@ -7,7 +7,6 @@ import {
   TaintNodeType
 } from '@kepler/shared';
 import { TaintAnalysisResult } from './taint.types';
-import { TaintEngine } from './taint.engine';
 import { TaintPersistenceError } from './taint.errors';
 
 export class TaintRepository {
@@ -31,6 +30,17 @@ export class TaintRepository {
     return scenario !== null;
   }
 
+  public async getScenario(scenarioId: string): Promise<Scenario | null> {
+    const trimmedScenarioId = scenarioId ? scenarioId.trim() : '';
+    if (trimmedScenarioId.length === 0) {
+      return null;
+    }
+
+    return this.prisma.scenario.findUnique({
+      where: { id: trimmedScenarioId }
+    });
+  }
+
   public async saveGraph(
     scenarioId: string,
     result: TaintAnalysisResult
@@ -38,91 +48,14 @@ export class TaintRepository {
     const trimmedScenarioId = scenarioId.trim();
 
     try {
-      let pathsToPersist: EvidencePathJSON[] = result.graph.paths.map((p) =>
-        p.toJSON()
-      );
-
-      if (pathsToPersist.length === 0) {
-        try {
-          const scenario = await this.prisma.scenario.findUnique({
-            where: { id: trimmedScenarioId }
-          });
-
-          if (
-            scenario &&
-            scenario.targetData &&
-            typeof scenario.targetData === 'object'
-          ) {
-            const targetData = scenario.targetData as Record<string, unknown>;
-            let targetNodeId: string | null = null;
-
-            if (
-              typeof targetData['address'] === 'string' &&
-              targetData['address'].trim().length > 0
-            ) {
-              const addr = targetData['address'].trim();
-              const lower = addr.toLowerCase();
-              const normalized =
-                lower.startsWith('bc1') ||
-                lower.startsWith('tb1') ||
-                lower.startsWith('bcrt1')
-                  ? lower
-                  : addr;
-              targetNodeId = `address:${normalized}`;
-            } else if (
-              typeof targetData['invoice'] === 'string' &&
-              targetData['invoice'].trim().length > 0
-            ) {
-              targetNodeId = `invoice:${targetData['invoice'].trim().toLowerCase()}`;
-            } else if (
-              typeof targetData['request'] === 'string' &&
-              targetData['request'].trim().length > 0
-            ) {
-              targetNodeId = `invoice:${targetData['request'].trim().toLowerCase()}`;
-            }
-
-            if (targetNodeId && result.graph.getNode(targetNodeId)) {
-              const connectedEdges = result.graph.edges.filter(
-                (e) => e.from === targetNodeId || e.to === targetNodeId
-              );
-
-              if (connectedEdges.length > 0) {
-                connectedEdges.sort((a, b) => b.confidence - a.confidence);
-                const strongestEdge = connectedEdges[0];
-                const strongestCorrelatedNodeId =
-                  strongestEdge.from === targetNodeId
-                    ? strongestEdge.to
-                    : strongestEdge.from;
-
-                const engine = new TaintEngine(
-                  undefined,
-                  undefined,
-                  undefined,
-                  undefined,
-                  result.graph
-                );
-                const computedPaths = engine.findPaths(
-                  targetNodeId,
-                  strongestCorrelatedNodeId,
-                  5
-                );
-                pathsToPersist = computedPaths.map((p) => p.toJSON());
-              }
-            }
-          }
-        } catch {
-          pathsToPersist = [];
-        }
-      }
-
       const serializedNodes = result.graph.nodes.map((n) =>
         this.serializeNode(n.toJSON())
       );
       const serializedEdges = result.graph.edges.map((e) =>
         this.serializeValue(e.toJSON())
       );
-      const serializedPaths = pathsToPersist.map((p) =>
-        this.serializeValue(p)
+      const serializedPaths = result.graph.paths.map((p) =>
+        this.serializeValue(p.toJSON())
       );
 
       const existing = await this.prisma.taintGraphRecord.findFirst({

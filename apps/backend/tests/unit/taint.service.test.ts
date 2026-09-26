@@ -3,7 +3,10 @@ import { NotFoundError } from '@kepler/shared';
 import { TaintService } from '../../src/modules/taint/taint.service';
 import { TaintRepository } from '../../src/modules/taint/taint.repository';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
-import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
+import {
+  TaintRuleRegistry,
+  createDefaultRuleRegistry
+} from '../../src/modules/taint/rules/registry';
 import { TaintScorer } from '../../src/modules/taint/taint.scorer';
 import { TaintPersistenceError } from '../../src/modules/taint/taint.errors';
 import { getLogger } from '../../src/services/logger';
@@ -42,13 +45,15 @@ describeWithDb('TaintService', () => {
 
   const scenarioExisting = 'test_service_scenario_existing';
   const scenarioRace = 'test_service_scenario_race';
+  const scenarioMatched = 'test_service_scenario_matched';
+  const scenarioNoMatch = 'test_service_scenario_nomatch';
 
   beforeAll(async () => {
     try {
       prisma = new PrismaClient();
       await prisma.$connect();
       config = TaintConfig.fromEnv();
-      registry = new TaintRuleRegistry();
+      registry = createDefaultRuleRegistry();
       scorer = new TaintScorer();
 
       await prisma.scenario.upsert({
@@ -64,8 +69,38 @@ describeWithDb('TaintService', () => {
         update: {}
       });
 
+      await prisma.scenario.upsert({
+        where: { id: scenarioMatched },
+        create: {
+          id: scenarioMatched,
+          targetKind: 'LIGHTNING',
+          targetData: {
+            invoice: 'lnbc10u1pj8testserviceinvoice0000000000000000000000000000000000000'
+          },
+          status: 'ACTIVE'
+        },
+        update: {}
+      });
+
+      await prisma.scenario.upsert({
+        where: { id: scenarioNoMatch },
+        create: {
+          id: scenarioNoMatch,
+          targetKind: 'LIGHTNING',
+          targetData: {
+            invoice: 'lnbc999unmatchedinvoicenotfoundinanyingest00000000000000000000000'
+          },
+          status: 'ACTIVE'
+        },
+        update: {}
+      });
+
       await prisma.taintGraphRecord.deleteMany({
-        where: { scenarioId: scenarioExisting }
+        where: {
+          scenarioId: {
+            in: [scenarioExisting, scenarioMatched, scenarioNoMatch]
+          }
+        }
       });
 
       isConnected = true;
@@ -80,10 +115,28 @@ describeWithDb('TaintService', () => {
     }
     try {
       await prisma.taintGraphRecord.deleteMany({
-        where: { scenarioId: { in: [scenarioExisting, scenarioRace] } }
+        where: {
+          scenarioId: {
+            in: [
+              scenarioExisting,
+              scenarioRace,
+              scenarioMatched,
+              scenarioNoMatch
+            ]
+          }
+        }
       });
       await prisma.scenario.deleteMany({
-        where: { id: { in: [scenarioExisting, scenarioRace] } }
+        where: {
+          id: {
+            in: [
+              scenarioExisting,
+              scenarioRace,
+              scenarioMatched,
+              scenarioNoMatch
+            ]
+          }
+        }
       });
       await prisma.$disconnect();
     } catch {
@@ -238,5 +291,95 @@ describeWithDb('TaintService', () => {
     expect(persistenceError.context['reason']).toBe('FOREIGN_KEY_VIOLATION');
     expect(persistenceError.context['scenarioId']).toBe(scenarioRace);
     expect(persistenceError.context['operation']).toBe('saveGraph');
+  }, 20000);
+
+  test('analyze with a scenario whose targetData matches a graph node populates paths', async () => {
+    if (!isConnected) {
+      return;
+    }
+    const repo = new TaintRepository(prisma);
+    const logger = getLogger(LOG_SERVICE_NAMES.taint);
+    const service = new TaintService(config, registry, scorer, repo, logger);
+
+    const bolt11 = 'lnbc10u1pj8testserviceinvoice0000000000000000000000000000000000000';
+    const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const preimage = '1111111111111111111111111111111111111111111111111111111111111111';
+    const pubkey = '4646ae5047316b4230d0086c8acec687f00b1cd9d1dc634f6cb358ac0a9a8fff';
+    const eventId = '0000000000000000000000000000000000000000000000000000000000000001';
+
+    const ingestPayload = {
+      lightning: {
+        invoices: [
+          {
+            bolt11,
+            paymentHash,
+            preimage,
+            amountMsat: BigInt(1000000),
+            createdAt: 1700000000,
+            expiresAt: 1700003600,
+            payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+          }
+        ]
+      },
+      nostr: {
+        events: [
+          {
+            id: eventId,
+            pubkey,
+            kind: 1,
+            tags: [],
+            content: `Payment invoice for test`,
+            createdAt: 1700001000
+          }
+        ]
+      }
+    };
+
+    const result = await service.analyze(scenarioMatched, ingestPayload);
+    expect(result.graph.paths.length).toBeGreaterThan(0);
+    expect(result.pathCount).toBeGreaterThan(0);
+    expect(result.pathCount).toBe(result.graph.paths.length);
+  }, 20000);
+
+  test('analyze with a scenario whose targetData does not match any graph node produces empty paths and does not throw', async () => {
+    if (!isConnected) {
+      return;
+    }
+    const repo = new TaintRepository(prisma);
+    const logger = getLogger(LOG_SERVICE_NAMES.taint);
+    const service = new TaintService(config, registry, scorer, repo, logger);
+
+    const ingestPayload = {
+      lightning: {
+        invoices: [
+          {
+            bolt11: 'lnbc10u1pj8otherinvoice0000000000000000000000000000000000000000000000',
+            paymentHash: '1111111111111111111111111111111111111111111111111111111111111111',
+            preimage: null,
+            amountMsat: BigInt(1000000),
+            createdAt: 1700000000,
+            expiresAt: 1700003600,
+            payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+          }
+        ]
+      }
+    };
+
+    const result = await service.analyze(scenarioNoMatch, ingestPayload);
+    expect(result.graph.paths.length).toBe(0);
+    expect(result.pathCount).toBe(0);
+  }, 20000);
+
+  test('analyze persists paths and getGraph returns them', async () => {
+    if (!isConnected) {
+      return;
+    }
+    const repo = new TaintRepository(prisma);
+    const logger = getLogger(LOG_SERVICE_NAMES.taint);
+    const service = new TaintService(config, registry, scorer, repo, logger);
+
+    const graph = await service.getGraph(scenarioMatched);
+    expect(graph).not.toBeNull();
+    expect(graph!.paths.length).toBeGreaterThan(0);
   }, 20000);
 });
