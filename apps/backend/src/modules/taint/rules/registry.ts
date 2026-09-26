@@ -1,5 +1,6 @@
 import { TaintRule } from './rule.interface';
 import { TaintRuleError } from '../taint.errors';
+import { SamePaymentHashRule } from './samePaymentHash.rule';
 
 export class TaintRuleRegistry {
   private readonly rulesMap: Map<string, TaintRule>;
@@ -37,4 +38,10 @@ export class TaintRuleRegistry {
     this.rulesMap.clear();
     this.rulesList.length = 0;
   }
+}
+
+export function createDefaultRuleRegistry(): TaintRuleRegistry {
+  const registry = new TaintRuleRegistry();
+  registry.register(new SamePaymentHashRule());
+  return registry;
 }

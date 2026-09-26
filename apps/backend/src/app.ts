@@ -8,7 +8,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { errorMiddleware } from './middleware/error';
 import {
   TaintConfig,
-  TaintRuleRegistry,
+  createDefaultRuleRegistry,
   TaintScorer,
   TaintController,
   createTaintRoutes
@@ -35,7 +35,7 @@ export function createApp(limiter: RateLimiter, logger: KeplerLogger): Express {
 
   const prisma = new PrismaClient();
   const taintConfig = TaintConfig.fromEnv();
-  const taintRegistry = new TaintRuleRegistry();
+  const taintRegistry = createDefaultRuleRegistry();
   const taintScorer = new TaintScorer();
   const taintRepository = new TaintRepository(prisma);
   const taintService = new TaintService(

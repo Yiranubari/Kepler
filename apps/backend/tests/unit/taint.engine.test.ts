@@ -3,6 +3,7 @@ import { EvidenceItem, TaintEdge, TaintGraph } from '@kepler/shared';
 import { TaintEngine } from '../../src/modules/taint/taint.engine';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
 import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
+import { SamePaymentHashRule } from '../../src/modules/taint/rules/samePaymentHash.rule';
 import { TaintScorer } from '../../src/modules/taint/taint.scorer';
 import {
   TaintRule,
@@ -571,4 +572,48 @@ describe('TaintEngine', () => {
     );
     expect(customEngine.getScenarioId()).toBe('scenario_option_a');
   });
+
+  test('end-to-end cross-protocol correlation emits SAME_PAYMENT_HASH edge between lightning invoice and nostr event', () => {
+    registry.register(new SamePaymentHashRule());
+    const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const eventId = '0000000000000000000000000000000000000000000000000000000000000001';
+
+    engine.ingestLightning({
+      invoices: [
+        {
+          bolt11: 'lnbc10u1pj8testinvoice0000000000000000000000000000000000000000000000',
+          paymentHash,
+          preimage: 'preimage000000000000000000000000000000000000000000000000000000000',
+          amountMsat: BigInt(1000000),
+          createdAt: 1700000000,
+          expiresAt: 1700003600,
+          payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+        }
+      ]
+    });
+
+    engine.ingestNostr({
+      events: [
+        {
+          id: eventId,
+          pubkey: '020000000000000000000000000000000000000000000000000000000000000002',
+          kind: 1,
+          tags: [],
+          content: `Payment received with payment hash ${paymentHash} settled`,
+          createdAt: 1700001000
+        }
+      ]
+    });
+
+    const result = engine.analyze();
+    const edges = result.graph.edges.filter((edge) => edge.relationship === 'SAME_PAYMENT_HASH');
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0].from).toBe(`payment_hash:${paymentHash}`);
+    expect(edges[0].to).toBe(`event_id:${eventId}`);
+    expect(edges[0].confidence).toBe(1.0);
+    expect(edges[0].evidence).toHaveLength(1);
+    expect(edges[0].evidence[0].ref).toBe(eventId);
+  });
 });
+

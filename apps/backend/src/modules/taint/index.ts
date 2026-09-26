@@ -12,7 +12,8 @@ export type {
   TaintRepository
 } from './taint.types';
 export { TaintScorer } from './taint.scorer';
-export { TaintRuleRegistry } from './rules/registry';
+export { TaintRuleRegistry, createDefaultRuleRegistry } from './rules/registry';
+export { SamePaymentHashRule } from './rules/samePaymentHash.rule';
 export { TaintController } from './taint.controller';
 export { createTaintRoutes } from './taint.routes';
 export {
