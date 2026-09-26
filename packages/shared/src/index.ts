@@ -28,6 +28,7 @@ export {
   EvidenceItem,
   TaintNodeJSON,
   TaintNode,
+  EdgeDraft,
   TaintEdgeJSON,
   TaintEdge,
   EvidencePathJSON,

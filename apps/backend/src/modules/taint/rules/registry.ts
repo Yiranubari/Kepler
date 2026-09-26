@@ -1,6 +1,9 @@
 import { TaintRule } from './rule.interface';
 import { TaintRuleError } from '../taint.errors';
+import { PublishedByRule } from './publishedBy.rule';
 import { SamePaymentHashRule } from './samePaymentHash.rule';
+import { SamePreimageRule } from './samePreimage.rule';
+import { TemporalWindowRule } from './temporalWindow.rule';
 
 export class TaintRuleRegistry {
   private readonly rulesMap: Map<string, TaintRule>;
@@ -42,6 +45,9 @@ export class TaintRuleRegistry {
 
 export function createDefaultRuleRegistry(): TaintRuleRegistry {
   const registry = new TaintRuleRegistry();
+  registry.register(new PublishedByRule());
   registry.register(new SamePaymentHashRule());
+  registry.register(new SamePreimageRule());
+  registry.register(new TemporalWindowRule());
   return registry;
 }

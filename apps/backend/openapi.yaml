@@ -536,7 +536,7 @@ components:
         - Invoice
         - PaymentHash
         - Preimage
-        - Npub
+        - Pubkey
         - EventId
         - Mint
         - Relay
@@ -632,10 +632,13 @@ components:
       properties:
         scenarioId:
           type: string
+          pattern: '^[^\u0000-\u001F\u007F]+$'
         fromNodeId:
           type: string
+          pattern: '^[^\u0000-\u001F\u007F]+$'
         toNodeId:
           type: string
+          pattern: '^[^\u0000-\u001F\u007F]+$'
         maxPaths:
           type: integer
           minimum: 1
@@ -659,6 +662,7 @@ components:
       properties:
         scenarioId:
           type: string
+          pattern: '^[^\u0000-\u001F\u007F]+$'
         ingestData:
           $ref: '#/components/schemas/TaintIngestPayload'
         bitcoin:

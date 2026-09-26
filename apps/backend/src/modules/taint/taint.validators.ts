@@ -1,13 +1,21 @@
 import { z } from 'zod';
 
+export const IdentifierString = z
+  .string()
+  .min(1)
+  .max(256)
+  .refine((value) => !/[\u0000-\u001F\u007F]/.test(value), {
+    message: 'Identifier must not contain control characters'
+  });
+
 export const bitcoinTransactionInputSchema = z.object({
-  txid: z.string().min(1),
+  txid: IdentifierString,
   vout: z.number().int().nonnegative(),
-  address: z.string().nullable()
+  address: IdentifierString.nullable()
 });
 
 export const bitcoinTransactionOutputSchema = z.object({
-  address: z.string().nullable(),
+  address: IdentifierString.nullable(),
   value: z.union([
     z.bigint(),
     z.number().int().nonnegative().transform((val) => BigInt(val))
@@ -15,7 +23,7 @@ export const bitcoinTransactionOutputSchema = z.object({
 });
 
 export const bitcoinTransactionSchema = z.object({
-  txid: z.string().min(1),
+  txid: IdentifierString,
   blockHeight: z.number().int().nullable(),
   blockTime: z.number().int().nullable(),
   inputs: z.array(bitcoinTransactionInputSchema),
@@ -23,7 +31,7 @@ export const bitcoinTransactionSchema = z.object({
 });
 
 export const bitcoinAddressSchema = z.object({
-  address: z.string().min(1)
+  address: IdentifierString
 });
 
 export const bitcoinIngestSchema = z.object({
@@ -33,15 +41,15 @@ export const bitcoinIngestSchema = z.object({
 
 export const lightningInvoiceSchema = z.object({
   bolt11: z.string().min(1),
-  paymentHash: z.string().min(1),
-  preimage: z.string().nullable(),
+  paymentHash: IdentifierString,
+  preimage: IdentifierString.nullable(),
   amountMsat: z.union([
     z.bigint(),
     z.number().int().nonnegative().transform((val) => BigInt(val))
   ]),
   createdAt: z.number(),
   expiresAt: z.number(),
-  payeePubkey: z.string().min(1)
+  payeePubkey: IdentifierString
 });
 
 export const lightningIngestSchema = z.object({
@@ -49,8 +57,8 @@ export const lightningIngestSchema = z.object({
 });
 
 export const nostrEventSchema = z.object({
-  id: z.string().min(1),
-  pubkey: z.string().min(1),
+  id: IdentifierString,
+  pubkey: IdentifierString,
   kind: z.number().int(),
   tags: z.array(z.array(z.string())),
   content: z.string(),
@@ -62,29 +70,29 @@ export const nostrIngestSchema = z.object({
 });
 
 export const cashuMintSchema = z.object({
-  url: z.string().min(1),
+  url: IdentifierString,
   name: z.string()
 });
 
 export const cashuProofSchema = z.object({
-  id: z.string().min(1),
+  id: IdentifierString,
   amount: z.union([
     z.bigint(),
     z.number().int().nonnegative().transform((val) => BigInt(val))
   ]),
   secret: z.string().min(1),
-  C: z.string().min(1)
+  C: IdentifierString
 });
 
 export const cashuTokenSchema = z.object({
-  mint: z.string().min(1),
+  mint: IdentifierString,
   unit: z.string(),
   proofs: z.array(cashuProofSchema),
   memo: z.string().nullable()
 });
 
 export const cashuQuoteSchema = z.object({
-  quote: z.string().min(1),
+  quote: IdentifierString,
   type: z.enum(['mint', 'melt']),
   amount: z.union([
     z.bigint(),
@@ -108,7 +116,7 @@ export const TaintIngestPayloadSchema = z.object({
 });
 
 export const AnalyzeRequestSchema = z.object({
-  scenarioId: z.string().trim().min(1),
+  scenarioId: IdentifierString,
   ingestData: TaintIngestPayloadSchema.optional(),
   bitcoin: bitcoinIngestSchema.optional(),
   lightning: lightningIngestSchema.optional(),
@@ -136,9 +144,9 @@ export const AnalyzeResponseSchema = z.object({
 });
 
 export const FindPathsRequestSchema = z.object({
-  scenarioId: z.string().trim().min(1),
-  fromNodeId: z.string().min(1),
-  toNodeId: z.string().min(1),
+  scenarioId: IdentifierString,
+  fromNodeId: IdentifierString,
+  toNodeId: IdentifierString,
   maxPaths: z.number().int().positive().optional()
 });
 

@@ -10,16 +10,16 @@ import {
   TaintRuleResult
 } from './rule.interface';
 
-export class SamePaymentHashRule implements TaintRule {
-  public readonly name: string = 'same_payment_hash';
+export class SamePreimageRule implements TaintRule {
+  public readonly name: string = 'same_preimage';
   public readonly description: string =
-    'Emits an edge when a payment hash appears in both a Lightning invoice and a Nostr event.';
-  public readonly relationship: string = 'SAME_PAYMENT_HASH';
+    'Emits an edge when a Lightning preimage appears in both a Lightning invoice and a Nostr event.';
+  public readonly relationship: string = 'SAME_PREIMAGE';
   public readonly maxConfidence: number = 1.0;
 
   public apply(context: TaintRuleContext): TaintRuleResult {
-    const paymentHashNodes = context.graph.nodes
-      .filter((node) => node.type === TaintNodeType.PaymentHash)
+    const preimageNodes = context.graph.nodes
+      .filter((node) => node.type === TaintNodeType.Preimage)
       .sort((a, b) => a.id.localeCompare(b.id));
 
     const eventNodes = context.graph.nodes
@@ -28,20 +28,23 @@ export class SamePaymentHashRule implements TaintRule {
 
     const edges: EdgeDraft[] = [];
 
-    for (const paymentHashNode of paymentHashNodes) {
-      const paymentHash = paymentHashNode.value.trim().toLowerCase();
-      if (!this.isValidPaymentHash(paymentHash)) {
+    for (const preimageNode of preimageNodes) {
+      if (typeof preimageNode.value !== 'string') {
+        continue;
+      }
+      const preimage = preimageNode.value.trim().toLowerCase();
+      if (!this.isValidPreimage(preimage)) {
         continue;
       }
 
       for (const eventNode of eventNodes) {
-        const evidenceItems = this.collectEvidence(paymentHash, eventNode);
+        const evidenceItems = this.collectEvidence(preimage, eventNode);
         if (evidenceItems.length === 0) {
           continue;
         }
 
         edges.push({
-          from: paymentHashNode.id,
+          from: preimageNode.id,
           to: eventNode.id,
           relationship: this.relationship,
           confidence: this.maxConfidence,
@@ -53,20 +56,25 @@ export class SamePaymentHashRule implements TaintRule {
     return { edges };
   }
 
-  private isValidPaymentHash(paymentHash: string): boolean {
-    return paymentHash.length === 64 && /^[0-9a-f]{64}$/.test(paymentHash);
+  private isValidPreimage(preimage: string): boolean {
+    return preimage.length === 64 && /^[0-9a-f]{64}$/.test(preimage);
   }
 
-  private collectEvidence(paymentHash: string, eventNode: TaintNode): EvidenceItem[] {
+  private collectEvidence(preimage: string, eventNode: TaintNode): EvidenceItem[] {
     const evidenceItems: EvidenceItem[] = [];
-    const eventId = eventNode.value.trim().toLowerCase();
+    const eventId =
+      typeof eventNode.value === 'string'
+        ? eventNode.value.trim().toLowerCase()
+        : eventNode.id;
 
-    const contentEvidence = this.checkContent(paymentHash, eventId, eventNode.metadata.content);
+    const rawContent = eventNode.metadata ? eventNode.metadata['content'] : undefined;
+    const contentEvidence = this.checkContent(preimage, eventId, rawContent);
     if (contentEvidence !== null) {
       evidenceItems.push(contentEvidence);
     }
 
-    const tagEvidenceItems = this.checkTags(paymentHash, eventId, eventNode.metadata.tags);
+    const rawTags = eventNode.metadata ? eventNode.metadata['tags'] : undefined;
+    const tagEvidenceItems = this.checkTags(preimage, eventId, rawTags);
     for (const tagEvidence of tagEvidenceItems) {
       evidenceItems.push(tagEvidence);
     }
@@ -74,22 +82,22 @@ export class SamePaymentHashRule implements TaintRule {
     return evidenceItems;
   }
 
-  private checkContent(paymentHash: string, eventId: string, rawContent: unknown): EvidenceItem | null {
+  private checkContent(preimage: string, eventId: string, rawContent: unknown): EvidenceItem | null {
     if (typeof rawContent !== 'string') {
       return null;
     }
 
     const contentLower = rawContent.toLowerCase();
-    const matchIndex = contentLower.indexOf(paymentHash);
+    const matchIndex = contentLower.indexOf(preimage);
     if (matchIndex === -1) {
       return null;
     }
 
-    const matchedSubstring = rawContent.slice(matchIndex, matchIndex + paymentHash.length);
+    const matchedSubstring = rawContent.slice(matchIndex, matchIndex + preimage.length);
     return new EvidenceItem({
       kind: 'RawData',
       ref: eventId,
-      description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
+      description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
       data: {
         field: 'content',
         match: matchedSubstring
@@ -97,7 +105,7 @@ export class SamePaymentHashRule implements TaintRule {
     });
   }
 
-  private checkTags(paymentHash: string, eventId: string, rawTags: unknown): EvidenceItem[] {
+  private checkTags(preimage: string, eventId: string, rawTags: unknown): EvidenceItem[] {
     if (!Array.isArray(rawTags)) {
       return [];
     }
@@ -110,7 +118,7 @@ export class SamePaymentHashRule implements TaintRule {
       }
 
       const hasMatch = rawTag.some(
-        (element) => typeof element === 'string' && element.toLowerCase() === paymentHash
+        (element) => typeof element === 'string' && element.toLowerCase() === preimage
       );
 
       if (hasMatch) {
@@ -118,7 +126,7 @@ export class SamePaymentHashRule implements TaintRule {
           new EvidenceItem({
             kind: 'RawData',
             ref: eventId,
-            description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
+            description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
             data: {
               field: 'tags',
               match: rawTag

@@ -289,13 +289,13 @@ export class TaintEngine {
       );
       this.addOrMergeNode(eventNode, 'NOSTR');
 
-      const npubNode = this.createNode(
-        TaintNodeType.Npub,
+      const pubkeyNode = this.createNode(
+        TaintNodeType.Pubkey,
         event.pubkey,
         {},
         'NOSTR'
       );
-      this.addOrMergeNode(npubNode, 'NOSTR');
+      this.addOrMergeNode(pubkeyNode, 'NOSTR');
 
       for (const tag of event.tags) {
         if (!tag || tag.length < 2) {
@@ -307,13 +307,13 @@ export class TaintEngine {
           continue;
         }
         if (tagType === 'p') {
-          const taggedNpubNode = this.createNode(
-            TaintNodeType.Npub,
+          const taggedPubkeyNode = this.createNode(
+            TaintNodeType.Pubkey,
             tagValue,
             {},
             'NOSTR'
           );
-          this.addOrMergeNode(taggedNpubNode, 'NOSTR');
+          this.addOrMergeNode(taggedPubkeyNode, 'NOSTR');
         } else if (tagType === 'e') {
           const taggedEventNode = this.createNode(
             TaintNodeType.EventId,
@@ -437,6 +437,7 @@ export class TaintEngine {
       const result = rule.apply({
         graph: this.graph,
         config: this.config,
+        scorer: this.scorer,
         now
       });
 
@@ -734,6 +735,7 @@ export class TaintEngine {
       case TaintNodeType.PaymentHash:
       case TaintNodeType.Preimage:
       case TaintNodeType.EventId:
+      case TaintNodeType.Pubkey:
         return trimmed.toLowerCase();
       case TaintNodeType.Mint:
       case TaintNodeType.Relay:
@@ -751,7 +753,6 @@ export class TaintEngine {
       }
       case TaintNodeType.Invoice:
         return trimmed.toLowerCase();
-      case TaintNodeType.Npub:
       case TaintNodeType.CashuToken:
         return trimmed;
       default:
@@ -771,8 +772,8 @@ export class TaintEngine {
         return 'payment_hash';
       case TaintNodeType.Preimage:
         return 'preimage';
-      case TaintNodeType.Npub:
-        return 'npub';
+      case TaintNodeType.Pubkey:
+        return 'pubkey';
       case TaintNodeType.EventId:
         return 'event_id';
       case TaintNodeType.Mint:
