@@ -1,4 +1,7 @@
-import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
+import {
+  TaintRuleRegistry,
+  createDefaultRuleRegistry
+} from '../../src/modules/taint/rules/registry';
 import {
   TaintRule,
   TaintRuleContext,
@@ -67,4 +70,12 @@ describe('TaintRuleRegistry', () => {
     registry.clear();
     expect(registry.getRules()).toHaveLength(0);
   });
+
+  test('createDefaultRuleRegistry creates registry with same_payment_hash rule', () => {
+    const defaultRegistry = createDefaultRuleRegistry();
+    const rules = defaultRegistry.getRules();
+    expect(rules).toHaveLength(1);
+    expect(rules[0].name).toBe('same_payment_hash');
+  });
 });
+
