@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.19s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.22s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       3 selected / 15 total                                    
+     Operations:       4 selected / 18 total                                    
 
 
  ✅  API capabilities:                                                          
@@ -16,64 +16,55 @@ Schemathesis v4.24.3
      Supports NULL byte in headers:                            ✘                
      Accepts backslash and control characters in URL paths:    ✓                
 
- ⏭   Examples (in 0.11s)                                                        
+ ⏭   Examples (in 0.12s)                                                        
                                                                                 
-     ⏭  3 skipped                                                               
+     ⏭  4 skipped                                                               
 
- ✅  Coverage (in 2.57s)                                                        
+ ✅  Coverage (in 5.09s)                                                        
                                                                                 
-     ✅ 3 passed                                                                
+     ✅ 4 passed                                                                
 
- ✅  Fuzzing (in 58.58s)                                                        
+ ✅  Fuzzing (in 83.58s)                                                        
                                                                                 
-     ✅ 3 passed                                                                
-
- ✅  Stateful (in 77.03s)                                                       
-
-     Scenarios:    115                                                          
-     API Links:    0 covered / 1 selected / 1 total (1 inferred)                
-
-     ✅ 115 passed                                                              
+     ✅ 4 passed                                                                
 
 =================================== WARNINGS ===================================
 
-Missing test data: 3 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
+Missing test data: 1 operation repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
 
-  - GET /api/graph/{id}
-  - POST /api/analyze
-  - POST /api/paths
+  - GET /api/proof/{bundleHash}
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
 Schema validation mismatch: 2 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
-  - POST /api/analyze
-  - POST /api/paths
+  - POST /api/proof/build
+  - POST /api/proof/verify
 
 💡 Check your schema constraints - API validation may be stricter than documented
 
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 3/15
-  Tested: 3
+  Selected: 4/18
+  Tested: 4
 
 Test Phases:
   ⏭  Examples
   ✅ Coverage
   ✅ Fuzzing
-  ✅ Stateful
+  ⏭  Stateful (not applicable)
 
 Warnings:
-  ⚠️ Missing valid test data: 3 operations repeatedly returned 404 responses
+  ⚠️ Missing valid test data: 1 operation repeatedly returned 404 responses
   ⚠️ Schema validation mismatch: 2 operations mostly rejected generated data
 
 Test cases:
-  899 generated, 899 passed, 1 skipped
+  763 generated, 763 passed
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 156814324492480467352058505835422259757
+Seed: 4272353912275357943576700035464341795
 
-============================ 2 warnings in 138.36s =============================
+============================= 2 warnings in 88.86s =============================

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<testsuites errors="0" failures="0" skipped="0" tests="4" time="121.708925">
-  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="0" skipped="0" tests="4" time="121.708925">
-    <testcase name="POST /api/analyze" time="9.450189" />
-    <testcase name="POST /api/paths" time="13.292236" />
-    <testcase name="GET /api/graph/{id}" time="38.166884" />
-    <testcase name="Stateful tests" time="60.799616" />
+<testsuites errors="0" failures="0" skipped="0" tests="4" time="88.421193">
+  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="0" skipped="0" tests="4" time="88.421193">
+    <testcase name="POST /api/proof/build" time="4.561539" />
+    <testcase name="POST /api/proof/verify" time="13.903708" />
+    <testcase name="GET /api/proof/scenario/{scenarioId}" time="35.169756" />
+    <testcase name="GET /api/proof/{bundleHash}" time="34.786189" />
   </testsuite>
 </testsuites>
