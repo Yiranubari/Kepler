@@ -1,9 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<testsuites errors="0" failures="0" skipped="0" tests="4" time="88.421193">
-  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="0" skipped="0" tests="4" time="88.421193">
-    <testcase name="POST /api/proof/build" time="4.561539" />
-    <testcase name="POST /api/proof/verify" time="13.903708" />
-    <testcase name="GET /api/proof/scenario/{scenarioId}" time="35.169756" />
-    <testcase name="GET /api/proof/{bundleHash}" time="34.786189" />
+<testsuites errors="0" failures="1" skipped="0" tests="10" time="575.617239">
+  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="1" skipped="0" tests="10" time="575.617239">
+    <testcase name="POST /api/proof/build" time="4.389566" />
+    <testcase name="POST /api/proof/verify" time="23.366361" />
+    <testcase name="POST /api/scenarios" time="3.051782" />
+    <testcase name="GET /api/proof/{bundleHash}" time="69.847564" />
+    <testcase name="GET /api/scenarios" time="102.426268" />
+    <testcase name="GET /api/scenarios/{id}" time="41.283090" />
+    <testcase name="GET /api/proof/scenario/{scenarioId}" time="49.761794" />
+    <testcase name="PATCH /api/scenarios/{id}/status" time="20.466528" />
+    <testcase name="DELETE /api/scenarios/{id}" time="25.561096" />
+    <testcase name="Stateful tests" time="235.463191">
+      <failure type="failure">1. Test Case ID: GBYCts
+
+- Server error
+
+- Undocumented HTTP status code
+
+    Received: 500
+    Documented: 200, 400, 429
+
+[500] Internal Server Error:
+
+    `{"error":{"code":"INTERNAL_ERROR","message":"An unexpected error occurred","context":{}}}`
+
+Reproduce with:
+
+    curl -X GET 'http://localhost:3000/api/scenarios?offset=316&amp;limit=197'</failure>
+    </testcase>
   </testsuite>
 </testsuites>

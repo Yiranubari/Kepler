@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.22s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.19s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       4 selected / 18 total                                    
+     Operations:       9 selected / 20 total                                    
 
 
  ✅  API capabilities:                                                          
@@ -18,53 +18,91 @@ Schemathesis v4.24.3
 
  ⏭   Examples (in 0.12s)                                                        
                                                                                 
-     ⏭  4 skipped                                                               
+     ⏭  9 skipped                                                               
 
- ✅  Coverage (in 5.09s)                                                        
+ ✅  Coverage (in 35.96s)                                                       
                                                                                 
-     ✅ 4 passed                                                                
+     ✅ 9 passed                                                                
 
- ✅  Fuzzing (in 83.58s)                                                        
+ ✅  Fuzzing (in 304.46s)                                                       
                                                                                 
-     ✅ 4 passed                                                                
+     ✅ 9 passed                                                                
+
+ ❌  Stateful (in 251.37s)                                                      
+
+     Scenarios:    224                                                          
+     API Links:    0 covered / 11 selected / 11 total (11 inferred)             
+
+     ✅ 223 passed  ❌ 1 failed                                                 
+
+=================================== FAILURES ===================================
+________________________________ Stateful tests ________________________________
+1. Test Case ID: GBYCts
+
+- Server error
+
+- Undocumented HTTP status code
+
+    Received: 500
+    Documented: 200, 400, 429
+
+[500] Internal Server Error:
+
+    `{"error":{"code":"INTERNAL_ERROR","message":"An unexpected error occurred","context":{}}}`
+
+Reproduce with:
+
+    curl -X GET 'http://localhost:3000/api/scenarios?offset=316&limit=197'
+    
+    st replay GBYCts
 
 =================================== WARNINGS ===================================
 
-Missing test data: 1 operation repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
+Missing test data: 4 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
 
+  - DELETE /api/scenarios/{id}
   - GET /api/proof/{bundleHash}
+  - GET /api/scenarios/{id}
+  - PATCH /api/scenarios/{id}/status
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
-Schema validation mismatch: 2 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+Schema validation mismatch: 5 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
+  - DELETE /api/scenarios/{id}
+  - GET /api/scenarios/{id}
+  - PATCH /api/scenarios/{id}/status
   - POST /api/proof/build
-  - POST /api/proof/verify
+  - POST /api/scenarios
 
 💡 Check your schema constraints - API validation may be stricter than documented
 
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 4/18
-  Tested: 4
+  Selected: 9/20
+  Tested: 9
 
 Test Phases:
   ⏭  Examples
   ✅ Coverage
   ✅ Fuzzing
-  ⏭  Stateful (not applicable)
+  ✅ Stateful
+
+Failures:
+  ❌ Server error: 1
+  ❌ Undocumented HTTP status code: 1
 
 Warnings:
-  ⚠️ Missing valid test data: 1 operation repeatedly returned 404 responses
-  ⚠️ Schema validation mismatch: 2 operations mostly rejected generated data
+  ⚠️ Missing valid test data: 4 operations repeatedly returned 404 responses
+  ⚠️ Schema validation mismatch: 5 operations mostly rejected generated data
 
 Test cases:
-  763 generated, 763 passed
+  2237 generated, 1 found 2 unique failures, 3 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 4272353912275357943576700035464341795
+Seed: 292565055957897866275051972612942845615
 
-============================= 2 warnings in 88.86s =============================
+====================== 2 failures, 2 warnings in 591.98s =======================
