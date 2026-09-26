@@ -71,11 +71,16 @@ describe('TaintRuleRegistry', () => {
     expect(registry.getRules()).toHaveLength(0);
   });
 
-  test('createDefaultRuleRegistry creates registry with same_payment_hash rule', () => {
+  test('createDefaultRuleRegistry creates registry with default rules in specified order', () => {
     const defaultRegistry = createDefaultRuleRegistry();
     const rules = defaultRegistry.getRules();
-    expect(rules).toHaveLength(1);
-    expect(rules[0].name).toBe('same_payment_hash');
+    expect(rules).toHaveLength(4);
+    expect(rules.map((r) => r.name)).toEqual([
+      'published_by',
+      'same_payment_hash',
+      'same_preimage',
+      'temporal_window'
+    ]);
   });
 });
 

@@ -4,7 +4,7 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.23s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.20s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
@@ -20,26 +20,28 @@ Schemathesis v4.24.3
                                                                                 
      ⏭  3 skipped                                                               
 
- ✅  Coverage (in 1.78s)                                                        
+ ✅  Coverage (in 2.72s)                                                        
                                                                                 
      ✅ 3 passed                                                                
 
- ✅  Fuzzing (in 34.93s)                                                        
+ ✅  Fuzzing (in 56.86s)                                                        
                                                                                 
      ✅ 3 passed                                                                
 
- ✅  Stateful (in 57.62s)                                                       
+ ✅  Stateful (in 63.06s)                                                       
 
-     Scenarios:    158                                                          
+     Scenarios:    126                                                          
      API Links:    0 covered / 1 selected / 1 total (1 inferred)                
 
-     ✅ 158 passed                                                              
+     ✅ 126 passed                                                              
 
 =================================== WARNINGS ===================================
 
-Missing test data: 1 operation repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
+Missing test data: 3 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
 
   - GET /api/graph/{id}
+  - POST /api/analyze
+  - POST /api/paths
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
@@ -63,15 +65,15 @@ Test Phases:
   ✅ Stateful
 
 Warnings:
-  ⚠️ Missing valid test data: 1 operation repeatedly returned 404 responses
+  ⚠️ Missing valid test data: 3 operations repeatedly returned 404 responses
   ⚠️ Schema validation mismatch: 2 operations mostly rejected generated data
 
 Test cases:
-  979 generated, 979 passed, 3 skipped
+  919 generated, 919 passed, 1 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 257345770917407628646364829225335690061
+Seed: 99373965720959961248986362347081973040
 
-============================= 2 warnings in 94.50s =============================
+============================ 2 warnings in 122.83s =============================

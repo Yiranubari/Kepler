@@ -13,7 +13,10 @@ export type {
 } from './taint.types';
 export { TaintScorer } from './taint.scorer';
 export { TaintRuleRegistry, createDefaultRuleRegistry } from './rules/registry';
+export { PublishedByRule } from './rules/publishedBy.rule';
 export { SamePaymentHashRule } from './rules/samePaymentHash.rule';
+export { SamePreimageRule } from './rules/samePreimage.rule';
+export { TemporalWindowRule } from './rules/temporalWindow.rule';
 export { TaintController } from './taint.controller';
 export { createTaintRoutes } from './taint.routes';
 export {

@@ -8,7 +8,7 @@ export enum TaintNodeType {
   Invoice = 'Invoice',
   PaymentHash = 'PaymentHash',
   Preimage = 'Preimage',
-  Npub = 'Npub',
+  Pubkey = 'Pubkey',
   EventId = 'EventId',
   Mint = 'Mint',
   Relay = 'Relay',
@@ -117,6 +117,14 @@ export class TaintNode {
       metadata: json.metadata
     });
   }
+}
+
+export interface EdgeDraft {
+  from: string;
+  to: string;
+  relationship: string;
+  confidence: number;
+  evidence: EvidenceItem[];
 }
 
 export interface TaintEdgeJSON {

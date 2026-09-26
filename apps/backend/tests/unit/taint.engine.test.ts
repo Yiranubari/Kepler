@@ -3,7 +3,10 @@ import { EvidenceItem, TaintEdge, TaintGraph } from '@kepler/shared';
 import { TaintEngine } from '../../src/modules/taint/taint.engine';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
 import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
+import { PublishedByRule } from '../../src/modules/taint/rules/publishedBy.rule';
 import { SamePaymentHashRule } from '../../src/modules/taint/rules/samePaymentHash.rule';
+import { SamePreimageRule } from '../../src/modules/taint/rules/samePreimage.rule';
+import { TemporalWindowRule } from '../../src/modules/taint/rules/temporalWindow.rule';
 import { TaintScorer } from '../../src/modules/taint/taint.scorer';
 import {
   TaintRule,
@@ -29,8 +32,7 @@ class SingleEdgeFixtureRule implements TaintRule {
     }
     return {
       edges: [
-        new TaintEdge({
-          id: 'placeholder',
+        {
           from: nodes[0].id,
           to: nodes[1].id,
           relationship: this.relationship,
@@ -42,7 +44,7 @@ class SingleEdgeFixtureRule implements TaintRule {
               description: 'Single correlation evidence'
             })
           ]
-        })
+        }
       ]
     };
   }
@@ -62,8 +64,7 @@ class MergeRuleA implements TaintRule {
     }
     return {
       edges: [
-        new TaintEdge({
-          id: 'temp_a',
+        {
           from: nodes[0].id,
           to: nodes[1].id,
           relationship: this.relationship,
@@ -75,7 +76,7 @@ class MergeRuleA implements TaintRule {
               description: 'Evidence A'
             })
           ]
-        })
+        }
       ]
     };
   }
@@ -95,8 +96,7 @@ class MergeRuleB implements TaintRule {
     }
     return {
       edges: [
-        new TaintEdge({
-          id: 'temp_b',
+        {
           from: nodes[0].id,
           to: nodes[1].id,
           relationship: this.relationship,
@@ -108,7 +108,7 @@ class MergeRuleB implements TaintRule {
               description: 'Evidence B'
             })
           ]
-        })
+        }
       ]
     };
   }
@@ -128,8 +128,7 @@ class OverflowEdgesRule implements TaintRule {
     }
     return {
       edges: [
-        new TaintEdge({
-          id: 'edge_1',
+        {
           from: nodes[0].id,
           to: nodes[1].id,
           relationship: 'REL_1',
@@ -141,9 +140,8 @@ class OverflowEdgesRule implements TaintRule {
               description: 'Evidence 1'
             })
           ]
-        }),
-        new TaintEdge({
-          id: 'edge_2',
+        },
+        {
           from: nodes[0].id,
           to: nodes[2].id,
           relationship: 'REL_2',
@@ -155,7 +153,7 @@ class OverflowEdgesRule implements TaintRule {
               description: 'Evidence 2'
             })
           ]
-        })
+        }
       ]
     };
   }
@@ -273,8 +271,8 @@ describe('TaintEngine', () => {
     expect(node?.id).toBe(`payment_hash:${paymentHash}`);
   });
 
-  test('ingests Nostr event and asserts npub node exists', () => {
-    const pubkey = 'npub10000000000000000000000000000000000000000000000000000000001';
+  test('ingests Nostr event and asserts pubkey node exists', () => {
+    const pubkey = '020000000000000000000000000000000000000000000000000000000000000002';
     engine.ingestNostr({
       events: [
         {
@@ -288,9 +286,9 @@ describe('TaintEngine', () => {
       ]
     });
 
-    const node = engine.getGraph().getNode(`npub:${pubkey}`);
+    const node = engine.getGraph().getNode(`pubkey:${pubkey}`);
     expect(node).toBeDefined();
-    expect(node?.id).toBe(`npub:${pubkey}`);
+    expect(node?.id).toBe(`pubkey:${pubkey}`);
   });
 
   test('ingests Cashu token and asserts mint node exists', () => {
@@ -614,6 +612,199 @@ describe('TaintEngine', () => {
     expect(edges[0].confidence).toBe(1.0);
     expect(edges[0].evidence).toHaveLength(1);
     expect(edges[0].evidence[0].ref).toBe(eventId);
+  });
+
+  test('end-to-end cross-protocol correlation emits SAME_PREIMAGE edge between lightning invoice and nostr event', () => {
+    registry.register(new SamePreimageRule());
+    const preimage = '1111111111111111111111111111111111111111111111111111111111111111';
+    const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const eventId = '0000000000000000000000000000000000000000000000000000000000000002';
+
+    engine.ingestLightning({
+      invoices: [
+        {
+          bolt11: 'lnbc10u1pj8testinvoice0000000000000000000000000000000000000000000000',
+          paymentHash,
+          preimage,
+          amountMsat: BigInt(1000000),
+          createdAt: 1700000000,
+          expiresAt: 1700003600,
+          payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+        }
+      ]
+    });
+
+    engine.ingestNostr({
+      events: [
+        {
+          id: eventId,
+          pubkey: '020000000000000000000000000000000000000000000000000000000000000002',
+          kind: 1,
+          tags: [],
+          content: `Payment settled with preimage ${preimage}`,
+          createdAt: 1700001000
+        }
+      ]
+    });
+
+    const result = engine.analyze();
+    const edges = result.graph.edges.filter((edge) => edge.relationship === 'SAME_PREIMAGE');
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0].from).toBe(`preimage:${preimage}`);
+    expect(edges[0].to).toBe(`event_id:${eventId}`);
+    expect(edges[0].confidence).toBe(1.0);
+    expect(edges[0].evidence).toHaveLength(1);
+    expect(edges[0].evidence[0].ref).toBe(eventId);
+  });
+
+  test('demo flow end-to-end: cross-protocol correlation across Lightning, Nostr, and Bitcoin', () => {
+    registry.register(new PublishedByRule());
+    registry.register(new SamePaymentHashRule());
+    registry.register(new SamePreimageRule());
+    registry.register(new TemporalWindowRule());
+
+    const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const preimage = '1111111111111111111111111111111111111111111111111111111111111111';
+    const pubkey = '4646ae5047316b4230d0086c8acec687f00b1cd9d1dc634f6cb358ac0a9a8fff';
+    const eventId = '0000000000000000000000000000000000000000000000000000000000000001';
+    const txid = '2222222222222222222222222222222222222222222222222222222222222222';
+
+    engine.ingestLightning({
+      invoices: [
+        {
+          bolt11: 'lnbc10u1pj8testinvoice0000000000000000000000000000000000000000000000',
+          paymentHash,
+          preimage,
+          amountMsat: BigInt(1000000),
+          createdAt: 1700000000,
+          expiresAt: 1700003600,
+          payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+        }
+      ]
+    });
+
+    engine.ingestNostr({
+      events: [
+        {
+          id: eventId,
+          pubkey,
+          kind: 1,
+          tags: [],
+          content: `Settled payment_hash: ${paymentHash} with preimage: ${preimage}`,
+          createdAt: 1700001000
+        }
+      ]
+    });
+
+    engine.ingestBitcoin({
+      transactions: [
+        {
+          txid,
+          blockHeight: 800000,
+          blockTime: 1700001030,
+          inputs: [
+            {
+              txid: 'prevtx0000000000000000000000000000000000000000000000000000000001',
+              vout: 0,
+              address: 'bc1qinputoneaddress000000000000000000000001'
+            }
+          ],
+          outputs: [
+            {
+              address: 'bc1qoutputoneaddress00000000000000000000001',
+              value: BigInt(50000)
+            }
+          ]
+        }
+      ],
+      addresses: []
+    });
+
+    const result = engine.analyze();
+
+    const paymentHashEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'SAME_PAYMENT_HASH'
+    );
+    expect(paymentHashEdges).toHaveLength(1);
+    expect(paymentHashEdges[0].from).toBe(`payment_hash:${paymentHash}`);
+    expect(paymentHashEdges[0].to).toBe(`event_id:${eventId}`);
+
+    const preimageEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'SAME_PREIMAGE'
+    );
+    expect(preimageEdges).toHaveLength(1);
+    expect(preimageEdges[0].from).toBe(`preimage:${preimage}`);
+    expect(preimageEdges[0].to).toBe(`event_id:${eventId}`);
+
+    const publishedByEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'PUBLISHED_BY'
+    );
+    expect(publishedByEdges).toHaveLength(1);
+    expect(publishedByEdges[0].from).toBe(`event_id:${eventId}`);
+    expect(publishedByEdges[0].to).toBe(`pubkey:${pubkey}`);
+
+    const temporalEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'TEMPORAL_WINDOW'
+    );
+    const eventTxEdge = temporalEdges.find(
+      (edge) =>
+        (edge.from === `event_id:${eventId}` && edge.to === `txid:${txid}`) ||
+        (edge.from === `txid:${txid}` && edge.to === `event_id:${eventId}`)
+    );
+    expect(eventTxEdge).toBeDefined();
+    expect(eventTxEdge?.from).toBe(`event_id:${eventId}`);
+    expect(eventTxEdge?.to).toBe(`txid:${txid}`);
+    expect(eventTxEdge?.confidence).toBe(0.4167);
+
+    const crossProtocolPaths = engine.findPaths(
+      `payment_hash:${paymentHash}`,
+      `txid:${txid}`
+    );
+    expect(crossProtocolPaths.length).toBeGreaterThan(0);
+
+    const fullCrossPath = crossProtocolPaths.find(
+      (p) =>
+        p.nodes[0] === `payment_hash:${paymentHash}` &&
+        p.nodes[p.nodes.length - 1] === `txid:${txid}`
+    );
+    expect(fullCrossPath).toBeDefined();
+    expect(fullCrossPath?.nodes).toEqual([
+      `payment_hash:${paymentHash}`,
+      `event_id:${eventId}`,
+      `txid:${txid}`
+    ]);
+    expect(fullCrossPath?.overallConfidence).toBeLessThan(1.0);
+    expect(fullCrossPath?.overallConfidence).toBe(0.4167);
+
+    const txToPubkeyPaths = engine.findPaths(`txid:${txid}`, `pubkey:${pubkey}`);
+    expect(txToPubkeyPaths.length).toBeGreaterThan(0);
+    const txToPubkeyPath = txToPubkeyPaths.find(
+      (p) =>
+        p.nodes[0] === `txid:${txid}` &&
+        p.nodes[p.nodes.length - 1] === `pubkey:${pubkey}`
+    );
+    expect(txToPubkeyPath).toBeDefined();
+    expect(txToPubkeyPath?.nodes).toEqual([
+      `txid:${txid}`,
+      `event_id:${eventId}`,
+      `pubkey:${pubkey}`
+    ]);
+    expect(txToPubkeyPath?.overallConfidence).toBeLessThan(1.0);
+    expect(txToPubkeyPath?.overallConfidence).toBe(0.4167);
+
+    const lightningToNostrPaths = engine.findPaths(
+      `payment_hash:${paymentHash}`,
+      `pubkey:${pubkey}`
+    );
+    expect(lightningToNostrPaths.length).toBeGreaterThan(0);
+    const lightningToNostrPath = lightningToNostrPaths.find(
+      (p) =>
+        p.nodes[0] === `payment_hash:${paymentHash}` &&
+        p.nodes[p.nodes.length - 1] === `pubkey:${pubkey}`
+    );
+    expect(lightningToNostrPath).toBeDefined();
+    expect(lightningToNostrPath?.overallConfidence).toBe(1.0);
   });
 });
 

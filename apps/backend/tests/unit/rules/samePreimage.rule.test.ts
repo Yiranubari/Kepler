@@ -1,20 +1,20 @@
 import { TaintGraph, TaintNode, TaintNodeType } from '@kepler/shared';
 import { TaintConfig } from '../../../src/modules/taint/taint.types';
-import { SamePaymentHashRule } from '../../../src/modules/taint/rules/samePaymentHash.rule';
+import { SamePreimageRule } from '../../../src/modules/taint/rules/samePreimage.rule';
 import { TaintScorer } from '../../../src/modules/taint/taint.scorer';
 
-describe('SamePaymentHashRule', () => {
-  const rule = new SamePaymentHashRule();
+describe('SamePreimageRule', () => {
+  const rule = new SamePreimageRule();
   const config = new TaintConfig();
   const scorer = new TaintScorer();
   const now = 1700000000000;
 
-  const paymentHashA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-  const paymentHashB = 'a94a8fe5ccb19ba61c4c0873d391e987982fbbd3ef7ff2e0325492d3b2024b3b';
+  const preimageA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const preimageB = 'a94a8fe5ccb19ba61c4c0873d391e987982fbbd3ef7ff2e0325492d3b2024b3b';
   const eventIdA = '0000000000000000000000000000000000000000000000000000000000000001';
   const eventIdB = '0000000000000000000000000000000000000000000000000000000000000002';
 
-  test('returns zero edges when graph contains no payment hash nodes', () => {
+  test('returns zero edges when graph contains no preimage nodes', () => {
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
@@ -37,23 +37,23 @@ describe('SamePaymentHashRule', () => {
     expect(result.edges).toHaveLength(0);
   });
 
-  test('returns zero edges when payment hash exists but no event references it', () => {
+  test('returns zero edges when preimage exists but no event references it', () => {
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: 'paid to lnbc... unrelated event content without payment hash',
+            content: 'paid to lnbc... unrelated event content without preimage',
             tags: []
           }
         })
@@ -64,17 +64,17 @@ describe('SamePaymentHashRule', () => {
     expect(result.edges).toHaveLength(0);
   });
 
-  test('emits one edge when event references payment hash in content', () => {
-    const content = `paid to lnbc... payment_hash is ${paymentHashA} thanks`;
+  test('emits one edge when event references preimage in content', () => {
+    const content = `settled with preimage ${preimageA} completed`;
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
@@ -92,40 +92,40 @@ describe('SamePaymentHashRule', () => {
     expect(result.edges).toHaveLength(1);
 
     const edge = result.edges[0];
-    expect(edge.from).toBe(`payment_hash:${paymentHashA}`);
+    expect(edge.from).toBe(`preimage:${preimageA}`);
     expect(edge.to).toBe(`event_id:${eventIdA}`);
-    expect(edge.relationship).toBe('SAME_PAYMENT_HASH');
+    expect(edge.relationship).toBe('SAME_PREIMAGE');
     expect(edge.confidence).toBe(1.0);
     expect(edge.evidence).toHaveLength(1);
     expect(edge.evidence[0].kind).toBe('RawData');
     expect(edge.evidence[0].ref).toBe(eventIdA);
     expect(edge.evidence[0].description).toBe(
-      `Payment hash ${paymentHashA} appears in Nostr event ${eventIdA}.`
+      `Lightning preimage ${preimageA} appears in Nostr event ${eventIdA}.`
     );
     expect(edge.evidence[0].data).toEqual({
       field: 'content',
-      match: paymentHashA
+      match: preimageA
     });
   });
 
-  test('emits one edge when event references payment hash in a tag', () => {
+  test('emits one edge when event references preimage in a tag', () => {
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: 'payment completed',
-            tags: [['payment', paymentHashA]]
+            content: 'settlement verified',
+            tags: [['preimage', preimageA]]
           }
         })
       ]
@@ -135,36 +135,36 @@ describe('SamePaymentHashRule', () => {
     expect(result.edges).toHaveLength(1);
 
     const edge = result.edges[0];
-    expect(edge.from).toBe(`payment_hash:${paymentHashA}`);
+    expect(edge.from).toBe(`preimage:${preimageA}`);
     expect(edge.to).toBe(`event_id:${eventIdA}`);
-    expect(edge.relationship).toBe('SAME_PAYMENT_HASH');
+    expect(edge.relationship).toBe('SAME_PREIMAGE');
     expect(edge.confidence).toBe(1.0);
     expect(edge.evidence).toHaveLength(1);
     expect(edge.evidence[0].kind).toBe('RawData');
     expect(edge.evidence[0].ref).toBe(eventIdA);
     expect(edge.evidence[0].data).toEqual({
       field: 'tags',
-      match: ['payment', paymentHashA]
+      match: ['preimage', preimageA]
     });
   });
 
-  test('emits two edges when two events reference one payment hash', () => {
+  test('emits two edges when two events reference one preimage', () => {
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: `invoice hash is ${paymentHashA}`,
+            content: `invoice preimage is ${preimageA}`,
             tags: []
           }
         }),
@@ -173,8 +173,8 @@ describe('SamePaymentHashRule', () => {
           type: TaintNodeType.EventId,
           value: eventIdB,
           metadata: {
-            content: 'receipt tag attached',
-            tags: [['payment', paymentHashA]]
+            content: 'receipt attached',
+            tags: [['preimage', preimageA]]
           }
         })
       ]
@@ -182,35 +182,35 @@ describe('SamePaymentHashRule', () => {
 
     const result = rule.apply({ graph, config, scorer, now });
     expect(result.edges).toHaveLength(2);
-    expect(result.edges[0].from).toBe(`payment_hash:${paymentHashA}`);
-    expect(result.edges[1].from).toBe(`payment_hash:${paymentHashA}`);
+    expect(result.edges[0].from).toBe(`preimage:${preimageA}`);
+    expect(result.edges[1].from).toBe(`preimage:${preimageA}`);
 
     const targetEventIds = result.edges.map((e) => e.to).sort();
     expect(targetEventIds).toEqual([`event_id:${eventIdA}`, `event_id:${eventIdB}`].sort());
   });
 
-  test('emits two edges when one event references two payment hashes', () => {
+  test('emits two edges when one event references two preimages', () => {
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
-          id: `payment_hash:${paymentHashB}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashB
+          id: `preimage:${preimageB}`,
+          type: TaintNodeType.Preimage,
+          value: preimageB
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: `hashes: ${paymentHashA} and ${paymentHashB}`,
+            content: `preimages: ${preimageA} and ${preimageB}`,
             tags: []
           }
         })
@@ -222,30 +222,30 @@ describe('SamePaymentHashRule', () => {
 
     const fromNodes = result.edges.map((e) => e.from).sort();
     expect(fromNodes).toEqual(
-      [`payment_hash:${paymentHashA}`, `payment_hash:${paymentHashB}`].sort()
+      [`preimage:${preimageA}`, `preimage:${preimageB}`].sort()
     );
     expect(result.edges[0].to).toBe(`event_id:${eventIdA}`);
     expect(result.edges[1].to).toBe(`event_id:${eventIdA}`);
   });
 
-  test('matches case-insensitively when event content contains uppercase payment hash', () => {
-    const upperHash = paymentHashA.toUpperCase();
+  test('matches case-insensitively when event content contains uppercase preimage', () => {
+    const upperPreimage = preimageA.toUpperCase();
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: `settled invoice ${upperHash}`,
+            content: `settled with ${upperPreimage}`,
             tags: []
           }
         })
@@ -256,34 +256,86 @@ describe('SamePaymentHashRule', () => {
     expect(result.edges).toHaveLength(1);
     expect(result.edges[0].evidence[0].data).toEqual({
       field: 'content',
-      match: upperHash
+      match: upperPreimage
     });
   });
 
   test('returns zero edges on partial 63-character match', () => {
-    const partialHash = paymentHashA.slice(0, 63);
+    const partialPreimage = preimageA.slice(0, 63);
     const graph = new TaintGraph({
       id: 'graph_test',
       scenarioId: 'test_scenario',
       createdAt: new Date(now),
       nodes: [
         new TaintNode({
-          id: `payment_hash:${paymentHashA}`,
-          type: TaintNodeType.PaymentHash,
-          value: paymentHashA
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
         }),
         new TaintNode({
           id: `event_id:${eventIdA}`,
           type: TaintNodeType.EventId,
           value: eventIdA,
           metadata: {
-            content: `partial hash is ${partialHash}`,
+            content: `partial preimage is ${partialPreimage}`,
             tags: []
           }
         })
       ]
     });
 
+    const result = rule.apply({ graph, config, scorer, now });
+    expect(result.edges).toHaveLength(0);
+  });
+
+  test('skips preimage node with invalid hex or non-64-character length', () => {
+    const graph = new TaintGraph({
+      id: 'graph_test',
+      scenarioId: 'test_scenario',
+      createdAt: new Date(now),
+      nodes: [
+        new TaintNode({
+          id: 'preimage:not_a_valid_64_hex_string',
+          type: TaintNodeType.Preimage,
+          value: 'not_a_valid_64_hex_string'
+        }),
+        new TaintNode({
+          id: `event_id:${eventIdA}`,
+          type: TaintNodeType.EventId,
+          value: eventIdA,
+          metadata: {
+            content: 'not_a_valid_64_hex_string',
+            tags: []
+          }
+        })
+      ]
+    });
+
+    const result = rule.apply({ graph, config, scorer, now });
+    expect(result.edges).toHaveLength(0);
+  });
+
+  test('safely handles missing metadata without throwing', () => {
+    const graph = new TaintGraph({
+      id: 'graph_test',
+      scenarioId: 'test_scenario',
+      createdAt: new Date(now),
+      nodes: [
+        new TaintNode({
+          id: `preimage:${preimageA}`,
+          type: TaintNodeType.Preimage,
+          value: preimageA
+        }),
+        new TaintNode({
+          id: `event_id:${eventIdA}`,
+          type: TaintNodeType.EventId,
+          value: eventIdA,
+          metadata: {}
+        })
+      ]
+    });
+
+    expect(() => rule.apply({ graph, config, scorer, now })).not.toThrow();
     const result = rule.apply({ graph, config, scorer, now });
     expect(result.edges).toHaveLength(0);
   });
@@ -296,22 +348,22 @@ describe('SamePaymentHashRule', () => {
         createdAt: new Date(now),
         nodes: [
           new TaintNode({
-            id: `payment_hash:${paymentHashB}`,
-            type: TaintNodeType.PaymentHash,
-            value: paymentHashB
+            id: `preimage:${preimageB}`,
+            type: TaintNodeType.Preimage,
+            value: preimageB
           }),
           new TaintNode({
-            id: `payment_hash:${paymentHashA}`,
-            type: TaintNodeType.PaymentHash,
-            value: paymentHashA
+            id: `preimage:${preimageA}`,
+            type: TaintNodeType.Preimage,
+            value: preimageA
           }),
           new TaintNode({
             id: `event_id:${eventIdB}`,
             type: TaintNodeType.EventId,
             value: eventIdB,
             metadata: {
-              content: `content with ${paymentHashA}`,
-              tags: [['tag', paymentHashB]]
+              content: `content with ${preimageA}`,
+              tags: [['tag', preimageB]]
             }
           }),
           new TaintNode({
@@ -319,8 +371,8 @@ describe('SamePaymentHashRule', () => {
             type: TaintNodeType.EventId,
             value: eventIdA,
             metadata: {
-              content: `content with ${paymentHashB}`,
-              tags: [['tag', paymentHashA]]
+              content: `content with ${preimageB}`,
+              tags: [['tag', preimageA]]
             }
           })
         ]
