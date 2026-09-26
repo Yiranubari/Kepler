@@ -25,6 +25,7 @@ function isBodyParserError(err: unknown): err is BodyParserError {
 }
 
 function statusForError(err: KeplerError): number {
+  if (err.code === 'SCENARIO_STATE_ERROR') return 409;
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
   if (err instanceof ValidationError) return 400;

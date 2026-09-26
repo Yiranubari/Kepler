@@ -47,14 +47,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentTarget'
+              $ref: '#/components/schemas/CreateScenarioRequest'
       responses:
-        '200':
+        '201':
           description: Scenario created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Scenario'
+                $ref: '#/components/schemas/ScenarioResponse'
         '400':
           description: Invalid payment target
           content:
@@ -71,15 +71,32 @@ paths:
       summary: List all payment scenarios
       operationId: listScenarios
       security: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Maximum number of scenarios to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+            default: 0
+          description: Number of scenarios to skip
       responses:
         '200':
           description: List of payment scenarios
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Scenario'
+                $ref: '#/components/schemas/ListScenariosResponse'
         '400':
           description: Failed to retrieve scenarios
           content:
@@ -104,15 +121,104 @@ paths:
           required: true
           schema:
             type: string
+          description: The ID of the scenario
       responses:
         '200':
           description: Scenario details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Scenario'
+                $ref: '#/components/schemas/ScenarioResponse'
         '400':
           description: Invalid scenario identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete payment scenario by identifier
+      operationId: deleteScenario
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the scenario
+      responses:
+        '204':
+          description: Scenario deleted successfully
+        '400':
+          description: Invalid scenario identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/scenarios/{id}/status:
+    patch:
+      summary: Update scenario status
+      operationId: updateScenarioStatus
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the scenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScenarioStatusRequest'
+      responses:
+        '200':
+          description: Updated scenario details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioResponse'
+        '400':
+          description: Invalid status update request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Invalid state transition
           content:
             application/json:
               schema:
@@ -646,6 +752,30 @@ components:
         - status
         - createdAt
         - updatedAt
+
+    CreateScenarioRequest:
+      type: object
+      properties:
+        target:
+          $ref: '#/components/schemas/PaymentTarget'
+      required:
+        - target
+
+    ScenarioResponse:
+      $ref: '#/components/schemas/Scenario'
+
+    ListScenariosResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ScenarioResponse'
+
+    UpdateScenarioStatusRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ScenarioStatus'
+      required:
+        - status
 
     TaintNodeType:
       type: string

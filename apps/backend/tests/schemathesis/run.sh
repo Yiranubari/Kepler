@@ -39,6 +39,10 @@ schemathesis run openapi.yaml \
   --include-path /api/proof/verify \
   --include-path "/api/proof/{bundleHash}" \
   --include-path "/api/proof/scenario/{scenarioId}" \
+  --include-path /api/scenarios \
+  --include-path "/api/scenarios/{id}" \
+  --include-path "/api/scenarios/{id}/status" \
+  --request-timeout 30 \
   --checks not_a_server_error,status_code_conformance,content_type_conformance,response_schema_conformance \
   --suppress-health-check=filter_too_much \
   --report junit \
