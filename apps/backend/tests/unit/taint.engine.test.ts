@@ -1,5 +1,11 @@
 import * as crypto from 'crypto';
-import { EvidenceItem, TaintEdge, TaintGraph } from '@kepler/shared';
+import {
+  EvidenceItem,
+  TaintEdge,
+  TaintGraph,
+  TaintNode,
+  TaintNodeType
+} from '@kepler/shared';
 import { TaintEngine } from '../../src/modules/taint/taint.engine';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
 import { TaintRuleRegistry } from '../../src/modules/taint/rules/registry';
@@ -7,6 +13,8 @@ import { PublishedByRule } from '../../src/modules/taint/rules/publishedBy.rule'
 import { SamePaymentHashRule } from '../../src/modules/taint/rules/samePaymentHash.rule';
 import { SamePreimageRule } from '../../src/modules/taint/rules/samePreimage.rule';
 import { TemporalWindowRule } from '../../src/modules/taint/rules/temporalWindow.rule';
+import { SharedMintRule } from '../../src/modules/taint/rules/sharedMint.rule';
+import { CashuQuoteInvoiceRule } from '../../src/modules/taint/rules/cashuQuoteInvoice.rule';
 import { TaintScorer } from '../../src/modules/taint/taint.scorer';
 import {
   TaintRule,
@@ -15,7 +23,8 @@ import {
 } from '../../src/modules/taint/rules/rule.interface';
 import {
   TaintIngestError,
-  TaintRuleError
+  TaintRuleError,
+  TaintPathError
 } from '../../src/modules/taint/taint.errors';
 
 class SingleEdgeFixtureRule implements TaintRule {
@@ -658,17 +667,22 @@ describe('TaintEngine', () => {
     expect(edges[0].evidence[0].ref).toBe(eventId);
   });
 
-  test('demo flow end-to-end: cross-protocol correlation across Lightning, Nostr, and Bitcoin', () => {
+  test('demo flow end-to-end: cross-protocol correlation across Lightning, Nostr, Bitcoin, and Cashu', () => {
     registry.register(new PublishedByRule());
     registry.register(new SamePaymentHashRule());
     registry.register(new SamePreimageRule());
     registry.register(new TemporalWindowRule());
+    registry.register(new SharedMintRule());
+    registry.register(new CashuQuoteInvoiceRule());
 
     const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
     const preimage = '1111111111111111111111111111111111111111111111111111111111111111';
     const pubkey = '4646ae5047316b4230d0086c8acec687f00b1cd9d1dc634f6cb358ac0a9a8fff';
     const eventId = '0000000000000000000000000000000000000000000000000000000000000001';
     const txid = '2222222222222222222222222222222222222222222222222222222222222222';
+    const mintUrl = 'https://mint.demo.example.com';
+    const mintId = `mint:${mintUrl}`;
+    const tokenSecret = 'cashu_demo_secret_token_12345';
 
     engine.ingestLightning({
       invoices: [
@@ -691,7 +705,7 @@ describe('TaintEngine', () => {
           pubkey,
           kind: 1,
           tags: [],
-          content: `Settled payment_hash: ${paymentHash} with preimage: ${preimage}`,
+          content: `Settled payment_hash: ${paymentHash} with preimage: ${preimage} at mint: ${mintUrl}`,
           createdAt: 1700001000
         }
       ]
@@ -719,6 +733,39 @@ describe('TaintEngine', () => {
         }
       ],
       addresses: []
+    });
+
+    engine.ingestCashu({
+      mints: [
+        {
+          url: mintUrl,
+          name: 'Demo Cashu Mint'
+        }
+      ],
+      tokens: [
+        {
+          mint: mintUrl,
+          unit: 'sat',
+          proofs: [
+            {
+              id: 'keyset_demo_1',
+              amount: BigInt(500),
+              secret: tokenSecret,
+              C: '020000000000000000000000000000000000000000000000000000000000000002'
+            }
+          ],
+          memo: null
+        }
+      ],
+      quotes: [
+        {
+          quote: 'quote_demo_1',
+          type: 'mint',
+          amount: BigInt(1000),
+          request: `lnbc10u1p${paymentHash}sampleinvoice`,
+          state: 'PAID'
+        }
+      ]
     });
 
     const result = engine.analyze();
@@ -756,6 +803,22 @@ describe('TaintEngine', () => {
     expect(eventTxEdge?.from).toBe(`event_id:${eventId}`);
     expect(eventTxEdge?.to).toBe(`txid:${txid}`);
     expect(eventTxEdge?.confidence).toBe(0.4167);
+
+    const sharedMintEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'SHARED_MINT'
+    );
+    expect(sharedMintEdges).toHaveLength(1);
+    expect(sharedMintEdges[0].from).toBe(mintId);
+    expect(sharedMintEdges[0].to).toBe(`event_id:${eventId}`);
+    expect(sharedMintEdges[0].confidence).toBe(0.6);
+
+    const cashuQuoteEdges = result.graph.edges.filter(
+      (edge) => edge.relationship === 'CASHU_QUOTE_INVOICE'
+    );
+    expect(cashuQuoteEdges).toHaveLength(1);
+    expect(cashuQuoteEdges[0].from).toBe(mintId);
+    expect(cashuQuoteEdges[0].to).toBe(`payment_hash:${paymentHash}`);
+    expect(cashuQuoteEdges[0].confidence).toBe(1.0);
 
     const crossProtocolPaths = engine.findPaths(
       `payment_hash:${paymentHash}`,
@@ -805,6 +868,231 @@ describe('TaintEngine', () => {
     );
     expect(lightningToNostrPath).toBeDefined();
     expect(lightningToNostrPath?.overallConfidence).toBe(1.0);
+
+    const paymentToMintPaths = engine.findPaths(
+      `payment_hash:${paymentHash}`,
+      mintId
+    );
+    expect(paymentToMintPaths.length).toBeGreaterThan(0);
+    const twoHopPath = paymentToMintPaths.find(
+      (p) => p.nodes.length === 3 && p.nodes[1] === `event_id:${eventId}`
+    );
+    expect(twoHopPath).toBeDefined();
+    expect(twoHopPath?.nodes).toEqual([
+      `payment_hash:${paymentHash}`,
+      `event_id:${eventId}`,
+      mintId
+    ]);
+    expect(twoHopPath?.overallConfidence).toBe(0.6);
+
+    const bitcoinToCashuPaths = engine.findPaths(
+      `txid:${txid}`,
+      mintId
+    );
+    expect(bitcoinToCashuPaths.length).toBeGreaterThan(0);
+    const btcToCashuPath = bitcoinToCashuPaths.find(
+      (p) => p.nodes.length === 3 && p.nodes[1] === `event_id:${eventId}`
+    );
+    expect(btcToCashuPath).toBeDefined();
+    expect(btcToCashuPath?.nodes).toEqual([
+      `txid:${txid}`,
+      `event_id:${eventId}`,
+      mintId
+    ]);
+    expect(btcToCashuPath?.overallConfidence).toBeCloseTo(0.25002, 4);
+  });
+
+  test('reset produces a graph whose serialized createdAt is within the last 5 seconds', () => {
+    const freshEngine = new TaintEngine();
+    freshEngine.reset();
+    const serialized = freshEngine.getGraph().toJSON();
+    const createdAtMs = new Date(serialized.createdAt).getTime();
+    const nowMs = Date.now();
+    expect(createdAtMs).toBeGreaterThanOrEqual(nowMs - 5000);
+    expect(createdAtMs).toBeLessThanOrEqual(nowMs + 1000);
+    expect(new Date(serialized.createdAt).getUTCFullYear()).toBeGreaterThanOrEqual(2026);
+  });
+
+  test('constructor default produces a graph whose serialized createdAt is within the last 5 seconds', () => {
+    const freshEngine = new TaintEngine();
+    const serialized = freshEngine.getGraph().toJSON();
+    const createdAtMs = new Date(serialized.createdAt).getTime();
+    const nowMs = Date.now();
+    expect(createdAtMs).toBeGreaterThanOrEqual(nowMs - 5000);
+    expect(createdAtMs).toBeLessThanOrEqual(nowMs + 1000);
+    expect(new Date(serialized.createdAt).getUTCFullYear()).toBeGreaterThanOrEqual(2026);
+  });
+
+  test('findTopPaths from invoice node returns paths to nodes of different types ordered by confidence descending', () => {
+    const reg = new TaintRuleRegistry();
+    reg.register(new PublishedByRule());
+    reg.register(new SamePaymentHashRule());
+    reg.register(new SamePreimageRule());
+    reg.register(new TemporalWindowRule());
+    reg.register(new SharedMintRule());
+    reg.register(new CashuQuoteInvoiceRule());
+
+    const eng = new TaintEngine(new TaintConfig(), reg, new TaintScorer());
+    const paymentHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const preimage = '1111111111111111111111111111111111111111111111111111111111111111';
+    const pubkey = '4646ae5047316b4230d0086c8acec687f00b1cd9d1dc634f6cb358ac0a9a8fff';
+    const eventId = '0000000000000000000000000000000000000000000000000000000000000001';
+    const txid = '2222222222222222222222222222222222222222222222222222222222222222';
+    const mintUrl = 'https://mint.demo.example.com';
+    const bolt11 = 'lnbc10u1pj8testinvoice0000000000000000000000000000000000000000000000';
+
+    eng.ingestLightning({
+      invoices: [
+        {
+          bolt11,
+          paymentHash,
+          preimage,
+          amountMsat: BigInt(1000000),
+          createdAt: 1700000000,
+          expiresAt: 1700003600,
+          payeePubkey: '020000000000000000000000000000000000000000000000000000000000000001'
+        }
+      ]
+    });
+    eng.ingestNostr({
+      events: [
+        {
+          id: eventId,
+          pubkey,
+          kind: 1,
+          tags: [],
+          content: `Settled payment_hash: ${paymentHash} with preimage: ${preimage} at mint: ${mintUrl}`,
+          createdAt: 1700001000
+        }
+      ]
+    });
+    eng.ingestBitcoin({
+      transactions: [
+        {
+          txid,
+          blockHeight: 800000,
+          blockTime: 1700001030,
+          inputs: [
+            {
+              txid: 'prevtx0000000000000000000000000000000000000000000000000000000001',
+              vout: 0,
+              address: 'bc1qinputoneaddress000000000000000000000001'
+            }
+          ],
+          outputs: [
+            {
+              address: 'bc1qoutputoneaddress00000000000000000000001',
+              value: BigInt(50000)
+            }
+          ]
+        }
+      ],
+      addresses: []
+    });
+    eng.ingestCashu({
+      mints: [{ url: mintUrl, name: 'Demo Cashu Mint' }],
+      tokens: [
+        {
+          mint: mintUrl,
+          unit: 'sat',
+          proofs: [
+            {
+              id: 'keyset_demo_1',
+              amount: BigInt(500),
+              secret: 'cashu_demo_secret_token_12345',
+              C: '020000000000000000000000000000000000000000000000000000000000000002'
+            }
+          ],
+          memo: null
+        }
+      ],
+      quotes: [
+        {
+          quote: 'quote_demo_1',
+          type: 'mint',
+          amount: BigInt(1000),
+          request: `lnbc10u1p${paymentHash}sampleinvoice`,
+          state: 'PAID'
+        }
+      ]
+    });
+
+    eng.analyze();
+
+    const invoiceNodeId = `invoice:${bolt11.toLowerCase()}`;
+    const topPaths = eng.findTopPaths(invoiceNodeId, 5, 5);
+    expect(topPaths.length).toBeGreaterThan(0);
+
+    const endNodeTypes = topPaths.map((p) => {
+      const endNode = eng.getGraph().getNode(p.nodes[p.nodes.length - 1]);
+      return endNode?.type;
+    });
+    expect(endNodeTypes).not.toContain(TaintNodeType.Invoice);
+
+    for (let i = 0; i < topPaths.length - 1; i++) {
+      expect(topPaths[i].overallConfidence).toBeGreaterThanOrEqual(topPaths[i + 1].overallConfidence);
+    }
+
+    const deterministicPaths = eng.findTopPaths(invoiceNodeId, 5, 5);
+    expect(topPaths.map((p) => p.toJSON())).toEqual(deterministicPaths.map((p) => p.toJSON()));
+  });
+
+  test('findTopPaths does not return paths to nodes of the same type as the start node', () => {
+    const eng = new TaintEngine();
+    const g = eng.getGraph();
+    const nodeA = new TaintNode({ id: 'invoice:inv1', type: TaintNodeType.Invoice, value: 'inv1', metadata: {} });
+    const nodeB = new TaintNode({ id: 'invoice:inv2', type: TaintNodeType.Invoice, value: 'inv2', metadata: {} });
+    const nodeC = new TaintNode({ id: 'txid:tx1', type: TaintNodeType.Txid, value: 'tx1', metadata: {} });
+    g.addNode(nodeA);
+    g.addNode(nodeB);
+    g.addNode(nodeC);
+    g.addEdge(new TaintEdge({ id: 'e1', from: 'invoice:inv1', to: 'invoice:inv2', relationship: 'CORRELATED', confidence: 0.9, evidence: [] }));
+    g.addEdge(new TaintEdge({ id: 'e2', from: 'invoice:inv2', to: 'txid:tx1', relationship: 'CORRELATED', confidence: 0.8, evidence: [] }));
+
+    const paths = eng.findTopPaths('invoice:inv1', 5, 5);
+    expect(paths.length).toBe(1);
+    expect(paths[0].nodes).toEqual(['invoice:inv1', 'invoice:inv2', 'txid:tx1']);
+    const targetNode = g.getNode(paths[0].nodes[paths[0].nodes.length - 1]);
+    expect(targetNode?.type).toBe(TaintNodeType.Txid);
+  });
+
+  test('findTopPaths with a nonexistent node throws TaintPathError with NODE_NOT_FOUND', () => {
+    const eng = new TaintEngine();
+    let caught: unknown;
+    try {
+      eng.findTopPaths('nonexistent:id_123', 5, 5);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(TaintPathError);
+    const pathError = caught as TaintPathError;
+    expect(pathError.context['reason']).toBe('NODE_NOT_FOUND');
+  });
+
+  test('addOrMergeNode unions array metadata', () => {
+    const eng = new TaintEngine();
+    const node1 = new TaintNode({
+      id: 'mint:https://mint.example.com',
+      type: TaintNodeType.Mint,
+      value: 'https://mint.example.com',
+      metadata: { quoteHashes: ['a', 'b'] }
+    });
+    const node2 = new TaintNode({
+      id: 'mint:https://mint.example.com',
+      type: TaintNodeType.Mint,
+      value: 'https://mint.example.com',
+      metadata: { quoteHashes: ['b', 'c'] }
+    });
+
+    const engineInternal = eng as unknown as {
+      addOrMergeNode: (node: TaintNode, protocol: string) => void;
+    };
+    engineInternal.addOrMergeNode(node1, 'CASHU');
+    engineInternal.addOrMergeNode(node2, 'CASHU');
+
+    const mergedNode = eng.getGraph().getNode('mint:https://mint.example.com');
+    expect(mergedNode).toBeDefined();
+    expect(mergedNode?.metadata['quoteHashes']).toEqual(['a', 'b', 'c']);
   });
 });
 

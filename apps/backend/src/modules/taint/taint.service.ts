@@ -1,8 +1,11 @@
+import { Scenario } from '@prisma/client';
 import {
   TaintGraph,
   EvidencePath,
   KeplerLogger,
-  NotFoundError
+  NotFoundError,
+  TaintNodeType,
+  PaymentTargetKind
 } from '@kepler/shared';
 import {
   TaintConfig,
@@ -78,6 +81,15 @@ export class TaintService {
     }
 
     const result = engine.analyze();
+
+    const scenario = await this.repository.getScenario(trimmedScenarioId);
+    if (scenario && scenario.targetData) {
+      const topPaths = this.computeTopPaths(engine, scenario);
+      for (const path of topPaths) {
+        result.graph.addPath(path);
+      }
+      result.pathCount = result.graph.paths.length;
+    }
 
     try {
       await this.repository.saveGraph(trimmedScenarioId, result);
@@ -158,5 +170,125 @@ export class TaintService {
     );
     const resolvedMaxPaths = maxPaths !== undefined ? maxPaths : 5;
     return engine.findPaths(fromNodeId, toNodeId, resolvedMaxPaths);
+  }
+
+  private computeTopPaths(
+    engine: TaintEngine,
+    scenario: Scenario
+  ): EvidencePath[] {
+    if (
+      !scenario.targetData ||
+      typeof scenario.targetData !== 'object' ||
+      Array.isArray(scenario.targetData)
+    ) {
+      return [];
+    }
+
+    const targetData = scenario.targetData as Record<string, unknown>;
+    const startNodeId = this.resolveStartNodeId(
+      engine.getGraph(),
+      scenario.targetKind,
+      targetData
+    );
+
+    if (!startNodeId) {
+      return [];
+    }
+
+    return engine.findTopPaths(startNodeId, 5, 5);
+  }
+
+  private resolveStartNodeId(
+    graph: TaintGraph,
+    kind: string,
+    targetData: Record<string, unknown>
+  ): string | null {
+    switch (kind.toUpperCase()) {
+      case PaymentTargetKind.Lightning.toUpperCase():
+        return this.resolveLightningStartNode(graph, targetData);
+      case PaymentTargetKind.Bitcoin.toUpperCase():
+        return this.resolveBitcoinStartNode(graph, targetData);
+      case PaymentTargetKind.Cashu.toUpperCase():
+        return this.resolveCashuStartNode(graph, targetData);
+      default:
+        return null;
+    }
+  }
+
+  private resolveLightningStartNode(
+    graph: TaintGraph,
+    targetData: Record<string, unknown>
+  ): string | null {
+    if (
+      typeof targetData['invoice'] === 'string' &&
+      targetData['invoice'].trim().length > 0
+    ) {
+      const inv = targetData['invoice'].trim().toLowerCase();
+      const invoiceNode = graph.getNode(`invoice:${inv}`);
+      if (invoiceNode) {
+        return invoiceNode.id;
+      }
+      const matchingPaymentHashNode = graph.nodes.find(
+        (n) =>
+          n.type === TaintNodeType.PaymentHash &&
+          typeof n.metadata['bolt11'] === 'string' &&
+          n.metadata['bolt11'].trim().toLowerCase() === inv
+      );
+      if (matchingPaymentHashNode) {
+        return matchingPaymentHashNode.id;
+      }
+    }
+    if (
+      typeof targetData['paymentHash'] === 'string' &&
+      targetData['paymentHash'].trim().length > 0
+    ) {
+      const hash = targetData['paymentHash'].trim().toLowerCase();
+      const paymentHashNode = graph.getNode(`payment_hash:${hash}`);
+      if (paymentHashNode) {
+        return paymentHashNode.id;
+      }
+    }
+    return null;
+  }
+
+  private resolveBitcoinStartNode(
+    graph: TaintGraph,
+    targetData: Record<string, unknown>
+  ): string | null {
+    if (
+      typeof targetData['address'] === 'string' &&
+      targetData['address'].trim().length > 0
+    ) {
+      const addr = targetData['address'].trim();
+      const lower = addr.toLowerCase();
+      const normalized =
+        lower.startsWith('bc1') ||
+        lower.startsWith('tb1') ||
+        lower.startsWith('bcrt1')
+          ? lower
+          : addr;
+      const addrNode = graph.getNode(`address:${normalized}`);
+      if (addrNode) {
+        return addrNode.id;
+      }
+    }
+    return null;
+  }
+
+  private resolveCashuStartNode(
+    graph: TaintGraph,
+    targetData: Record<string, unknown>
+  ): string | null {
+    if (
+      typeof targetData['request'] === 'string' &&
+      targetData['request'].trim().length > 0
+    ) {
+      const req = targetData['request'].trim().toLowerCase();
+      const invoiceNode = graph.getNode(`invoice:${req}`);
+      if (invoiceNode) {
+        return invoiceNode.id;
+      }
+    }
+    return null;
   }
 }

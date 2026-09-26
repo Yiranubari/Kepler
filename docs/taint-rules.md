@@ -34,3 +34,22 @@ Emits an edge between two nodes of different types (`event_id`, `invoice`, `txid
 - Evidence: two items referencing each node's timestamp and the delta between them
 - Determinism: nodes are sorted lexicographically by id and paired unordered `(A, B)` with `A.id < B.id`, emitting directed edge `A.id -> B.id` for cross-type nodes within window
 
+## shared_mint
+
+Emits an edge between a `mint` node and an `event_id` node when the Cashu mint URL referenced by a Cashu token appears in the Nostr event's content or tags.
+
+- Relationship: `SHARED_MINT`
+- Max confidence: `0.6`
+- Evidence: one item per matching event, referencing the event id and the matched field (`content` or `tags`)
+- Determinism: exact case-sensitive URL substring in content or exact tag element match
+
+## cashu_quote_invoice
+
+Emits an edge between a `mint` node and a `payment_hash` node when a Cashu mint quote reference matches the Lightning payment hash.
+
+- Relationship: `CASHU_QUOTE_INVOICE`
+- Max confidence: `1.0`
+- Evidence: one item per match, referencing the payment hash and quoteHash field
+- Determinism: exact 64-character hex match, case-insensitive
+
+
