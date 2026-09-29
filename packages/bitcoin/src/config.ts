@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { BitcoinConfigError } from './errors';
 
-export type BitcoinNetwork = 'mainnet' | 'testnet' | 'regtest';
+export type BitcoinNetwork = 'mainnet' | 'testnet' | 'testnet4' | 'regtest';
 
 export interface BitcoinConfigParams {
   readonly primaryUrl: string;
@@ -23,7 +23,7 @@ export class BitcoinConfig {
       }
     });
 
-  private static readonly NETWORK_SCHEMA = z.enum(['mainnet', 'testnet', 'regtest']);
+  private static readonly NETWORK_SCHEMA = z.enum(['mainnet', 'testnet', 'testnet4', 'regtest']);
 
   private readonly _primaryUrl: string;
   private readonly _fallbackUrl: string;
@@ -48,7 +48,7 @@ export class BitcoinConfig {
 
     const networkResult = BitcoinConfig.NETWORK_SCHEMA.safeParse(params.network);
     if (!networkResult.success) {
-      throw new BitcoinConfigError('Invalid BITCOIN_NETWORK: must be mainnet, testnet, or regtest', {
+      throw new BitcoinConfigError('Invalid BITCOIN_NETWORK: must be mainnet, testnet, testnet4, or regtest', {
         variable: 'BITCOIN_NETWORK',
         reason: networkResult.error.message
       });
@@ -69,6 +69,24 @@ export class BitcoinConfig {
 
   public get network(): BitcoinNetwork {
     return this._network;
+  }
+
+  public get mempoolBaseUrl(): string {
+    switch (this._network as string) {
+      case 'mainnet':
+        return 'https://mempool.space/api';
+      case 'testnet':
+        return 'https://mempool.space/testnet/api';
+      case 'testnet4':
+        return 'https://mempool.space/testnet4/api';
+      case 'signet':
+        return 'https://mempool.space/signet/api';
+      default:
+        throw new BitcoinConfigError(`No mempool.space endpoint available for network: ${this._network}`, {
+          variable: 'BITCOIN_NETWORK',
+          network: this._network
+        });
+    }
   }
 
   public static fromEnv(env: Record<string, string | undefined> = process.env): BitcoinConfig {
@@ -93,7 +111,7 @@ export class BitcoinConfig {
     const networkRaw = env['BITCOIN_NETWORK'];
     const networkResult = BitcoinConfig.NETWORK_SCHEMA.safeParse(networkRaw);
     if (!networkResult.success) {
-      throw new BitcoinConfigError('Invalid or missing BITCOIN_NETWORK: must be mainnet, testnet, or regtest', {
+      throw new BitcoinConfigError('Invalid or missing BITCOIN_NETWORK: must be mainnet, testnet, testnet4, or regtest', {
         variable: 'BITCOIN_NETWORK',
         reason: networkResult.error.message
       });

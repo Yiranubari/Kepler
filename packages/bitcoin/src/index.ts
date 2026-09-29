@@ -16,7 +16,9 @@ export {
   BitcoinNetworkError,
   BitcoinNotFoundError,
   BitcoinInvalidResponseError,
-  BitcoinParseError
+  BitcoinParseError,
+  BitcoinBroadcastError,
+  BitcoinFeeError
 } from './errors';
 
 export type {
@@ -24,7 +26,9 @@ export type {
   BitcoinNetworkErrorContext,
   BitcoinNotFoundErrorContext,
   BitcoinInvalidResponseErrorContext,
-  BitcoinParseErrorContext
+  BitcoinParseErrorContext,
+  BitcoinBroadcastErrorContext,
+  BitcoinFeeErrorContext
 } from './errors';
 
 export type {
@@ -33,7 +37,10 @@ export type {
   BitcoinInput,
   BitcoinTransaction,
   BitcoinAddressInfo,
-  BitcoinBlockTip
+  BitcoinBlockTip,
+  Utxo,
+  RecommendedFees,
+  BroadcastResult
 } from './types';
 
 export {
@@ -44,5 +51,7 @@ export {
   EsploraAddressStatsSchema,
   EsploraAddressInfoSchema,
   EsploraBlockSchema,
-  EsploraBlocksResponseSchema
+  EsploraBlocksResponseSchema,
+  MempoolUtxoResponseSchema,
+  MempoolFeesResponseSchema
 } from './types';

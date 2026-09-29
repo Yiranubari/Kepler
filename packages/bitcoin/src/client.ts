@@ -5,7 +5,9 @@ import {
   BitcoinNetworkError,
   BitcoinNotFoundError,
   BitcoinInvalidResponseError,
-  BitcoinParseError
+  BitcoinParseError,
+  BitcoinBroadcastError,
+  BitcoinFeeError
 } from './errors';
 import {
   BitcoinTransaction,
@@ -14,9 +16,14 @@ import {
   BitcoinAddressInfo,
   BitcoinBlockTip,
   BitcoinScriptType,
+  Utxo,
+  RecommendedFees,
+  BroadcastResult,
   EsploraTxSchema,
   EsploraAddressInfoSchema,
-  EsploraBlocksResponseSchema
+  EsploraBlocksResponseSchema,
+  MempoolUtxoResponseSchema,
+  MempoolFeesResponseSchema
 } from './types';
 
 export class BitcoinClient {
@@ -24,6 +31,7 @@ export class BitcoinClient {
   private static readonly BASE58_CHARSET: string = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   private static readonly BECH32_CONST: number = 1;
   private static readonly BECH32M_CONST: number = 0x2bc830a3;
+  private static readonly DEFAULT_TIMEOUT_MS: number = 15000;
 
   private readonly _config: BitcoinConfig;
   private readonly _logger: KeplerLogger;
@@ -183,7 +191,7 @@ export class BitcoinClient {
     }
 
     const network = this._config.network;
-    const hrp = network === 'mainnet' ? 'bc' : (network === 'testnet' ? 'tb' : 'bcrt');
+    const hrp = network === 'mainnet' ? 'bc' : (network === 'regtest' ? 'bcrt' : 'tb');
     const p2pkhVersion = network === 'mainnet' ? 0x00 : 0x6f;
     const p2shVersion = network === 'mainnet' ? 0x05 : 0xc4;
 
@@ -444,7 +452,7 @@ export class BitcoinClient {
     refKey?: string,
     refValue?: string
   ): Promise<{ data: unknown; source: 'primary' | 'fallback' }> {
-    const startTime = Date.now();
+    const startTime = performance.now();
     const primaryUrl = `${this._config.primaryUrl}${endpointPath}`;
     const fallbackUrl = `${this._config.fallbackUrl}${endpointPath}`;
 
@@ -488,7 +496,7 @@ export class BitcoinClient {
             });
           }
 
-          const durationMs = Date.now() - startTime;
+          const durationMs = performance.now() - startTime;
           const debugContext: Record<string, unknown> = {
             source: 'primary',
             durationMs
@@ -563,7 +571,7 @@ export class BitcoinClient {
             });
           }
 
-          const durationMs = Date.now() - startTime;
+          const durationMs = performance.now() - startTime;
           const debugContext: Record<string, unknown> = {
             source: 'fallback',
             durationMs
@@ -733,5 +741,246 @@ export class BitcoinClient {
       hash: block.id,
       timestamp: block.timestamp
     };
+  }
+
+  private truncateAddress(address: string): string {
+    if (address.length <= 16) {
+      return address;
+    }
+    return `${address.slice(0, 8)}…${address.slice(-8)}`;
+  }
+
+  private truncateTxid(txid: string): string {
+    if (txid.length <= 16) {
+      return txid;
+    }
+    return `${txid.slice(0, 8)}…${txid.slice(-8)}`;
+  }
+
+  public async getUtxos(address: string): Promise<Utxo[]> {
+    if (!/^(bc1|1|3|tb1|m|n|2|bcrt1)[a-zA-HJ-NP-Z0-9]+$/.test(address)) {
+      throw new BitcoinParseError('Invalid address: does not match any supported Bitcoin prefix', {
+        input: address,
+        reason: 'Invalid address prefix'
+      });
+    }
+
+    const startTime = performance.now();
+    const url = `${this._config.mempoolBaseUrl}/address/${address}/utxo`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), BitcoinClient.DEFAULT_TIMEOUT_MS);
+
+    try {
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: controller.signal });
+      } catch (fetchErr: unknown) {
+        throw new BitcoinNetworkError(`Network error while fetching UTXOs: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`, {
+          url
+        }, fetchErr instanceof Error ? fetchErr : undefined);
+      }
+
+      if (response.status === 404) {
+        const durationMs = performance.now() - startTime;
+        this._logger.debug('Fetched UTXOs successfully', {
+          address: this.truncateAddress(address),
+          count: 0,
+          durationMs
+        });
+        return [];
+      }
+
+      if (!response.ok) {
+        throw new BitcoinNetworkError(`Failed to fetch UTXOs: HTTP ${response.status}`, {
+          url,
+          status: response.status
+        });
+      }
+
+      let rawData: unknown;
+      try {
+        rawData = await response.json();
+      } catch (jsonErr: unknown) {
+        throw new BitcoinInvalidResponseError('Failed to parse UTXO response JSON', {
+          url,
+          reason: jsonErr instanceof Error ? jsonErr.message : String(jsonErr)
+        }, jsonErr instanceof Error ? jsonErr : undefined);
+      }
+
+      const parseResult = MempoolUtxoResponseSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        throw new BitcoinInvalidResponseError('UTXO response shape does not match schema', {
+          url,
+          reason: parseResult.error.message
+        });
+      }
+
+      const utxos: Utxo[] = parseResult.data.map((item) => ({
+        txid: item.txid,
+        vout: item.vout,
+        value: BigInt(item.value),
+        status: {
+          confirmed: item.status.confirmed,
+          blockHeight: item.status.block_height,
+          blockTime: item.status.block_time
+        }
+      }));
+
+      const durationMs = performance.now() - startTime;
+      this._logger.debug('Fetched UTXOs successfully', {
+        address: this.truncateAddress(address),
+        count: utxos.length,
+        durationMs
+      });
+
+      return utxos;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  public async getRecommendedFees(): Promise<RecommendedFees> {
+    const startTime = performance.now();
+    const url = `${this._config.mempoolBaseUrl}/v1/fees/recommended`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), BitcoinClient.DEFAULT_TIMEOUT_MS);
+
+    try {
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: controller.signal });
+      } catch (fetchErr: unknown) {
+        const cause = fetchErr instanceof Error ? fetchErr : new Error(String(fetchErr));
+        throw new BitcoinFeeError(`Network error while fetching recommended fees: ${cause.message}`, {
+          reason: cause.message
+        }, cause);
+      }
+
+      if (!response.ok) {
+        const statusErr = new Error(`HTTP ${response.status}`);
+        throw new BitcoinFeeError(`Mempool returned HTTP ${response.status} for recommended fees`, {
+          reason: `HTTP ${response.status}`
+        }, statusErr);
+      }
+
+      let rawData: unknown;
+      try {
+        rawData = await response.json();
+      } catch (jsonErr: unknown) {
+        const cause = jsonErr instanceof Error ? jsonErr : new Error(String(jsonErr));
+        throw new BitcoinFeeError(`Failed to parse recommended fees response JSON: ${cause.message}`, {
+          reason: cause.message
+        }, cause);
+      }
+
+      const parseResult = MempoolFeesResponseSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        const cause = new Error(parseResult.error.message);
+        throw new BitcoinFeeError(`Recommended fees response shape does not match schema: ${parseResult.error.message}`, {
+          reason: parseResult.error.message
+        }, cause);
+      }
+
+      const durationMs = performance.now() - startTime;
+      this._logger.debug('Fetched recommended fees successfully', {
+        fastestFee: parseResult.data.fastestFee,
+        economyFee: parseResult.data.economyFee,
+        durationMs
+      });
+
+      return parseResult.data;
+    } catch (err: unknown) {
+      if (err instanceof BitcoinFeeError) {
+        throw err;
+      }
+      const cause = err instanceof Error ? err : new Error(String(err));
+      throw new BitcoinFeeError(`Failed to get recommended fees: ${cause.message}`, {
+        reason: cause.message
+      }, cause);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  public async broadcastTransaction(signedTxHex: string): Promise<BroadcastResult> {
+    if (!/^[0-9a-f]+$/.test(signedTxHex)) {
+      throw new BitcoinParseError('Invalid transaction hex: must be a non-empty lowercase hex string', {
+        input: signedTxHex,
+        reason: 'Invalid transaction hex format'
+      });
+    }
+
+    const startTime = performance.now();
+    const url = `${this._config.mempoolBaseUrl}/tx`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), BitcoinClient.DEFAULT_TIMEOUT_MS);
+
+    try {
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain'
+          },
+          body: signedTxHex,
+          signal: controller.signal
+        });
+      } catch (fetchErr: unknown) {
+        throw new BitcoinNetworkError(`Network error while broadcasting transaction: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`, {
+          url
+        }, fetchErr instanceof Error ? fetchErr : undefined);
+      }
+
+      let responseText: string;
+      try {
+        responseText = await response.text();
+      } catch (textErr: unknown) {
+        throw new BitcoinNetworkError(`Failed to read broadcast response body: ${textErr instanceof Error ? textErr.message : String(textErr)}`, {
+          url,
+          status: response.status
+        }, textErr instanceof Error ? textErr : undefined);
+      }
+
+      const trimmedBody = responseText.trim();
+
+      if (response.status === 200) {
+        const normalizedTxid = trimmedBody.toLowerCase();
+        if (/^[0-9a-f]{64}$/.test(normalizedTxid)) {
+          const durationMs = performance.now() - startTime;
+          this._logger.info('Bitcoin transaction broadcast succeeded', {
+            txid: this.truncateTxid(normalizedTxid),
+            durationMs
+          });
+          return { txid: normalizedTxid };
+        }
+        throw new BitcoinInvalidResponseError('Broadcast returned invalid txid format', {
+          url,
+          reason: `Expected 64-char lowercase hex txid, received: ${trimmedBody.slice(0, 64)}`
+        });
+      }
+
+      if (response.status === 400 || response.status === 422) {
+        const reason = trimmedBody.length > 256 ? trimmedBody.slice(0, 256) : trimmedBody;
+        throw new BitcoinBroadcastError('Transaction rejected by mempool', {
+          reason: reason || `Mempool rejected transaction with HTTP ${response.status}`,
+          txHex: signedTxHex
+        });
+      }
+
+      if (response.status >= 500 && response.status < 600) {
+        throw new BitcoinNetworkError(`Mempool server error during broadcast: HTTP ${response.status}`, {
+          url,
+          status: response.status
+        });
+      }
+
+      throw new BitcoinNetworkError(`Broadcast request failed with HTTP ${response.status}`, {
+        url,
+        status: response.status
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 }

@@ -27,6 +27,17 @@ export interface BitcoinParseErrorContext {
   readonly [key: string]: unknown;
 }
 
+export interface BitcoinBroadcastErrorContext {
+  readonly reason?: string;
+  readonly txHex?: string;
+  readonly [key: string]: unknown;
+}
+
+export interface BitcoinFeeErrorContext {
+  readonly reason?: string;
+  readonly [key: string]: unknown;
+}
+
 export class BitcoinConfigError extends ProtocolError {
   public override readonly code: string;
 
@@ -94,5 +105,42 @@ export class BitcoinParseError extends ProtocolError {
     }
     super(message, sanitizedContext, cause);
     this.code = 'BITCOIN_PARSE_ERROR';
+  }
+}
+
+export class BitcoinBroadcastError extends ProtocolError {
+  public override readonly code: string;
+  public static readonly MAX_TX_HEX_LENGTH: number = 256;
+  public static readonly MAX_HEX_LENGTH: number = 256;
+
+  private static truncateTxHex(txHex: unknown): unknown {
+    if (typeof txHex === 'string') {
+      if (txHex.length > BitcoinBroadcastError.MAX_TX_HEX_LENGTH) {
+        return `${txHex.slice(0, BitcoinBroadcastError.MAX_TX_HEX_LENGTH)}...`;
+      }
+      return txHex;
+    }
+    return txHex;
+  }
+
+  constructor(message: string, context: BitcoinBroadcastErrorContext = {}, cause?: Error) {
+    const sanitizedContext: Record<string, unknown> = {
+      ...context,
+      protocol: 'bitcoin'
+    };
+    if (context.txHex !== undefined) {
+      sanitizedContext.txHex = BitcoinBroadcastError.truncateTxHex(context.txHex);
+    }
+    super(message, sanitizedContext, cause);
+    this.code = 'BITCOIN_BROADCAST_ERROR';
+  }
+}
+
+export class BitcoinFeeError extends ProtocolError {
+  public override readonly code: string;
+
+  constructor(message: string, context: BitcoinFeeErrorContext = {}, cause?: Error) {
+    super(message, { ...context, protocol: 'bitcoin' }, cause);
+    this.code = 'BITCOIN_FEE_ERROR';
   }
 }

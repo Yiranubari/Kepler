@@ -20,10 +20,17 @@ class BitcoinClient {
   getTransaction(txid: string): Promise<BitcoinTransaction>;
   getAddressInfo(address: string): Promise<BitcoinAddressInfo>;
   getBlockTip(): Promise<BitcoinBlockTip>;
+  getUtxos(address: string): Promise<Utxo[]>;
+  getRecommendedFees(): Promise<RecommendedFees>;
+  broadcastTransaction(signedTxHex: string): Promise<BroadcastResult>;
   parseTxHex(hex: string): BitcoinTransaction;
   parseOutputScript(scriptHex: string): { type: BitcoinScriptType; address: string | null };
 }
 ```
+
+### Broadcast
+
+The package does not sign transactions — it only broadcasts already-signed hex. Signing happens in the user's wallet via the backend's onchain module.
 
 ### BitcoinConfig
 
@@ -32,7 +39,8 @@ class BitcoinConfig {
   static fromEnv(): BitcoinConfig;
   readonly primaryUrl: string;
   readonly fallbackUrl: string;
-  readonly network: 'mainnet' | 'testnet' | 'regtest';
+  readonly network: 'mainnet' | 'testnet' | 'testnet4' | 'regtest';
+  readonly mempoolBaseUrl: string;
 }
 ```
 
@@ -43,6 +51,8 @@ class BitcoinConfig {
 - `BitcoinNotFoundError`: Thrown when a transaction or address is not found (HTTP 404).
 - `BitcoinInvalidResponseError`: Thrown when API responses do not conform to expected schema.
 - `BitcoinParseError`: Thrown when transaction hex, script hex, address format, or txid format is invalid.
+- `BitcoinBroadcastError`: Thrown when mempool.space rejects a transaction during broadcast.
+- `BitcoinFeeError`: Thrown when fee estimation fails.
 
 ### Types
 
@@ -52,6 +62,9 @@ class BitcoinConfig {
 - `BitcoinAddressInfo`
 - `BitcoinBlockTip`
 - `BitcoinScriptType`: `'p2pkh' | 'p2sh' | 'p2wpkh' | 'p2wsh' | 'p2tr' | 'op_return' | 'unknown'`
+- `Utxo`
+- `RecommendedFees`
+- `BroadcastResult`
 
 ## How to run tests
 
@@ -63,10 +76,10 @@ npm run test:unit -w @kepler/bitcoin
 
 ### Integration tests
 
-Integration tests require live Esplora endpoints and run only when `ESPLORA_URL` is set:
+Integration tests require live endpoints:
 
 ```bash
-ESPLORA_URL="https://blockstream.info/api" ESPLORA_FALLBACK_URL="https://blockstream.info/api" BITCOIN_NETWORK="mainnet" npm run test:integration -w @kepler/bitcoin
+npm run test:integration -w @kepler/bitcoin
 ```
 
 ### Typecheck
@@ -77,6 +90,6 @@ npm run typecheck -w @kepler/bitcoin
 
 ## Known limitations
 
-- Read-only queries: Provides transaction, address info, and block tip lookups. Transaction construction, signing, and broadcasting are not handled by this adapter.
+- No private keys or signing: The adapter only broadcasts pre-signed raw transactions. Signing and PSBT construction live in the backend.
 - Output script decoding: Classifies standard P2PKH, P2SH, P2WPKH, P2WSH, P2TR, and OP_RETURN scripts. Non-standard or bare multisig scripts are classified as `unknown`.
 - Wire format verification: `parseTxHex` validates wire serialization structure and computes txid; it does not validate consensus rules or execute Bitcoin scripts.

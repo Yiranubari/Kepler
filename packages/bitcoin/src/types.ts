@@ -63,6 +63,29 @@ export interface BitcoinBlockTip {
   readonly timestamp: number;
 }
 
+export interface Utxo {
+  readonly txid: string;
+  readonly vout: number;
+  readonly value: bigint;
+  readonly status: {
+    readonly confirmed: boolean;
+    readonly blockHeight: number | null;
+    readonly blockTime: number | null;
+  };
+}
+
+export interface RecommendedFees {
+  readonly fastestFee: number;
+  readonly halfHourFee: number;
+  readonly hourFee: number;
+  readonly economyFee: number;
+  readonly minimumFee: number;
+}
+
+export interface BroadcastResult {
+  readonly txid: string;
+}
+
 export const EsploraTxStatusSchema = z.object({
   confirmed: z.boolean(),
   block_height: z.number().int().nonnegative().nullable().optional(),
@@ -120,3 +143,22 @@ export const EsploraBlocksResponseSchema = z.union([
   z.array(EsploraBlockSchema).min(1),
   EsploraBlockSchema
 ]);
+
+export const MempoolUtxoResponseSchema = z.array(z.object({
+  txid: z.string().min(1),
+  vout: z.number().int().nonnegative(),
+  value: z.number().int().nonnegative(),
+  status: z.object({
+    confirmed: z.boolean(),
+    block_height: z.number().int().nonnegative().nullable(),
+    block_time: z.number().int().nonnegative().nullable()
+  })
+}));
+
+export const MempoolFeesResponseSchema = z.object({
+  fastestFee: z.number().int().nonnegative(),
+  halfHourFee: z.number().int().nonnegative(),
+  hourFee: z.number().int().nonnegative(),
+  economyFee: z.number().int().nonnegative(),
+  minimumFee: z.number().int().nonnegative()
+});
