@@ -49,15 +49,19 @@
     "moduleNameMapper": {
       "^@kepler/shared$": "<rootDir>/../../packages/shared/src/index.ts"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@noble|@scure|nostr-tools)/)"
+    ],
     "transform": {
-      "^.+\\.tsx?$": [
+      "^.+\\.[tj]sx?$": [
         "ts-jest",
         {
           "tsconfig": {
             "strict": true,
             "esModuleInterop": true,
             "module": "commonjs",
-            "target": "ES2022"
+            "target": "ES2022",
+            "allowJs": true
           }
         }
       ]

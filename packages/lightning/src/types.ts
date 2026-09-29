@@ -15,7 +15,7 @@ export interface LightningInvoice {
   readonly descriptionHash: string | null;
   readonly timestamp: number;
   readonly expiry: number;
-  readonly payeePubkey: string;
+  readonly payeePubkey: string | null;
   readonly expiresAt: number;
 }
 

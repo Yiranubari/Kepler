@@ -28,6 +28,16 @@ import {
   ScenarioController,
   createScenarioRoutes
 } from './modules/scenario';
+import { BitcoinConfig, BitcoinClient } from '@kepler/bitcoin';
+import { LightningConfig, LightningClient } from '@kepler/lightning';
+import { NostrConfig, NostrClient } from '@kepler/nostr';
+import { CashuConfig, CashuClient } from '@kepler/cashu';
+import {
+  ProtocolsConfig,
+  ProtocolsService,
+  ProtocolsController,
+  createProtocolsRoutes
+} from './modules/protocols';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -43,7 +53,8 @@ export function getLimiter(): RateLimiter {
 export function createApp(
   limiter: RateLimiter,
   logger: KeplerLogger,
-  prismaClient?: PrismaClient
+  prismaClient?: PrismaClient,
+  protocolsConfig?: ProtocolsConfig
 ): Express {
   const app = express();
 
@@ -76,9 +87,41 @@ export function createApp(
   const scenarioController = new ScenarioController(scenarioService);
   const scenarioRoutes = createScenarioRoutes(scenarioController, limiter);
 
+  let activeProtocolsConfig: ProtocolsConfig;
+  if (protocolsConfig) {
+    activeProtocolsConfig = protocolsConfig;
+  } else {
+    const bitcoinConfig = BitcoinConfig.fromEnv({
+      ...process.env,
+      BITCOIN_NETWORK: process.env.BITCOIN_NETWORK || 'mainnet'
+    });
+    const bitcoinClient = new BitcoinClient(bitcoinConfig, logger);
+
+    const lightningConfig = LightningConfig.fromEnv();
+    const lightningClient = new LightningClient(lightningConfig, logger);
+
+    const nostrConfig = NostrConfig.fromEnv();
+    const nostrClient = new NostrClient(nostrConfig, logger);
+
+    const cashuConfig = CashuConfig.fromEnv();
+    const cashuClient = new CashuClient(cashuConfig, logger);
+
+    activeProtocolsConfig = {
+      bitcoinClient,
+      lightningClient,
+      nostrClient,
+      cashuClient
+    };
+  }
+
+  const protocolsService = new ProtocolsService(activeProtocolsConfig, logger);
+  const protocolsController = new ProtocolsController(protocolsService);
+  const protocolsRoutes = createProtocolsRoutes(protocolsController, limiter);
+
   app.use('/api', taintRoutes);
   app.use('/api/proof', proofRoutes);
   app.use('/api/scenarios', scenarioRoutes);
+  app.use('/api/protocols', protocolsRoutes);
 
   app.use(errorMiddleware);
 

@@ -109,7 +109,38 @@ describe('Bolt11 Parser', () => {
       expect(decoded.expiry).toBe(3600);
       expect(decoded.expiresAt).toBe(1496314658 + 3600);
       expect(decoded.preimage).toBeNull();
-      expect(decoded.payeePubkey).toBe('');
+      expect(decoded.payeePubkey).toBeNull();
+    });
+
+    it('decodes an invoice with an n tag asserting payeePubkey is the hex pubkey', () => {
+      const paymentHashHex = '0001020304050607080900010203040506070809000102030405060708090102';
+      const payeePubkeyHex = '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+      const pWords = convertBits(Array.from(Buffer.from(paymentHashHex, 'hex')), 8, 5, true)!;
+      const nWords = convertBits(Array.from(Buffer.from(payeePubkeyHex, 'hex')), 8, 5, true)!;
+      const dWords = convertBits(Array.from(Buffer.from('With n tag', 'utf-8')), 8, 5, true)!;
+
+      const invoice = generateInvoice('lnbc10m', 1700000000, [
+        { type: 'p', dataWords: pWords },
+        { type: 'd', dataWords: dWords },
+        { type: 'n', dataWords: nWords }
+      ]);
+
+      const decoded = Bolt11.decode(invoice);
+      expect(decoded.payeePubkey).toBe(payeePubkeyHex);
+    });
+
+    it('decodes an invoice without an n tag asserting payeePubkey is null', () => {
+      const paymentHashHex = '0001020304050607080900010203040506070809000102030405060708090102';
+      const pWords = convertBits(Array.from(Buffer.from(paymentHashHex, 'hex')), 8, 5, true)!;
+      const dWords = convertBits(Array.from(Buffer.from('Without n tag', 'utf-8')), 8, 5, true)!;
+
+      const invoice = generateInvoice('lnbc10m', 1700000000, [
+        { type: 'p', dataWords: pWords },
+        { type: 'd', dataWords: dWords }
+      ]);
+
+      const decoded = Bolt11.decode(invoice);
+      expect(decoded.payeePubkey).toBeNull();
     });
 
     it('decodes uppercase invoice correctly', () => {

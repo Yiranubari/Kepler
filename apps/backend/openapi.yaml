@@ -701,6 +701,395 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/protocols/bitcoin/transaction:
+    post:
+      summary: Fetch Bitcoin transaction by txid
+      operationId: fetchBitcoinTransaction
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BitcoinTxRequest'
+      responses:
+        '200':
+          description: Bitcoin transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BitcoinTxResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/bitcoin/address:
+    post:
+      summary: Fetch Bitcoin address info
+      operationId: fetchBitcoinAddress
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BitcoinAddressRequest'
+      responses:
+        '200':
+          description: Bitcoin address details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BitcoinAddressResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Address not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/bitcoin/tip:
+    post:
+      summary: Fetch current Bitcoin block tip
+      operationId: fetchBitcoinTip
+      security: []
+      responses:
+        '200':
+          description: Bitcoin block tip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BitcoinTipResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/lightning/decode:
+    post:
+      summary: Decode BOLT11 Lightning invoice
+      operationId: decodeLightningInvoice
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LightningDecodeRequest'
+      responses:
+        '200':
+          description: Decoded invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LightningDecodeResponse'
+        '400':
+          description: Invalid invoice format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/lightning/lookup:
+    post:
+      summary: Lookup Lightning invoice by payment hash
+      operationId: lookupLightningInvoice
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LightningLookupRequest'
+      responses:
+        '200':
+          description: Lightning payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LightningPaymentResponse'
+        '400':
+          description: Invalid payment hash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/lightning/transactions:
+    post:
+      summary: List Lightning transactions
+      operationId: listLightningTransactions
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LightningListRequest'
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LightningTransactionListResponse'
+        '400':
+          description: Invalid list parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/nostr/event:
+    post:
+      summary: Fetch Nostr event by event ID
+      operationId: fetchNostrEvent
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NostrEventRequest'
+      responses:
+        '200':
+          description: Nostr event details or null if not found
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/NostrEventResponse'
+                  - type: 'null'
+        '400':
+          description: Invalid event ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/nostr/author:
+    post:
+      summary: Fetch Nostr events by author public key
+      operationId: fetchNostrEventsByAuthor
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NostrAuthorRequest'
+      responses:
+        '200':
+          description: List of Nostr events by author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NostrEventListResponse'
+        '400':
+          description: Invalid author public key or limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/protocols/cashu/mint:
+    post:
+      summary: Fetch Cashu mint information
+      operationId: fetchCashuMintInfo
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashuMintRequest'
+      responses:
+        '200':
+          description: Cashu mint information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashuMintInfoResponse'
+        '400':
+          description: Invalid mint URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     PaymentTargetKind:
@@ -1376,3 +1765,388 @@ components:
             - context
       required:
         - error
+
+    BitcoinTxRequest:
+      type: object
+      required:
+        - txid
+      properties:
+        txid:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: 64-character lowercase hexadecimal transaction ID
+
+    BitcoinAddressRequest:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: string
+          pattern: '^(bc1|1|3|tb1|m|n|2|bcrt1)[a-zA-HJ-NP-Z0-9]+$'
+          description: Bitcoin address
+
+    BitcoinTxResponse:
+      type: object
+      required:
+        - txid
+        - version
+        - locktime
+        - size
+        - weight
+        - fee
+        - status
+        - inputs
+        - outputs
+      properties:
+        txid:
+          type: string
+        version:
+          type: integer
+        locktime:
+          type: integer
+        size:
+          type: integer
+        weight:
+          type: integer
+        fee:
+          type: string
+        status:
+          type: object
+          required:
+            - confirmed
+          properties:
+            confirmed:
+              type: boolean
+            blockHeight:
+              type: [integer, 'null']
+            blockHash:
+              type: [string, 'null']
+            blockTime:
+              type: [integer, 'null']
+        inputs:
+          type: array
+          items:
+            type: object
+            required:
+              - txid
+              - vout
+              - isCoinbase
+              - sequence
+            properties:
+              txid:
+                type: string
+              vout:
+                type: integer
+              prevout:
+                type: [object, 'null']
+                properties:
+                  scriptpubkeyAddress:
+                    type: [string, 'null']
+                  scriptpubkeyType:
+                    type: string
+                  value:
+                    type: string
+              scriptsig:
+                type: [string, 'null']
+              witness:
+                type: [array, 'null']
+                items:
+                  type: string
+              isCoinbase:
+                type: boolean
+              sequence:
+                type: integer
+        outputs:
+          type: array
+          items:
+            type: object
+            required:
+              - scriptpubkeyType
+              - value
+            properties:
+              scriptpubkeyAddress:
+                type: [string, 'null']
+              scriptpubkeyType:
+                type: string
+              value:
+                type: string
+
+    BitcoinAddressResponse:
+      type: object
+      required:
+        - address
+        - chainStats
+        - mempoolStats
+      properties:
+        address:
+          type: string
+        chainStats:
+          type: object
+          required:
+            - fundedTxoCount
+            - fundedTxoSum
+            - spentTxoCount
+            - spentTxoSum
+            - txCount
+          properties:
+            fundedTxoCount:
+              type: integer
+            fundedTxoSum:
+              type: string
+            spentTxoCount:
+              type: integer
+            spentTxoSum:
+              type: string
+            txCount:
+              type: integer
+        mempoolStats:
+          type: object
+          required:
+            - fundedTxoCount
+            - fundedTxoSum
+            - spentTxoCount
+            - spentTxoSum
+            - txCount
+          properties:
+            fundedTxoCount:
+              type: integer
+            fundedTxoSum:
+              type: string
+            spentTxoCount:
+              type: integer
+            spentTxoSum:
+              type: string
+            txCount:
+              type: integer
+
+    BitcoinTipResponse:
+      type: object
+      required:
+        - height
+        - hash
+      properties:
+        height:
+          type: integer
+        hash:
+          type: string
+
+    LightningDecodeRequest:
+      type: object
+      required:
+        - invoice
+      properties:
+        invoice:
+          type: string
+          pattern: '^(lnbc|lntb|lnbcrt)'
+          description: BOLT11 invoice string
+
+    LightningLookupRequest:
+      type: object
+      required:
+        - paymentHash
+      properties:
+        paymentHash:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: 64-character lowercase hexadecimal payment hash
+
+    LightningListRequest:
+      type: object
+      required:
+        - limit
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+
+    LightningDecodeResponse:
+      type: object
+      required:
+        - paymentHash
+        - amountMsat
+        - expiry
+        - timestamp
+        - description
+        - payeePubkey
+      properties:
+        paymentHash:
+          type: string
+        amountMsat:
+          type: string
+        expiry:
+          type: integer
+        timestamp:
+          type: integer
+        description:
+          type: string
+        descriptionHash:
+          type: [string, 'null']
+        payeePubkey:
+          oneOf:
+            - type: string
+            - type: 'null'
+        paymentSecret:
+          type: [string, 'null']
+        minFinalCltvExpiry:
+          type: [integer, 'null']
+        fallbackAddress:
+          type: [string, 'null']
+
+    LightningPaymentResponse:
+      type: object
+      required:
+        - paymentHash
+        - preimage
+        - amountMsat
+        - feeMsat
+        - status
+        - createdAt
+      properties:
+        paymentHash:
+          type: string
+        preimage:
+          type: [string, 'null']
+        amountMsat:
+          type: string
+        feeMsat:
+          type: string
+        status:
+          type: string
+          enum: [pending, succeeded, failed]
+        createdAt:
+          type: integer
+
+    LightningTransactionListResponse:
+      type: array
+      items:
+        type: object
+        required:
+          - type
+          - invoice
+          - description
+          - amountMsat
+          - feeMsat
+          - paymentHash
+          - preimage
+          - createdAt
+          - settledAt
+        properties:
+          type:
+            type: string
+            enum: [incoming, outgoing]
+          invoice:
+            type: string
+          description:
+            type: string
+          amountMsat:
+            type: string
+          feeMsat:
+            type: [string, 'null']
+          paymentHash:
+            type: string
+          preimage:
+            type: [string, 'null']
+          createdAt:
+            type: integer
+          settledAt:
+            type: [integer, 'null']
+
+    NostrEventRequest:
+      type: object
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+
+    NostrAuthorRequest:
+      type: object
+      required:
+        - pubkey
+        - limit
+      properties:
+        pubkey:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+
+    NostrEventResponse:
+      type: object
+      required:
+        - id
+        - pubkey
+        - createdAt
+        - kind
+        - tags
+        - content
+        - sig
+      properties:
+        id:
+          type: string
+        pubkey:
+          type: string
+        createdAt:
+          type: integer
+        kind:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        content:
+          type: string
+        sig:
+          type: string
+
+    NostrEventListResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/NostrEventResponse'
+
+    CashuMintRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+
+    CashuMintInfoResponse:
+      type: object
+      required:
+        - name
+        - pubkey
+        - version
+        - description
+        - nuts
+      properties:
+        name:
+          type: string
+        pubkey:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        descriptionLong:
+          type: [string, 'null']
+        contact:
+          type: [array, 'null']
+          items:
+            type: array
+            items:
+              type: string
+        motd:
+          type: [string, 'null']
+        nuts:
+          type: object
+          additionalProperties: true

@@ -208,7 +208,7 @@ export class Bolt11 {
     let paymentHash: string | null = null;
     let description = '';
     let descriptionHash: string | null = null;
-    let payeePubkey = '';
+    let payeePubkey: string | null = null;
     let expiry = Bolt11.DEFAULT_EXPIRY_SECONDS;
 
     while (offset < taggedWords.length) {
