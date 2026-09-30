@@ -111,7 +111,6 @@ export class BitcoinParseError extends ProtocolError {
 export class BitcoinBroadcastError extends ProtocolError {
   public override readonly code: string;
   public static readonly MAX_TX_HEX_LENGTH: number = 256;
-  public static readonly MAX_HEX_LENGTH: number = 256;
 
   private static truncateTxHex(txHex: unknown): unknown {
     if (typeof txHex === 'string') {
