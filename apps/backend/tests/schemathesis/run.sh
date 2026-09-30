@@ -51,6 +51,11 @@ schemathesis run openapi.yaml \
   --include-path /api/protocols/nostr/event \
   --include-path /api/protocols/nostr/author \
   --include-path /api/protocols/cashu/mint \
+  --include-path /api/onchain/derive \
+  --include-path /api/onchain/utxos \
+  --include-path /api/onchain/fees \
+  --include-path /api/onchain/psbt/build \
+  --include-path /api/onchain/psbt/broadcast \
   --request-timeout 60 \
   --checks status_code_conformance,content_type_conformance,response_schema_conformance \
   --suppress-health-check=filter_too_much \

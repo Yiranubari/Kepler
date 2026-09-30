@@ -1,24 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<testsuites errors="0" failures="0" skipped="0" tests="19" time="663.472871">
-  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="0" skipped="0" tests="19" time="663.472871">
-    <testcase name="POST /api/proof/build" time="3.307187" />
-    <testcase name="POST /api/proof/verify" time="22.793994" />
-    <testcase name="POST /api/protocols/bitcoin/address" time="14.620369" />
-    <testcase name="POST /api/protocols/bitcoin/tip" time="0.859311" />
-    <testcase name="POST /api/protocols/bitcoin/transaction" time="13.694818" />
-    <testcase name="POST /api/protocols/cashu/mint" time="18.141987" />
-    <testcase name="POST /api/protocols/lightning/decode" time="2.328052" />
-    <testcase name="POST /api/protocols/lightning/lookup" time="134.093717" />
-    <testcase name="POST /api/protocols/lightning/transactions" time="169.934834" />
-    <testcase name="POST /api/protocols/nostr/author" time="26.727221" />
-    <testcase name="POST /api/protocols/nostr/event" time="33.454932" />
-    <testcase name="POST /api/scenarios" time="3.610192" />
-    <testcase name="GET /api/proof/{bundleHash}" time="28.375827" />
-    <testcase name="GET /api/scenarios" time="23.866169" />
-    <testcase name="GET /api/scenarios/{id}" time="18.652273" />
-    <testcase name="GET /api/proof/scenario/{scenarioId}" time="25.964809" />
-    <testcase name="PATCH /api/scenarios/{id}/status" time="13.776197" />
-    <testcase name="DELETE /api/scenarios/{id}" time="1.599030" />
-    <testcase name="Stateful tests" time="107.671952" />
+<testsuites errors="0" failures="0" skipped="0" tests="24" time="853.657440">
+  <testsuite name="schemathesis" hostname="maamaa-latitude-e7470" errors="0" failures="0" skipped="0" tests="24" time="853.657440">
+    <testcase name="POST /api/onchain/derive" time="3.140763" />
+    <testcase name="POST /api/onchain/fees" time="32.219093" />
+    <testcase name="POST /api/onchain/psbt/broadcast" time="2.123995" />
+    <testcase name="POST /api/onchain/psbt/build" time="5.470590" />
+    <testcase name="POST /api/onchain/utxos" time="3.292930" />
+    <testcase name="POST /api/proof/build" time="3.317014" />
+    <testcase name="POST /api/proof/verify" time="14.625448" />
+    <testcase name="POST /api/protocols/bitcoin/address" time="15.403039" />
+    <testcase name="POST /api/protocols/bitcoin/tip" time="0.779953" />
+    <testcase name="POST /api/protocols/bitcoin/transaction" time="24.861451" />
+    <testcase name="POST /api/protocols/cashu/mint" time="28.665687" />
+    <testcase name="POST /api/protocols/lightning/decode" time="3.064619" />
+    <testcase name="POST /api/protocols/lightning/lookup" time="251.387889" />
+    <testcase name="POST /api/protocols/lightning/transactions" time="200.432820" />
+    <testcase name="POST /api/protocols/nostr/author" time="31.127654" />
+    <testcase name="POST /api/protocols/nostr/event" time="32.962467" />
+    <testcase name="POST /api/scenarios" time="4.665927" />
+    <testcase name="GET /api/proof/{bundleHash}" time="33.130895" />
+    <testcase name="GET /api/scenarios" time="21.385340" />
+    <testcase name="GET /api/scenarios/{id}" time="22.953601" />
+    <testcase name="GET /api/proof/scenario/{scenarioId}" time="30.051509" />
+    <testcase name="PATCH /api/scenarios/{id}/status" time="12.793841" />
+    <testcase name="DELETE /api/scenarios/{id}" time="1.470511" />
+    <testcase name="Stateful tests" time="74.330402" />
   </testsuite>
 </testsuites>

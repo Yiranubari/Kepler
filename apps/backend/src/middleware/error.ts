@@ -28,6 +28,11 @@ function statusForError(err: KeplerError): number {
   if (err.code === 'SCENARIO_STATE_ERROR') return 409;
   if (err.code === 'PROTOCOL_OPERATION_ERROR') return 502;
   if (err.code === 'PROTOCOL_UNSUPPORTED') return 501;
+  if (err.code === 'ONCHAIN_DERIVATION_ERROR') return 400;
+  if (err.code === 'ONCHAIN_PSBT_BUILD_ERROR') return 400;
+  if (err.code === 'ONCHAIN_INSUFFICIENT_FUNDS') return 400;
+  if (err.code === 'ONCHAIN_BROADCAST_ERROR') return 502;
+  if (err.code === 'ONCHAIN_UNSUPPORTED_NETWORK') return 400;
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
   if (err instanceof ValidationError) return 400;

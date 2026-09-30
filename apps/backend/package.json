@@ -16,14 +16,17 @@
     "test:schemathesis": "bash tests/schemathesis/run.sh"
   },
   "dependencies": {
-    "@kepler/shared": "*",
     "@kepler/bitcoin": "*",
+    "@kepler/cashu": "*",
     "@kepler/lightning": "*",
     "@kepler/nostr": "*",
-    "@kepler/cashu": "*",
+    "@kepler/shared": "*",
     "@prisma/client": "^5.0.0",
-    "express": "^4.18.2",
+    "@scure/base": "^1.2.6",
+    "@scure/bip32": "^1.7.0",
+    "@scure/btc-signer": "^2.4.1",
     "dotenv": "^16.4.5",
+    "express": "^4.18.2",
     "winston": "^3.13.0",
     "zod": "^3.22.4"
   },
@@ -32,12 +35,12 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
     "prisma": "^5.0.0",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "jest": "^29.7.0"
+    "typescript": "^5.3.3"
   },
   "jest": {
     "preset": "ts-jest",
@@ -50,7 +53,7 @@
       "^@kepler/shared$": "<rootDir>/../../packages/shared/src/index.ts"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!(@noble|@scure|nostr-tools)/)"
+      "node_modules/(?!(@noble|@scure|nostr-tools|micro-packed)/)"
     ],
     "transform": {
       "^.+\\.[tj]sx?$": [

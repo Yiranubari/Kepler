@@ -1090,6 +1090,215 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/onchain/derive:
+    post:
+      summary: Derive Bitcoin receiving and change addresses from xpub
+      operationId: deriveOnchainAddresses
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnchainDeriveRequest'
+      responses:
+        '200':
+          description: Derived addresses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnchainDeriveResponse'
+        '400':
+          description: Invalid request parameters or derivation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/onchain/utxos:
+    post:
+      summary: Fetch UTXOs for a list of Bitcoin addresses
+      operationId: getOnchainUtxos
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnchainUtxosRequest'
+      responses:
+        '200':
+          description: List of UTXOs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnchainUtxosResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/onchain/fees:
+    post:
+      summary: Fetch recommended Bitcoin fee rates
+      operationId: getOnchainFees
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnchainFeesRequest'
+      responses:
+        '200':
+          description: Recommended fee rates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnchainFeesResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/onchain/psbt/build:
+    post:
+      summary: Build an unsigned PSBT for on-chain Bitcoin transaction
+      operationId: buildOnchainPsbt
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnchainPsbtBuildRequest'
+      responses:
+        '200':
+          description: Unsigned PSBT build response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnchainPsbtBuildResponse'
+        '400':
+          description: Invalid parameters or insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/onchain/psbt/broadcast:
+    post:
+      summary: Broadcast a signed PSBT to the Bitcoin network
+      operationId: broadcastOnchainPsbt
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnchainPsbtBroadcastRequest'
+      responses:
+        '200':
+          description: Broadcast transaction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnchainPsbtBroadcastResponse'
+        '400':
+          description: Invalid PSBT or missing signatures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error or node broadcast rejection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     PaymentTargetKind:
@@ -2150,3 +2359,194 @@ components:
         nuts:
           type: object
           additionalProperties: true
+
+    OnchainSupportedNetwork:
+      type: string
+      enum:
+        - mainnet
+        - testnet
+        - testnet4
+        - signet
+        - regtest
+
+    OnchainDeriveRequest:
+      type: object
+      required:
+        - xpub
+        - network
+        - count
+      properties:
+        xpub:
+          type: string
+          pattern: '^[xyztuv]pub[1-9A-HJ-NP-Za-km-z]{100,120}$'
+        network:
+          $ref: '#/components/schemas/OnchainSupportedNetwork'
+        count:
+          type: integer
+          minimum: 1
+          maximum: 100
+        change:
+          type: boolean
+
+    OnchainDeriveResponse:
+      type: object
+      required:
+        - addresses
+        - changeAddress
+      properties:
+        addresses:
+          type: array
+          items:
+            type: string
+        changeAddress:
+          type: string
+
+    OnchainUtxosRequest:
+      type: object
+      required:
+        - addresses
+        - network
+      properties:
+        addresses:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        network:
+          $ref: '#/components/schemas/OnchainSupportedNetwork'
+
+    OnchainUtxoItem:
+      type: object
+      required:
+        - txid
+        - vout
+        - valueSats
+        - address
+        - confirmed
+      properties:
+        txid:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        vout:
+          type: integer
+          minimum: 0
+        valueSats:
+          type: string
+          pattern: '^[0-9]+$'
+        address:
+          type: string
+        confirmed:
+          type: boolean
+
+    OnchainUtxosResponse:
+      type: object
+      required:
+        - utxos
+        - totalSats
+      properties:
+        utxos:
+          type: array
+          items:
+            $ref: '#/components/schemas/OnchainUtxoItem'
+        totalSats:
+          type: string
+          pattern: '^[0-9]+$'
+
+    OnchainFeesRequest:
+      type: object
+      required:
+        - network
+      properties:
+        network:
+          $ref: '#/components/schemas/OnchainSupportedNetwork'
+
+    OnchainFeesResponse:
+      type: object
+      required:
+        - fastest
+        - halfHour
+        - hour
+        - economy
+        - minimum
+      properties:
+        fastest:
+          type: integer
+          minimum: 0
+        halfHour:
+          type: integer
+          minimum: 0
+        hour:
+          type: integer
+          minimum: 0
+        economy:
+          type: integer
+          minimum: 0
+        minimum:
+          type: integer
+          minimum: 0
+
+    OnchainPsbtBuildRequest:
+      type: object
+      required:
+        - xpub
+        - network
+        - toAddress
+        - amountSats
+        - feeRate
+      properties:
+        xpub:
+          type: string
+          pattern: '^[xyztuv]pub[1-9A-HJ-NP-Za-km-z]{100,120}$'
+        network:
+          $ref: '#/components/schemas/OnchainSupportedNetwork'
+        toAddress:
+          type: string
+        amountSats:
+          type: string
+          pattern: '^[0-9]+$'
+        feeRate:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        changeAddress:
+          type: string
+
+    OnchainPsbtBuildResponse:
+      type: object
+      required:
+        - psbt
+        - feeSats
+        - inputCount
+        - outputCount
+      properties:
+        psbt:
+          type: string
+        feeSats:
+          type: string
+          pattern: '^[0-9]+$'
+        inputCount:
+          type: integer
+          minimum: 1
+        outputCount:
+          type: integer
+          minimum: 1
+
+    OnchainPsbtBroadcastRequest:
+      type: object
+      required:
+        - signedPsbt
+        - network
+      properties:
+        signedPsbt:
+          type: string
+        network:
+          $ref: '#/components/schemas/OnchainSupportedNetwork'
+
+    OnchainPsbtBroadcastResponse:
+      type: object
+      required:
+        - txid
+      properties:
+        txid:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'

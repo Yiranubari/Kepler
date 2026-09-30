@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.21s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.29s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       18 selected / 29 total                                   
+     Operations:       23 selected / 34 total                                   
 
 
  ✅  API capabilities:                                                          
@@ -18,22 +18,22 @@ Schemathesis v4.24.3
 
  ⏭   Examples (in 0.14s)                                                        
                                                                                 
-     ⏭  18 skipped                                                              
+     ⏭  23 skipped                                                              
 
- ✅  Coverage (in 43.24s)                                                       
+ ✅  Coverage (in 58.42s)                                                       
                                                                                 
-     ✅ 18 passed                                                               
+     ✅ 23 passed                                                               
 
- ✅  Fuzzing (in 512.89s)                                                       
+ ✅  Fuzzing (in 721.24s)                                                       
                                                                                 
-     ✅ 18 passed                                                               
+     ✅ 23 passed                                                               
 
- ✅  Stateful (in 132.10s)                                                      
+ ✅  Stateful (in 98.17s)                                                       
 
-     Scenarios:    150                                                          
+     Scenarios:    123                                                          
      API Links:    0 covered / 11 selected / 11 total (11 inferred)             
 
-     ✅ 150 passed                                                              
+     ✅ 123 passed                                                              
 
 =================================== WARNINGS ===================================
 
@@ -47,11 +47,15 @@ Missing test data: 5 operations repeatedly returned 404 Not Found, preventing te
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
-Schema validation mismatch: 9 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+Schema validation mismatch: 13 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
   - DELETE /api/scenarios/{id}
   - GET /api/scenarios/{id}
   - PATCH /api/scenarios/{id}/status
+  - POST /api/onchain/derive
+  - POST /api/onchain/psbt/broadcast
+  - POST /api/onchain/psbt/build
+  - POST /api/onchain/utxos
   - POST /api/proof/build
   - POST /api/proof/verify
   - POST /api/protocols/bitcoin/address
@@ -64,8 +68,8 @@ Schema validation mismatch: 9 operations mostly rejected generated data due to v
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 18/29
-  Tested: 18
+  Selected: 23/34
+  Tested: 23
 
 Test Phases:
   ⏭  Examples
@@ -75,14 +79,14 @@ Test Phases:
 
 Warnings:
   ⚠️ Missing valid test data: 5 operations repeatedly returned 404 responses
-  ⚠️ Schema validation mismatch: 9 operations mostly rejected generated data
+  ⚠️ Schema validation mismatch: 13 operations mostly rejected generated data
 
 Test cases:
-  2923 generated, 2923 passed, 110 skipped
+  3552 generated, 3552 passed, 145 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 91763281790518560640202875708426552493
+Seed: 99408378554060872773733938629784574057
 
-============================ 2 warnings in 688.46s =============================
+============================ 2 warnings in 878.05s =============================

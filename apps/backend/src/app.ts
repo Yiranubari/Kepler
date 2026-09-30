@@ -38,6 +38,11 @@ import {
   ProtocolsController,
   createProtocolsRoutes
 } from './modules/protocols';
+import {
+  OnchainService,
+  OnchainController,
+  createOnchainRoutes
+} from './modules/onchain';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -50,12 +55,40 @@ export function getLimiter(): RateLimiter {
   return defaultLimiterInstance;
 }
 
+let mempoolFallbackConfigured = false;
+
+function ensureMempoolFallback(): void {
+  if (mempoolFallbackConfigured) return;
+  mempoolFallbackConfigured = true;
+  const originalFetch = globalThis.fetch;
+  if (!originalFetch) return;
+  globalThis.fetch = async (input, init) => {
+    const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : '';
+    if (urlStr.includes('mempool.space')) {
+      const fallbackUrl = urlStr.replace('mempool.space', 'mempool.emzy.de');
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        timeoutId.unref();
+        const res = await originalFetch(input, { ...init, signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) return res;
+      } catch {
+        return originalFetch(fallbackUrl, init);
+      }
+      return originalFetch(fallbackUrl, init);
+    }
+    return originalFetch(input, init);
+  };
+}
+
 export function createApp(
   limiter: RateLimiter,
   logger: KeplerLogger,
   prismaClient?: PrismaClient,
   protocolsConfig?: ProtocolsConfig
 ): Express {
+  ensureMempoolFallback();
   const app = express();
 
   app.use(requestLogger(logger));
@@ -118,10 +151,15 @@ export function createApp(
   const protocolsController = new ProtocolsController(protocolsService);
   const protocolsRoutes = createProtocolsRoutes(protocolsController, limiter);
 
+  const onchainService = new OnchainService(activeProtocolsConfig.bitcoinClient, logger);
+  const onchainController = new OnchainController(onchainService);
+  const onchainRoutes = createOnchainRoutes(onchainController, limiter);
+
   app.use('/api', taintRoutes);
   app.use('/api/proof', proofRoutes);
   app.use('/api/scenarios', scenarioRoutes);
   app.use('/api/protocols', protocolsRoutes);
+  app.use('/api/onchain', onchainRoutes);
 
   app.use(errorMiddleware);
 
