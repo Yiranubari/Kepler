@@ -72,8 +72,8 @@ model ExecutionLog {
 
 model PolicyRecord {
   id                String   @id @default(cuid())
-  dailyBudgetSats   Int
-  perTxBudgetSats   Int
+  dailyBudgetSats   BigInt
+  perTxBudgetSats   BigInt
   scopes            String[]
   allowedMints      String[]
   allowedRelays     String[]

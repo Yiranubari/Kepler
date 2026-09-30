@@ -618,18 +618,18 @@ paths:
 
   /api/policy:
     get:
-      summary: Get active policy configuration
+      summary: Get the current policy configuration
       operationId: getPolicy
       security: []
       responses:
         '200':
-          description: Active policy
+          description: Current policy configuration
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Policy'
-        '400':
-          description: Failed to retrieve policy
+                $ref: '#/components/schemas/PolicyResponse'
+        '404':
+          description: Policy not found
           content:
             application/json:
               schema:
@@ -641,7 +641,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
     put:
-      summary: Update policy configuration
+      summary: Update the current policy configuration
       operationId: updatePolicy
       security: []
       requestBody:
@@ -649,16 +649,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Policy'
+              $ref: '#/components/schemas/UpdatePolicyRequest'
       responses:
         '200':
-          description: Updated policy
+          description: Policy successfully updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Policy'
+                $ref: '#/components/schemas/PolicyResponse'
         '400':
-          description: Failed to update policy
+          description: Invalid policy request payload
           content:
             application/json:
               schema:
@@ -672,7 +672,7 @@ paths:
 
   /api/policy/check:
     post:
-      summary: Check action against policy limits and scopes
+      summary: Pre-execution check against current policy
       operationId: checkPolicy
       security: []
       requestBody:
@@ -680,16 +680,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyCheckRequest'
+              $ref: '#/components/schemas/CheckRequest'
       responses:
         '200':
-          description: Policy check result
+          description: Check passed and permitted by policy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyCheckResponse'
+                $ref: '#/components/schemas/CheckResponse'
         '400':
-          description: Invalid policy check request
+          description: Invalid check request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Policy violation (scope, budget, or allowlist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Policy not found
           content:
             application/json:
               schema:
@@ -1995,36 +2007,8 @@ components:
         - Send
         - Publish
 
-    Policy:
+    PolicyResponse:
       type: object
-      properties:
-        id:
-          type: string
-        dailyBudgetSats:
-          type: integer
-          minimum: 0
-        perTxBudgetSats:
-          type: integer
-          minimum: 0
-        scopes:
-          type: array
-          items:
-            $ref: '#/components/schemas/PolicyScope'
-        allowedMints:
-          type: array
-          items:
-            type: string
-        allowedRelays:
-          type: array
-          items:
-            type: string
-        allowedEsplora:
-          type: array
-          items:
-            type: string
-        updatedAt:
-          type: string
-          format: date-time
       required:
         - id
         - dailyBudgetSats
@@ -2034,42 +2018,165 @@ components:
         - allowedRelays
         - allowedEsplora
         - updatedAt
-
-    PolicyCheckRequest:
-      type: object
       properties:
-        scope:
-          $ref: '#/components/schemas/PolicyScope'
+        id:
+          type: string
+          minLength: 1
+          maxLength: 256
+        dailyBudgetSats:
+          type: string
+          pattern: '^[0-9]+$'
+        perTxBudgetSats:
+          type: string
+          pattern: '^[0-9]+$'
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyScope'
+        allowedMints:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        allowedRelays:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        allowedEsplora:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdatePolicyRequest:
+      type: object
+      required:
+        - dailyBudgetSats
+        - perTxBudgetSats
+        - scopes
+        - allowedMints
+        - allowedRelays
+        - allowedEsplora
+      properties:
+        dailyBudgetSats:
+          type: string
+          pattern: '^[0-9]+$'
+        perTxBudgetSats:
+          type: string
+          pattern: '^[0-9]+$'
+        scopes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PolicyScope'
+        allowedMints:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        allowedRelays:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        allowedEsplora:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+
+    ReadCheckRequest:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          const: read
+
+    ProposeCheckRequest:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          const: propose
+
+    SendCheckRequest:
+      type: object
+      required:
+        - kind
+        - amountSats
+        - protocol
+      properties:
+        kind:
+          type: string
+          const: send
         amountSats:
-          type: integer
-          minimum: 0
-        spentTodaySats:
-          type: integer
-          minimum: 0
+          type: string
+          pattern: '^[0-9]+$'
+        protocol:
+          type: string
+          enum:
+            - Bitcoin
+            - Lightning
+            - Cashu
         mint:
           type: string
-        relay:
-          type: string
-        esplora:
-          type: string
-      required:
-        - scope
-        - amountSats
-        - spentTodaySats
+          minLength: 1
+          maxLength: 256
 
-    PolicyCheckResponse:
+    PublishCheckRequest:
       type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          const: publish
+
+    CheckRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/ReadCheckRequest'
+        - $ref: '#/components/schemas/ProposeCheckRequest'
+        - $ref: '#/components/schemas/SendCheckRequest'
+        - $ref: '#/components/schemas/PublishCheckRequest'
+      discriminator:
+        propertyName: kind
+
+    CheckResponse:
+      type: object
+      required:
+        - allowed
+        - limits
       properties:
         allowed:
           type: boolean
-        reason:
-          type: string
-        remainingDailyBudgetSats:
-          type: integer
-      required:
-        - allowed
-        - reason
-        - remainingDailyBudgetSats
+          const: true
+        limits:
+          type: object
+          required:
+            - dailyRemainingSats
+            - perTxLimitSats
+          properties:
+            dailyRemainingSats:
+              type: string
+              pattern: '^[0-9]+$'
+            perTxLimitSats:
+              type: string
+              pattern: '^[0-9]+$'
 
     NostrLogRequest:
       type: object

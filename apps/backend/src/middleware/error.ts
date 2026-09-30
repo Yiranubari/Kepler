@@ -38,6 +38,11 @@ function statusForError(err: KeplerError): number {
   if (err.code === 'AI_NO_PROVIDER') return 503;
   if (err.code === 'AI_INPUT_TOO_LARGE') return 400;
   if (err.code === 'AI_NOT_FOUND') return 404;
+  if (err.code === 'POLICY_NOT_FOUND') return 404;
+  if (err.code === 'POLICY_SCOPE_VIOLATION') return 403;
+  if (err.code === 'POLICY_BUDGET_VIOLATION') return 403;
+  if (err.code === 'POLICY_ALLOWLIST_VIOLATION') return 403;
+  if (err.code === 'POLICY_INPUT_ERROR') return 400;
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
   if (err instanceof ValidationError) return 400;

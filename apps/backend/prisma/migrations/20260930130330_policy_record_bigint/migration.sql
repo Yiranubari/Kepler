@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "PolicyRecord" ALTER COLUMN "dailyBudgetSats" SET DATA TYPE BIGINT,
+ALTER COLUMN "perTxBudgetSats" SET DATA TYPE BIGINT;

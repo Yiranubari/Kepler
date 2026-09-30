@@ -4,6 +4,7 @@ import { env } from './config/env';
 import { RATE_LIMIT_WINDOWS_MS } from './config/constants';
 import { RateLimiter } from './services/rateLimiter';
 import { KeplerLogger } from './services/logger';
+import { Lifecycle } from './services/lifecycle';
 import { requestLogger } from './middleware/requestLogger';
 import { errorMiddleware } from './middleware/error';
 import {
@@ -51,6 +52,12 @@ import {
   AIController,
   createAIRoutes
 } from './modules/ai';
+import {
+  PolicyRepository,
+  PolicyService,
+  PolicyController,
+  createPolicyRoutes
+} from './modules/policy';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -94,7 +101,8 @@ export function createApp(
   limiter: RateLimiter,
   logger: KeplerLogger,
   prismaClient?: PrismaClient,
-  protocolsConfig?: ProtocolsConfig
+  protocolsConfig?: ProtocolsConfig,
+  lifecycle?: Lifecycle
 ): Express {
   ensureMempoolFallback();
   const app = express();
@@ -177,12 +185,28 @@ export function createApp(
   const aiController = new AIController(aiService);
   const aiRoutes = createAIRoutes(aiController, limiter);
 
+  const policyRepository = new PolicyRepository(prisma);
+  const policyService = new PolicyService(policyRepository, logger);
+  const policyController = new PolicyController(policyService);
+  const policyRoutes = createPolicyRoutes(policyController, limiter);
+
+  if (lifecycle) {
+    lifecycle.registerStartupHook('policyService', async (): Promise<void> => {
+      await policyService.initialize();
+    });
+  } else {
+    void policyService.initialize().catch((err: unknown) => {
+      logger.error('Failed to initialize policy service', err instanceof Error ? err : undefined);
+    });
+  }
+
   app.use('/api', taintRoutes);
   app.use('/api/proof', proofRoutes);
   app.use('/api/scenarios', scenarioRoutes);
   app.use('/api/protocols', protocolsRoutes);
   app.use('/api/onchain', onchainRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/policy', policyRoutes);
 
   app.use(errorMiddleware);
 
