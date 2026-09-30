@@ -43,6 +43,14 @@ import {
   OnchainController,
   createOnchainRoutes
 } from './modules/onchain';
+import {
+  AIConfig,
+  AIProviderRegistry,
+  AICache,
+  AIService,
+  AIController,
+  createAIRoutes
+} from './modules/ai';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -155,11 +163,26 @@ export function createApp(
   const onchainController = new OnchainController(onchainService);
   const onchainRoutes = createOnchainRoutes(onchainController, limiter);
 
+  const aiConfig = AIConfig.fromEnv();
+  const aiRegistry = AIProviderRegistry.createDefault(aiConfig, logger);
+  const aiCache = new AICache(aiConfig.cacheTtlSeconds * 1000, 1000);
+  const aiService = new AIService(
+    aiRegistry,
+    aiCache,
+    aiConfig,
+    taintService,
+    proofService,
+    logger
+  );
+  const aiController = new AIController(aiService);
+  const aiRoutes = createAIRoutes(aiController, limiter);
+
   app.use('/api', taintRoutes);
   app.use('/api/proof', proofRoutes);
   app.use('/api/scenarios', scenarioRoutes);
   app.use('/api/protocols', protocolsRoutes);
   app.use('/api/onchain', onchainRoutes);
+  app.use('/api/ai', aiRoutes);
 
   app.use(errorMiddleware);
 

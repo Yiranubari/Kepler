@@ -1299,6 +1299,183 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/ai/explain:
+    post:
+      summary: Explain a taint graph in plain language
+      operationId: explainTaintGraph
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExplainGraphRequest'
+      responses:
+        '200':
+          description: Plain language explanation of taint graph
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIResponse'
+        '400':
+          description: Bad request or input too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Taint graph not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: No AI provider available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: AI provider timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/ai/summarize:
+    post:
+      summary: Summarize an evidence bundle in plain language
+      operationId: summarizeEvidenceBundle
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummarizeEvidenceRequest'
+      responses:
+        '200':
+          description: Plain language summary of evidence bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIResponse'
+        '400':
+          description: Bad request or input too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Evidence bundle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: No AI provider available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: AI provider timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/ai/suggest:
+    post:
+      summary: Suggest alternative routes or splits in plain language
+      operationId: suggestRouteOptions
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestRouteRequest'
+      responses:
+        '200':
+          description: Plain language suggestions and tradeoff explanations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIResponse'
+        '400':
+          description: Bad request or input too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: No AI provider available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: AI provider timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     PaymentTargetKind:
@@ -2550,3 +2727,98 @@ components:
         txid:
           type: string
           pattern: '^[0-9a-fA-F]{64}$'
+
+    ExplainGraphRequest:
+      type: object
+      required:
+        - scenarioId
+      properties:
+        scenarioId:
+          type: string
+          minLength: 1
+
+    SummarizeEvidenceRequest:
+      type: object
+      required:
+        - bundleHash
+      properties:
+        bundleHash:
+          type: string
+          minLength: 1
+
+    CandidateRoute:
+      type: object
+      required:
+        - name
+        - protocol
+        - estimatedFeeSats
+        - estimatedLinkageConfidence
+      properties:
+        name:
+          type: string
+          minLength: 1
+        protocol:
+          type: string
+          minLength: 1
+        estimatedFeeSats:
+          type: [integer, 'null']
+          minimum: 0
+        estimatedLinkageConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    RouteSuggestionConstraints:
+      type: object
+      required:
+        - maxFeeSats
+        - requireNonCustodial
+      properties:
+        maxFeeSats:
+          type: [integer, 'null']
+          minimum: 0
+        requireNonCustodial:
+          type: boolean
+
+    SuggestRouteRequest:
+      type: object
+      required:
+        - paymentTargetKind
+        - paymentTargetTruncated
+        - candidateRoutes
+        - constraints
+      properties:
+        paymentTargetKind:
+          type: string
+          enum:
+            - Lightning
+            - Bitcoin
+            - Cashu
+        paymentTargetTruncated:
+          type: string
+          minLength: 1
+        candidateRoutes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CandidateRoute'
+        constraints:
+          $ref: '#/components/schemas/RouteSuggestionConstraints'
+
+    AIResponse:
+      type: object
+      required:
+        - text
+        - model
+        - provider
+        - cached
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        provider:
+          type: string
+        cached:
+          type: boolean
+

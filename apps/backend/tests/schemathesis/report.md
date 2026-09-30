@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.29s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.37s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       23 selected / 34 total                                   
+     Operations:       26 selected / 37 total                                   
 
 
  ✅  API capabilities:                                                          
@@ -16,42 +16,46 @@ Schemathesis v4.24.3
      Supports NULL byte in headers:                            ✘                
      Accepts backslash and control characters in URL paths:    ✓                
 
- ⏭   Examples (in 0.14s)                                                        
+ ⏭   Examples (in 0.15s)                                                        
                                                                                 
-     ⏭  23 skipped                                                              
+     ⏭  26 skipped                                                              
 
- ✅  Coverage (in 58.42s)                                                       
+ ✅  Coverage (in 94.47s)                                                       
                                                                                 
-     ✅ 23 passed                                                               
+     ✅ 26 passed                                                               
 
- ✅  Fuzzing (in 721.24s)                                                       
+ ✅  Fuzzing (in 817.79s)                                                       
                                                                                 
-     ✅ 23 passed                                                               
+     ✅ 26 passed                                                               
 
- ✅  Stateful (in 98.17s)                                                       
+ ✅  Stateful (in 96.07s)                                                       
 
-     Scenarios:    123                                                          
+     Scenarios:    139                                                          
      API Links:    0 covered / 11 selected / 11 total (11 inferred)             
 
-     ✅ 123 passed                                                              
+     ✅ 139 passed                                                              
 
 =================================== WARNINGS ===================================
 
-Missing test data: 5 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
+Missing test data: 7 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
 
   - DELETE /api/scenarios/{id}
   - GET /api/proof/{bundleHash}
   - GET /api/scenarios/{id}
   - PATCH /api/scenarios/{id}/status
+  - POST /api/ai/explain
+  - POST /api/ai/summarize
   - POST /api/protocols/bitcoin/transaction
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
-Schema validation mismatch: 13 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+Schema validation mismatch: 15 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
   - DELETE /api/scenarios/{id}
   - GET /api/scenarios/{id}
   - PATCH /api/scenarios/{id}/status
+  - POST /api/ai/explain
+  - POST /api/ai/summarize
   - POST /api/onchain/derive
   - POST /api/onchain/psbt/broadcast
   - POST /api/onchain/psbt/build
@@ -68,8 +72,8 @@ Schema validation mismatch: 13 operations mostly rejected generated data due to 
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 23/34
-  Tested: 23
+  Selected: 26/37
+  Tested: 26
 
 Test Phases:
   ⏭  Examples
@@ -78,15 +82,15 @@ Test Phases:
   ✅ Stateful
 
 Warnings:
-  ⚠️ Missing valid test data: 5 operations repeatedly returned 404 responses
-  ⚠️ Schema validation mismatch: 13 operations mostly rejected generated data
+  ⚠️ Missing valid test data: 7 operations repeatedly returned 404 responses
+  ⚠️ Schema validation mismatch: 15 operations mostly rejected generated data
 
 Test cases:
-  3552 generated, 3552 passed, 145 skipped
+  4067 generated, 4067 passed, 166 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 99408378554060872773733938629784574057
+Seed: 318041521587468879177597031202451483638
 
-============================ 2 warnings in 878.05s =============================
+============================ 2 warnings in 1008.63s ============================

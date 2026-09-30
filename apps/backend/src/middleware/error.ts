@@ -33,6 +33,11 @@ function statusForError(err: KeplerError): number {
   if (err.code === 'ONCHAIN_INSUFFICIENT_FUNDS') return 400;
   if (err.code === 'ONCHAIN_BROADCAST_ERROR') return 502;
   if (err.code === 'ONCHAIN_UNSUPPORTED_NETWORK') return 400;
+  if (err.code === 'AI_PROVIDER_ERROR') return 502;
+  if (err.code === 'AI_TIMEOUT_ERROR') return 504;
+  if (err.code === 'AI_NO_PROVIDER') return 503;
+  if (err.code === 'AI_INPUT_TOO_LARGE') return 400;
+  if (err.code === 'AI_NOT_FOUND') return 404;
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
   if (err instanceof ValidationError) return 400;

@@ -56,6 +56,9 @@ schemathesis run openapi.yaml \
   --include-path /api/onchain/fees \
   --include-path /api/onchain/psbt/build \
   --include-path /api/onchain/psbt/broadcast \
+  --include-path /api/ai/explain \
+  --include-path /api/ai/summarize \
+  --include-path /api/ai/suggest \
   --request-timeout 60 \
   --checks status_code_conformance,content_type_conformance,response_schema_conformance \
   --suppress-health-check=filter_too_much \

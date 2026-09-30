@@ -16,6 +16,8 @@ Open source agent wallet for Bitcoin, Lightning, Nostr, and Cashu with cross-pro
 
 See individual README files in each app/package.
 
+The AI module requires at least one of GROQ_API_KEY or HUGGINGFACE_API_KEY at boot. If neither is configured, the backend fails to boot.
+
 ## License
 
 MIT
