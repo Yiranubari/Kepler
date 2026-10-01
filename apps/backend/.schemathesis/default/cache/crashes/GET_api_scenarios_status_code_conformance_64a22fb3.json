@@ -1,0 +1,86 @@
+{
+  "operation": "GET /api/scenarios",
+  "method": "GET",
+  "path_template": "/api/scenarios",
+  "fingerprint": "64a22fb3",
+  "case_id": "TEsSmQ",
+  "code_sample": "curl -X GET 'http://localhost:3000/api/scenarios?offset=848&limit=105'",
+  "sequence": [
+    {
+      "method": "GET",
+      "url": "http://localhost:3000/api/scenarios?offset=848&limit=105",
+      "url_template": "http://localhost:3000/api/scenarios",
+      "headers": {
+        "User-Agent": "schemathesis/4.24.3",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "TEsSmQ"
+      },
+      "response": {
+        "status_code": 500,
+        "headers": {
+          "x-powered-by": "Express",
+          "x-request-id": "f45f74c4-7e69-45e8-89f8-45f8dfdb2fd7",
+          "ratelimit-limit": "100000",
+          "ratelimit-remaining": "99910",
+          "ratelimit-reset": "1790837857",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "89",
+          "etag": "W/\"59-S7oZdlUOQYHGcmeNgq5T/UYs1eo\"",
+          "date": "Thu, 01 Oct 2026 06:57:36 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "body": "{\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"An unexpected error occurred\",\"context\":{}}}"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "status_code_conformance",
+          "status": "failure",
+          "message": "Undocumented HTTP status code\n\nReceived: 500\nDocumented: 200, 400, 429"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 0.0011960329993598862,
+          "mode": "positive"
+        },
+        "components": {
+          "QUERY": "positive"
+        },
+        "phase": {
+          "name": "stateful",
+          "data": {
+            "type": "StatefulPhaseData",
+            "description": "Positive test case",
+            "location": null,
+            "parameter": null,
+            "parameter_location": null,
+            "mutations": []
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/api/scenarios",
+      "path_parameters": {},
+      "query": {
+        "offset": 848,
+        "limit": 105
+      },
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "none"
+      },
+      "media_type": null,
+      "parent_index": null
+    }
+  ]
+}

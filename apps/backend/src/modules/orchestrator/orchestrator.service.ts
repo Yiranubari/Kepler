@@ -36,7 +36,7 @@ import {
   OrchestratorExecutionError,
   OrchestratorNoRouteError
 } from './orchestrator.errors';
-import { RouteSelector } from './route.selector';
+import { RouteSelector } from '../../shared/route.selector';
 import { PaymentFlow } from './flows/flow.interface';
 import { PayLightningFlow } from './flows/payLightning.flow';
 import { PayBitcoinFlow } from './flows/payBitcoin.flow';
@@ -243,10 +243,10 @@ export class OrchestratorService {
 
   private selectRoute(
     scenario: Scenario,
-    graph: TaintGraph,
+    _graph: TaintGraph,
     candidates: RouteCandidate[]
   ): RouteCandidate {
-    return RouteSelector.select(scenario, graph, candidates);
+    return RouteSelector.select(scenario.target.kind, candidates);
   }
 
   private async buildEvidence(

@@ -8,10 +8,18 @@ import {
   ExecutionClaimBuilder,
   ExecutionClaimVerifier
 } from '../../src/modules/proof/claims/execution.claim';
+import {
+  RoutingClaimBuilder,
+  RoutingClaimVerifier
+} from '../../src/modules/proof/claims/routing.claim';
+import {
+  NostrClaimBuilder,
+  NostrClaimVerifier
+} from '../../src/modules/proof/claims/nostr.claim';
 import { ProofUnsupportedClaimError } from '../../src/modules/proof/proof.errors';
 
 describe('ClaimRegistry', () => {
-  it('creates default registry with Privacy and Transaction handlers', () => {
+  it('creates default registry with Privacy, Transaction, Routing, and Nostr handlers', () => {
     const registry = ClaimRegistry.createDefault();
 
     const privacyBuilder = registry.getBuilder(ClaimType.Privacy);
@@ -23,6 +31,16 @@ describe('ClaimRegistry', () => {
     const txVerifier = registry.getVerifier(ClaimType.Transaction);
     expect(txBuilder).toBeInstanceOf(ExecutionClaimBuilder);
     expect(txVerifier).toBeInstanceOf(ExecutionClaimVerifier);
+
+    const routingBuilder = registry.getBuilder(ClaimType.Routing);
+    const routingVerifier = registry.getVerifier(ClaimType.Routing);
+    expect(routingBuilder).toBeInstanceOf(RoutingClaimBuilder);
+    expect(routingVerifier).toBeInstanceOf(RoutingClaimVerifier);
+
+    const nostrBuilder = registry.getBuilder(ClaimType.Nostr);
+    const nostrVerifier = registry.getVerifier(ClaimType.Nostr);
+    expect(nostrBuilder).toBeInstanceOf(NostrClaimBuilder);
+    expect(nostrVerifier).toBeInstanceOf(NostrClaimVerifier);
   });
 
   it('throws ProofUnsupportedClaimError when retrieving unregistered builder', () => {

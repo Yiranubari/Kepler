@@ -1,22 +1,29 @@
-import { Scenario, TaintGraph, PaymentTargetKind } from '@kepler/shared';
-import { RouteCandidate } from './orchestrator.types';
-import { OrchestratorNoRouteError } from './orchestrator.errors';
+import { PaymentTargetKind } from '@kepler/shared';
+import { OrchestratorNoRouteError } from '../modules/orchestrator/orchestrator.errors';
+
+export interface RouteCandidate {
+  readonly name: string;
+  readonly protocol: 'Bitcoin' | 'Lightning' | 'Cashu';
+  readonly estimatedFeeSats: string;
+  readonly estimatedLinkageConfidence: number;
+  readonly mint?: string;
+  readonly params: Record<string, unknown>;
+}
 
 export class RouteSelector {
   public static select(
-    scenario: Scenario,
-    _graph: TaintGraph,
+    targetKind: PaymentTargetKind,
     candidates: RouteCandidate[]
   ): RouteCandidate {
     if (candidates.length === 0) {
       throw new OrchestratorNoRouteError('No candidate routes provided', {
-        scenarioId: scenario.id,
+        scenarioId: 'unspecified',
         candidateCount: 0
       });
     }
 
     const filteredCandidates = candidates.filter((candidate) => {
-      if (scenario.target.kind === PaymentTargetKind.Lightning) {
+      if (targetKind === PaymentTargetKind.Lightning) {
         if (candidate.protocol === 'Lightning') {
           return true;
         }
@@ -25,10 +32,10 @@ export class RouteSelector {
         }
         return false;
       }
-      if (scenario.target.kind === PaymentTargetKind.Bitcoin) {
+      if (targetKind === PaymentTargetKind.Bitcoin) {
         return candidate.protocol === 'Bitcoin';
       }
-      if (scenario.target.kind === PaymentTargetKind.Cashu) {
+      if (targetKind === PaymentTargetKind.Cashu) {
         return candidate.protocol === 'Cashu';
       }
       return false;
@@ -38,7 +45,7 @@ export class RouteSelector {
       throw new OrchestratorNoRouteError(
         'No compatible routes found for payment target',
         {
-          scenarioId: scenario.id,
+          scenarioId: 'unspecified',
           candidateCount: 0
         }
       );

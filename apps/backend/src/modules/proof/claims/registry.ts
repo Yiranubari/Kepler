@@ -8,6 +8,14 @@ import {
   ExecutionClaimBuilder,
   ExecutionClaimVerifier
 } from './execution.claim';
+import {
+  RoutingClaimBuilder,
+  RoutingClaimVerifier
+} from './routing.claim';
+import {
+  NostrClaimBuilder,
+  NostrClaimVerifier
+} from './nostr.claim';
 import { ProofUnsupportedClaimError } from '../proof.errors';
 
 export class ClaimRegistry {
@@ -64,6 +72,14 @@ export class ClaimRegistry {
     registry.register(
       new ExecutionClaimBuilder(),
       new ExecutionClaimVerifier()
+    );
+    registry.register(
+      new RoutingClaimBuilder(),
+      new RoutingClaimVerifier()
+    );
+    registry.register(
+      new NostrClaimBuilder(),
+      new NostrClaimVerifier()
     );
     return registry;
   }

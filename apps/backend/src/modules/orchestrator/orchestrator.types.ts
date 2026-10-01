@@ -28,14 +28,8 @@ export interface OrchestratorDeps {
   readonly prisma: PrismaClient;
 }
 
-export interface RouteCandidate {
-  readonly name: string;
-  readonly protocol: 'Bitcoin' | 'Lightning' | 'Cashu';
-  readonly estimatedFeeSats: string;
-  readonly estimatedLinkageConfidence: number;
-  readonly mint?: string;
-  readonly params: Record<string, unknown>;
-}
+import type { RouteCandidate } from '../../shared/route.selector';
+export type { RouteCandidate };
 
 export interface OrchestrateRequest {
   readonly scenarioId: string;

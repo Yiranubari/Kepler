@@ -1,19 +1,12 @@
 import {
   Scenario,
   PaymentTarget,
-  PaymentTargetKind,
-  TaintGraph
+  PaymentTargetKind
 } from '@kepler/shared';
-import { RouteSelector } from '../../src/modules/orchestrator/route.selector';
-import { RouteCandidate } from '../../src/modules/orchestrator/orchestrator.types';
+import { RouteSelector, RouteCandidate } from '../../src/shared/route.selector';
 import { OrchestratorNoRouteError } from '../../src/modules/orchestrator/orchestrator.errors';
 
 describe('RouteSelector', () => {
-  const dummyGraph = new TaintGraph({
-    id: 'graph-1',
-    scenarioId: 'scenario-1'
-  });
-
   const createLightningScenario = (): Scenario => {
     return new Scenario({
       id: 'scenario-lightning',
@@ -50,18 +43,18 @@ describe('RouteSelector', () => {
   it('Empty candidate list throws OrchestratorNoRouteError', () => {
     const scenario = createLightningScenario();
 
-    expect(() => RouteSelector.select(scenario, dummyGraph, [])).toThrow(
+    expect(() => RouteSelector.select(scenario.target.kind, [])).toThrow(
       OrchestratorNoRouteError
     );
 
     try {
-      RouteSelector.select(scenario, dummyGraph, []);
+      RouteSelector.select(scenario.target.kind, []);
     } catch (err) {
       expect(err).toBeInstanceOf(OrchestratorNoRouteError);
       const noRouteError = err as OrchestratorNoRouteError;
       expect(noRouteError.code).toBe('ORCHESTRATOR_NO_ROUTE');
       expect(noRouteError.context.candidateCount).toBe(0);
-      expect(noRouteError.context.scenarioId).toBe(scenario.id);
+      expect(noRouteError.context.scenarioId).toBe('unspecified');
     }
   });
 
@@ -84,7 +77,7 @@ describe('RouteSelector', () => {
       }
     ];
 
-    expect(() => RouteSelector.select(lnScenario, dummyGraph, wrongForLn)).toThrow(
+    expect(() => RouteSelector.select(lnScenario.target.kind, wrongForLn)).toThrow(
       OrchestratorNoRouteError
     );
 
@@ -99,7 +92,7 @@ describe('RouteSelector', () => {
       }
     ];
 
-    expect(() => RouteSelector.select(btcScenario, dummyGraph, wrongForBtc)).toThrow(
+    expect(() => RouteSelector.select(btcScenario.target.kind, wrongForBtc)).toThrow(
       OrchestratorNoRouteError
     );
 
@@ -114,7 +107,7 @@ describe('RouteSelector', () => {
       }
     ];
 
-    expect(() => RouteSelector.select(cashuScenario, dummyGraph, wrongForCashu)).toThrow(
+    expect(() => RouteSelector.select(cashuScenario.target.kind, wrongForCashu)).toThrow(
       OrchestratorNoRouteError
     );
   });
@@ -145,7 +138,7 @@ describe('RouteSelector', () => {
       }
     ];
 
-    const selected = RouteSelector.select(scenario, dummyGraph, candidates);
+    const selected = RouteSelector.select(scenario.target.kind, candidates);
     expect(selected.name).toBe('low-linkage');
     expect(selected.estimatedLinkageConfidence).toBe(0.15);
   });
@@ -176,7 +169,7 @@ describe('RouteSelector', () => {
       }
     ];
 
-    const selected = RouteSelector.select(scenario, dummyGraph, candidates);
+    const selected = RouteSelector.select(scenario.target.kind, candidates);
     expect(selected.name).toBe('lowest-fee');
     expect(selected.estimatedFeeSats).toBe('5');
   });
@@ -207,9 +200,9 @@ describe('RouteSelector', () => {
       }
     ];
 
-    const runOne = RouteSelector.select(scenario, dummyGraph, candidates);
-    const runTwo = RouteSelector.select(scenario, dummyGraph, candidates);
-    const runThree = RouteSelector.select(scenario, dummyGraph, candidates);
+    const runOne = RouteSelector.select(scenario.target.kind, candidates);
+    const runTwo = RouteSelector.select(scenario.target.kind, candidates);
+    const runThree = RouteSelector.select(scenario.target.kind, candidates);
 
     expect(runOne).toEqual(runTwo);
     expect(runTwo).toEqual(runThree);
@@ -237,10 +230,9 @@ describe('RouteSelector', () => {
       }
     ];
 
-    const selected = RouteSelector.select(scenario, dummyGraph, candidates);
+    const selected = RouteSelector.select(scenario.target.kind, candidates);
     expect(selected.name).toBe('cashu-melt-route');
     expect(selected.protocol).toBe('Cashu');
     expect(selected.estimatedLinkageConfidence).toBe(0.15);
   });
 });
-
