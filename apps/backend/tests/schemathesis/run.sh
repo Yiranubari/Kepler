@@ -61,6 +61,7 @@ schemathesis run openapi.yaml \
   --include-path /api/ai/suggest \
   --include-path /api/policy \
   --include-path /api/policy/check \
+  --include-path /api/orchestrator/orchestrate \
   --request-timeout 60 \
   --checks status_code_conformance,content_type_conformance,response_schema_conformance \
   --suppress-health-check=filter_too_much \

@@ -58,6 +58,11 @@ import {
   PolicyController,
   createPolicyRoutes
 } from './modules/policy';
+import {
+  OrchestratorService,
+  OrchestratorController,
+  createOrchestratorRoutes
+} from './modules/orchestrator';
 
 const defaultLimiterInstance = new RateLimiter({
   read: { limit: env.RATE_LIMIT_READ_PER_MINUTE, windowMs: RATE_LIMIT_WINDOWS_MS.read },
@@ -190,6 +195,22 @@ export function createApp(
   const policyController = new PolicyController(policyService);
   const policyRoutes = createPolicyRoutes(policyController, limiter);
 
+  const orchestratorService = new OrchestratorService({
+    scenarioService,
+    taintService,
+    proofService,
+    policyService,
+    onchainService,
+    nostrClient: activeProtocolsConfig.nostrClient,
+    lightningClient: activeProtocolsConfig.lightningClient,
+    cashuClient: activeProtocolsConfig.cashuClient,
+    bitcoinClient: activeProtocolsConfig.bitcoinClient,
+    prisma,
+    logger
+  });
+  const orchestratorController = new OrchestratorController(orchestratorService);
+  const orchestratorRoutes = createOrchestratorRoutes(orchestratorController, limiter);
+
   if (lifecycle) {
     lifecycle.registerStartupHook('policyService', async (): Promise<void> => {
       await policyService.initialize();
@@ -207,6 +228,7 @@ export function createApp(
   app.use('/api/onchain', onchainRoutes);
   app.use('/api/ai', aiRoutes);
   app.use('/api/policy', policyRoutes);
+  app.use('/api/orchestrator', orchestratorRoutes);
 
   app.use(errorMiddleware);
 

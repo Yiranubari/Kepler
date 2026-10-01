@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.55s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.29s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       29 selected / 37 total                                   
+     Operations:       30 selected / 38 total                                   
 
 
  ✅  API capabilities:                                                          
@@ -18,22 +18,22 @@ Schemathesis v4.24.3
 
  ⏭   Examples (in 0.17s)                                                        
                                                                                 
-     ⏭  29 skipped                                                              
+     ⏭  30 skipped                                                              
 
- ✅  Coverage (in 106.51s)                                                      
+ ✅  Coverage (in 113.54s)                                                      
                                                                                 
-     ✅ 29 passed                                                               
+     ✅ 30 passed                                                               
 
- ✅  Fuzzing (in 1448.66s)                                                      
+ ✅  Fuzzing (in 1251.21s)                                                      
                                                                                 
-     ✅ 29 passed                                                               
+     ✅ 30 passed                                                               
 
- ✅  Stateful (in 84.60s)                                                       
+ ✅  Stateful (in 97.98s)                                                       
 
-     Scenarios:    130                                                          
+     Scenarios:    116                                                          
      API Links:    0 covered / 11 selected / 11 total (11 inferred)             
 
-     ✅ 130 passed                                                              
+     ✅ 116 passed                                                              
 
 =================================== WARNINGS ===================================
 
@@ -49,7 +49,7 @@ Missing test data: 7 operations repeatedly returned 404 Not Found, preventing te
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
-Schema validation mismatch: 14 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+Schema validation mismatch: 15 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
   - DELETE /api/scenarios/{id}
   - GET /api/scenarios/{id}
@@ -60,6 +60,7 @@ Schema validation mismatch: 14 operations mostly rejected generated data due to 
   - POST /api/onchain/psbt/broadcast
   - POST /api/onchain/psbt/build
   - POST /api/onchain/utxos
+  - POST /api/orchestrator/orchestrate
   - POST /api/proof/build
   - POST /api/protocols/bitcoin/address
   - POST /api/protocols/bitcoin/transaction
@@ -71,8 +72,8 @@ Schema validation mismatch: 14 operations mostly rejected generated data due to 
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 29/37
-  Tested: 29
+  Selected: 30/38
+  Tested: 30
 
 Test Phases:
   ⏭  Examples
@@ -82,14 +83,14 @@ Test Phases:
 
 Warnings:
   ⚠️ Missing valid test data: 7 operations repeatedly returned 404 responses
-  ⚠️ Schema validation mismatch: 14 operations mostly rejected generated data
+  ⚠️ Schema validation mismatch: 15 operations mostly rejected generated data
 
 Test cases:
-  4311 generated, 4311 passed, 179 skipped
+  4521 generated, 4521 passed, 186 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 87630580522095699213132032817923906366
+Seed: 86700864464350883493941764967869853010
 
-============================ 2 warnings in 1640.09s ============================
+============================ 2 warnings in 1463.00s ============================

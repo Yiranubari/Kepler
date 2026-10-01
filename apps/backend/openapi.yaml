@@ -1488,6 +1488,67 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/orchestrator/orchestrate:
+    post:
+      summary: Orchestrate payment route selection, evidence generation, and execution
+      operationId: orchestratePayment
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrateRequest'
+      responses:
+        '200':
+          description: Payment orchestrated and executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrateResponse'
+        '202':
+          description: Orchestration accepted but payment execution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrateResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Scenario not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Scenario state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Route or taint error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Protocol execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     PaymentTargetKind:
@@ -2928,4 +2989,129 @@ components:
           type: string
         cached:
           type: boolean
+
+    RouteCandidate:
+      type: object
+      required:
+        - name
+        - protocol
+        - estimatedFeeSats
+        - estimatedLinkageConfidence
+        - params
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        protocol:
+          type: string
+          enum:
+            - Bitcoin
+            - Lightning
+            - Cashu
+        estimatedFeeSats:
+          type: string
+          pattern: '^[0-9]+$'
+        estimatedLinkageConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        mint:
+          type: string
+          minLength: 1
+          maxLength: 256
+        params:
+          type: object
+          additionalProperties: true
+
+    DecisionSummary:
+      type: object
+      required:
+        - routeName
+        - protocol
+        - evidenceBundleHash
+        - reason
+      properties:
+        routeName:
+          type: string
+          minLength: 1
+          maxLength: 256
+        protocol:
+          type: string
+          minLength: 1
+          maxLength: 256
+        evidenceBundleHash:
+          type: string
+          minLength: 1
+          maxLength: 256
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1024
+
+    ExecutionSummary:
+      type: object
+      required:
+        - status
+        - amountSats
+        - feeSats
+        - identifier
+        - protocol
+      properties:
+        status:
+          type: string
+          enum:
+            - succeeded
+            - failed
+        amountSats:
+          type: string
+          pattern: '^[0-9]+$'
+        feeSats:
+          type: string
+          pattern: '^[0-9]+$'
+        identifier:
+          type: string
+          minLength: 1
+          maxLength: 256
+        protocol:
+          type: string
+          minLength: 1
+          maxLength: 256
+
+    OrchestrateRequest:
+      type: object
+      required:
+        - scenarioId
+        - ingestData
+      properties:
+        scenarioId:
+          type: string
+          minLength: 1
+          maxLength: 256
+        ingestData:
+          $ref: '#/components/schemas/TaintIngestPayload'
+        candidateRoutes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteCandidate'
+
+    OrchestrateResponse:
+      type: object
+      required:
+        - scenarioId
+        - decision
+        - execution
+        - nostrEventId
+      properties:
+        scenarioId:
+          type: string
+          minLength: 1
+          maxLength: 256
+        decision:
+          $ref: '#/components/schemas/DecisionSummary'
+        execution:
+          $ref: '#/components/schemas/ExecutionSummary'
+        nostrEventId:
+          type: [string, 'null']
+          maxLength: 256
 
