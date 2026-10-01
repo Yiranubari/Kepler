@@ -5,9 +5,11 @@ build/
 .env.local
 *.log
 logs/
+apps/backend/logs/
 .DS_Store
 coverage/
 prisma/migrations/dev.db
 kepler-prd.pdf
 AGENTS.md
 .env.test
+docs/demo-script.md
