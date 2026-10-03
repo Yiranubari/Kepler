@@ -2,11 +2,13 @@
   "name": "kepler",
   "private": true,
   "workspaces": [
+    "apps/frontend",
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/backend",
+    "dev:web": "npm run dev --workspace=apps/frontend",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces"
   },
