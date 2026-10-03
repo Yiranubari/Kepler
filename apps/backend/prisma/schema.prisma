@@ -12,11 +12,18 @@ model Scenario {
   targetKind    String
   targetData    Json
   status        String
+  network       String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   taintGraphs   TaintGraphRecord[]
   decisions     Decision[]
   executionLogs ExecutionLog[]
+}
+
+model AppConfigRecord {
+  id        String   @id @default("default")
+  network   String
+  updatedAt DateTime @updatedAt
 }
 
 model TaintGraphRecord {
