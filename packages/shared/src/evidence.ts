@@ -278,7 +278,7 @@ export class EvidenceBundle {
         reason: 'Bundle hash matches computed hash'
       });
     }
-    throw new ProofError('Evidence bundle hash mismatch — bundle may have been tampered with', {
+    throw new ProofError('Evidence bundle hash mismatch: bundle may have been tampered with', {
       claimType: this.claim.type,
       bundleId: this.id,
       storedHash: this.bundleHash,

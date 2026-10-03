@@ -36,7 +36,7 @@ Architectural separation enforces boundaries across backend modules:
 - Repositories are limited to database persistence via Prisma and contain no calculation or orchestration rules.
 - Protocol adapters in `packages/*` are thin, stateless clients without taint heuristics or policy rules.
 - The orchestrator module is the sole component permitted to coordinate protocol adapters, trigger AI operations, and publish Nostr audit events.
-- Core evaluation systems—the taint engine, policy engine, and proof layer—never call the AI layer. Core guarantees remain deterministic and mathematically provable.
+- Core evaluation systems (the taint engine, policy engine, and proof layer) never call the AI layer. Core guarantees remain deterministic and mathematically provable.
 
 ## Taint Graph Data Flow
 
@@ -69,4 +69,6 @@ Kepler operates under strict non-custodial principles:
 
 - **Process-Global DNS Resolution in Integration Tests**: In integration test suites connecting to remote protocol endpoints (such as Nostr relays, Cashu mints, and Bitcoin Esplora nodes), Node.js Happy Eyeballs auto-selection can cause socket timeouts when attempting IPv6 before IPv4. While `NODE_OPTIONS="--no-network-family-autoselection"` handles this at the runtime process level, integration test suites configuring `dns.setDefaultResultOrder('ipv4first')` introduce a process-global side effect within the test worker. Running Jest with `--runInBand` prevents cross-suite pollution.
 - Integration tests that call public Esplora, Nostr relays, or public test mints require IPv4-first DNS resolution. This is set per test file currently; a shared Jest setup will consolidate it in a follow-up.
+- The taint correlation verifier in apps/backend/src/modules/proof/claims/taintCorrelation.claim.ts handles six correlation types in a single file. Splitting it into one file per claim type is deferred. The file is under 700 lines and remains auditable, but future claim types should be added to separate files rather than this one.
+- Timing is measured with performance.now() in most modules but Date.now() appears in the AI cache's TTL check and the policy engine's UTC day boundary. Both are intentional: the cache needs wall-clock time for TTL semantics, and the policy engine needs wall-clock time for calendar-day budget resets. A consolidation pass is deferred.
 

@@ -9,14 +9,14 @@ Verification is pure, deterministic, and idempotent. It requires no network requ
 ## Claim types
 
 Implemented:
-- Privacy — taint correlation
-- Transaction — execution record
-- Routing — route selection
-- Nostr — event signature
+- Privacy: taint correlation
+- Transaction: execution record
+- Routing: route selection
+- Nostr: event signature
 
 Reserved for future work:
-- Lightning — a dedicated claim for invoice properties
-- Cashu — a dedicated claim for token properties
+- Lightning: a dedicated claim for invoice properties
+- Cashu: a dedicated claim for token properties
 
 A claim type listed as reserved will throw `ProofUnsupportedClaimError` if a build is attempted.
 

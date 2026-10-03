@@ -30,7 +30,7 @@ class BitcoinClient {
 
 ### Broadcast
 
-The package does not sign transactions — it only broadcasts already-signed hex. Signing happens in the user's wallet via the backend's onchain module.
+The package does not sign transactions; it only broadcasts already-signed hex. Signing happens in the user's wallet via the backend's onchain module.
 
 ### BitcoinConfig
 

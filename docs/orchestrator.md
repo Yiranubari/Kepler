@@ -30,8 +30,8 @@ The `RouteSelector` is a pure function class (`RouteSelector.select(scenario, gr
   - A `Bitcoin` target accepts only `Bitcoin` candidate routes.
   - A `Cashu` target accepts only `Cashu` candidate routes.
   - Cross-protocol conversion is out of scope; incompatible candidates are strictly filtered out.
-- **Primary Criterion — Linkage Confidence**: Remaining candidates are sorted in ascending order of `estimatedLinkageConfidence` ($0.0 \le \text{confidence} \le 1.0$). Lower linkage confidence represents higher privacy and is preferred.
-- **Tiebreaker — Estimated Fee**: If two or more candidates have identical estimated linkage confidence, candidates are sorted in ascending order of `estimatedFeeSats` (lower fee wins).
+- **Primary Criterion: Linkage Confidence**: Remaining candidates are sorted in ascending order of `estimatedLinkageConfidence` ($0.0 \le \text{confidence} \le 1.0$). Lower linkage confidence represents higher privacy and is preferred.
+- **Tiebreaker: Estimated Fee**: If two or more candidates have identical estimated linkage confidence, candidates are sorted in ascending order of `estimatedFeeSats` (lower fee wins).
 - **Purity and Determinism**: The selection algorithm involves no randomness, no timestamps, no mutable graph manipulation, and no external I/O. The same input set always yields the exact same candidate.
 
 ## Flow Dispatch and the On-Chain Handoff
