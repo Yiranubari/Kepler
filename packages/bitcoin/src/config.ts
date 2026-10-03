@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { BitcoinConfigError } from './errors';
 
 export type BitcoinNetwork = 'mainnet' | 'testnet' | 'testnet4' | 'regtest';
+export type SupportedNetwork = BitcoinNetwork;
 
 export interface BitcoinConfigParams {
   readonly primaryUrl: string;
@@ -27,7 +28,7 @@ export class BitcoinConfig {
 
   private readonly _primaryUrl: string;
   private readonly _fallbackUrl: string;
-  private readonly _network: BitcoinNetwork;
+  private _network: BitcoinNetwork;
 
   constructor(params: BitcoinConfigParams) {
     const primaryUrlResult = BitcoinConfig.URL_SCHEMA.safeParse(params.primaryUrl);
@@ -71,6 +72,18 @@ export class BitcoinConfig {
     return this._network;
   }
 
+  public setNetwork(network: SupportedNetwork): void {
+    const networkResult = BitcoinConfig.NETWORK_SCHEMA.safeParse(network);
+    if (!networkResult.success) {
+      throw new BitcoinConfigError('Invalid BITCOIN_NETWORK: must be mainnet, testnet, testnet4, or regtest', {
+        variable: 'BITCOIN_NETWORK',
+        reason: networkResult.error.message
+      });
+    }
+
+    this._network = networkResult.data;
+  }
+
   public get mempoolBaseUrl(): string {
     switch (this._network as string) {
       case 'mainnet':
@@ -87,6 +100,38 @@ export class BitcoinConfig {
           network: this._network
         });
     }
+  }
+
+  public get mempoolUrl(): string {
+    return this.mempoolBaseUrl;
+  }
+
+  public get hrp(): string {
+    if (this._network === 'mainnet') {
+      return 'bc';
+    }
+    if (this._network === 'regtest') {
+      return 'bcrt';
+    }
+    return 'tb';
+  }
+
+  public get addressPrefixes(): readonly string[] {
+    if (this._network === 'mainnet') {
+      return ['bc1', '1', '3'];
+    }
+    if (this._network === 'regtest') {
+      return ['bcrt1', 'm', 'n', '2'];
+    }
+    return ['tb1', 'm', 'n', '2'];
+  }
+
+  public get p2pkhPrefix(): number {
+    return this._network === 'mainnet' ? 0x00 : 0x6f;
+  }
+
+  public get p2shPrefix(): number {
+    return this._network === 'mainnet' ? 0x05 : 0xc4;
   }
 
   public static fromEnv(env: Record<string, string | undefined> = process.env): BitcoinConfig {
