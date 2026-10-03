@@ -8,6 +8,7 @@ import {
   TaintRuleContext,
   TaintRuleResult
 } from './rule.interface';
+import { matchesQuoteHash } from '../../../shared/taintMatching';
 
 export class CashuQuoteInvoiceRule implements TaintRule {
   public readonly name: string = 'cashu_quote_invoice';
@@ -46,34 +47,34 @@ export class CashuQuoteInvoiceRule implements TaintRule {
       const mintUrl =
         typeof mintNode.value === 'string' ? mintNode.value : mintNode.id;
 
-      for (const rawHash of rawQuoteHashes) {
-        const quoteHash = (rawHash as string).trim().toLowerCase();
+      const quoteHashes: string[] = rawQuoteHashes.filter(
+        (item): item is string => typeof item === 'string'
+      );
 
-        for (const paymentHashNode of paymentHashNodes) {
-          const paymentHash =
-            typeof paymentHashNode.value === 'string'
-              ? paymentHashNode.value.trim().toLowerCase()
-              : paymentHashNode.id.toLowerCase();
+      for (const paymentHashNode of paymentHashNodes) {
+        const paymentHash =
+          typeof paymentHashNode.value === 'string'
+            ? paymentHashNode.value.trim().toLowerCase()
+            : paymentHashNode.id.toLowerCase();
 
-          if (paymentHash === quoteHash) {
-            edges.push({
-              from: mintNode.id,
-              to: paymentHashNode.id,
-              relationship: this.relationship,
-              confidence: this.maxConfidence,
-              evidence: [
-                new EvidenceItem({
-                  kind: 'RawData',
-                  ref: quoteHash,
-                  description: `Cashu mint ${mintUrl} issued a quote for payment hash ${quoteHash}.`,
-                  data: {
-                    field: 'quoteHash',
-                    match: quoteHash
-                  }
-                })
-              ]
-            });
-          }
+        if (matchesQuoteHash(quoteHashes, paymentHash)) {
+          edges.push({
+            from: mintNode.id,
+            to: paymentHashNode.id,
+            relationship: this.relationship,
+            confidence: this.maxConfidence,
+            evidence: [
+              new EvidenceItem({
+                kind: 'RawData',
+                ref: paymentHash,
+                description: `Cashu mint ${mintUrl} issued a quote for payment hash ${paymentHash}.`,
+                data: {
+                  field: 'quoteHash',
+                  match: paymentHash
+                }
+              })
+            ]
+          });
         }
       }
     }

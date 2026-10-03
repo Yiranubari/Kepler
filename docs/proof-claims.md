@@ -6,13 +6,19 @@ Verification is pure, deterministic, and idempotent. It requires no network requ
 
 > Note: Lightning is not implemented as a dedicated claim type because Lightning data is already represented in the taint graph and the execution claim.
 
-## Claim Types
+## Claim types
 
-Kepler implements four core claim types:
-1. `ClaimType.Privacy` — Taint Correlation Claims
-2. `ClaimType.Transaction` — Execution Claims
-3. `ClaimType.Routing` — Routing Claims
-4. `ClaimType.Nostr` — Nostr Claims
+Implemented:
+- Privacy — taint correlation
+- Transaction — execution record
+- Routing — route selection
+- Nostr — event signature
+
+Reserved for future work:
+- Lightning — a dedicated claim for invoice properties
+- Cashu — a dedicated claim for token properties
+
+A claim type listed as reserved will throw `ProofUnsupportedClaimError` if a build is attempted.
 
 ---
 

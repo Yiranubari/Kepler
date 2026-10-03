@@ -2,22 +2,7 @@ import { PaymentFlow } from './flow.interface';
 import { FlowContext, FlowResult } from '../orchestrator.types';
 import { OrchestratorRouteError } from '../orchestrator.errors';
 import { SupportedNetwork } from '../../onchain/onchain.types';
-
-function parseSupportedNetwork(network: unknown, scenarioId: string): SupportedNetwork {
-  if (
-    network === 'mainnet' ||
-    network === 'testnet' ||
-    network === 'testnet4' ||
-    network === 'signet' ||
-    network === 'regtest'
-  ) {
-    return network;
-  }
-  throw new OrchestratorRouteError('Network parameter is missing or invalid', {
-    scenarioId,
-    reason: 'INVALID_NETWORK'
-  });
-}
+import { SupportedNetworkSchema } from '../../onchain/onchain.validators';
 
 export class PayBitcoinFlow implements PaymentFlow {
   public readonly protocol = 'Bitcoin' as const;
@@ -31,7 +16,14 @@ export class PayBitcoinFlow implements PaymentFlow {
       });
     }
 
-    const network = parseSupportedNetwork(context.route.params['network'], context.scenario.id);
+    const networkParsed = SupportedNetworkSchema.safeParse(context.route.params['network']);
+    if (!networkParsed.success) {
+      throw new OrchestratorRouteError('Network parameter is missing or invalid', {
+        scenarioId: context.scenario.id,
+        reason: 'INVALID_NETWORK'
+      });
+    }
+    const network = networkParsed.data;
     const feeSats =
       typeof context.route.params['feeSats'] === 'string'
         ? BigInt(context.route.params['feeSats'])

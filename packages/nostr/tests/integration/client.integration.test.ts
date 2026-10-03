@@ -1,7 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dns from 'node:dns';
+import * as net from 'node:net';
 import type { KeplerLogger } from '@kepler/shared';
 import { NostrClient, NostrConfig, NostrKind } from '../../src';
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout === 'function') {
+  net.setDefaultAutoSelectFamilyAttemptTimeout(1000);
+}
 
 function loadEnvFile(filePath: string): void {
   try {
@@ -64,7 +73,12 @@ class IntegrationTestLogger implements KeplerLogger {
   }
 }
 
-const isConfigured = Boolean(process.env['NOSTR_PRIVATE_KEY'] && process.env['NOSTR_RELAYS']);
+const isConfigured = Boolean(
+  process.env['NOSTR_PRIVATE_KEY'] &&
+  process.env['NOSTR_PRIVATE_KEY'].trim().length > 0 &&
+  process.env['NOSTR_RELAYS'] &&
+  process.env['NOSTR_RELAYS'].trim().length > 0
+);
 const describeIntegration = isConfigured ? describe : describe.skip;
 
 describeIntegration('NostrClient Integration', () => {

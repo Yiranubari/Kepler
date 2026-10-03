@@ -6,6 +6,10 @@ import {
   TaintCorrelationClaimBuilder,
   TaintCorrelationClaimVerifier
 } from '../../src/modules/proof/claims/taintCorrelation.claim';
+import {
+  ExecutionClaimBuilder,
+  ExecutionClaimVerifier
+} from '../../src/modules/proof/claims/execution.claim';
 
 describe('Taint Correlation Verify', () => {
   const builder = new TaintCorrelationClaimBuilder();
@@ -523,6 +527,50 @@ describe('Taint Correlation Verify', () => {
     const { bundle } = builder.build(context, quoteExactInput);
     const result = verifier.verify({ bundle });
 
+    expect(result.valid).toBe(true);
+  });
+
+  it('preserves bundle hash across serialization and deserialization round-trip', async () => {
+    const { bundle } = builder.build({ now: 1000, scenarioId: 'scenario-rt-corr' }, baseInput);
+    const json = bundle.toJSON();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const deserialized = EvidenceBundle.fromJSON(json);
+    expect(deserialized.computeHash()).toBe(bundle.bundleHash);
+    const result = verifier.verify({ bundle: deserialized });
+    expect(result.valid).toBe(true);
+  });
+
+  it('produces identical hash for same now and different hash for different now', () => {
+    const buildA = builder.build({ now: 1000, scenarioId: 'scenario-rt-corr' }, baseInput);
+    const buildB = builder.build({ now: 1000, scenarioId: 'scenario-rt-corr' }, baseInput);
+    const buildC = builder.build({ now: 2000, scenarioId: 'scenario-rt-corr' }, baseInput);
+
+    expect(buildA.bundle.bundleHash).toBe(buildB.bundle.bundleHash);
+    expect(buildA.bundle.bundleHash).not.toBe(buildC.bundle.bundleHash);
+  });
+
+  it('preserves execution claim bundle hash across serialization and deserialization round-trip', async () => {
+    const execBuilder = new ExecutionClaimBuilder();
+    const execVerifier = new ExecutionClaimVerifier();
+    const txid = 'e'.repeat(64);
+    const execInput = {
+      protocol: 'Bitcoin' as const,
+      identifier: txid,
+      amountSats: '1000',
+      rawDataRefs: [
+        {
+          source: 'Bitcoin' as const,
+          ref: txid,
+          payload: { txid }
+        }
+      ]
+    };
+    const { bundle } = execBuilder.build({ now: 1000, scenarioId: 'scenario-rt-exec' }, execInput);
+    const json = bundle.toJSON();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const deserialized = EvidenceBundle.fromJSON(json);
+    expect(deserialized.computeHash()).toBe(bundle.bundleHash);
+    const result = execVerifier.verify({ bundle: deserialized });
     expect(result.valid).toBe(true);
   });
 });

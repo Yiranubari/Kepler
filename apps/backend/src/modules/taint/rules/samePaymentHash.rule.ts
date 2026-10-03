@@ -9,6 +9,7 @@ import {
   TaintRuleContext,
   TaintRuleResult
 } from './rule.interface';
+import { matchesPaymentHash } from '../../../shared/taintMatching';
 
 export class SamePaymentHashRule implements TaintRule {
   public readonly name: string = 'same_payment_hash';
@@ -61,70 +62,55 @@ export class SamePaymentHashRule implements TaintRule {
     const evidenceItems: EvidenceItem[] = [];
     const eventId = eventNode.value.trim().toLowerCase();
 
-    const contentEvidence = this.checkContent(paymentHash, eventId, eventNode.metadata.content);
-    if (contentEvidence !== null) {
-      evidenceItems.push(contentEvidence);
+    const rawContent = eventNode.metadata.content;
+    const contentStr = typeof rawContent === 'string' ? rawContent : '';
+    const rawTags = eventNode.metadata.tags;
+    const parsedTags: string[][] = Array.isArray(rawTags)
+      ? rawTags
+          .filter((tag): tag is unknown[] => Array.isArray(tag))
+          .map((tag) => tag.filter((e): e is string => typeof e === 'string'))
+      : [];
+
+    const result = matchesPaymentHash(contentStr, parsedTags, paymentHash);
+    if (!result.matched) {
+      return evidenceItems;
     }
 
-    const tagEvidenceItems = this.checkTags(paymentHash, eventId, eventNode.metadata.tags);
-    for (const tagEvidence of tagEvidenceItems) {
-      evidenceItems.push(tagEvidence);
-    }
-
-    return evidenceItems;
-  }
-
-  private checkContent(paymentHash: string, eventId: string, rawContent: unknown): EvidenceItem | null {
-    if (typeof rawContent !== 'string') {
-      return null;
-    }
-
-    const contentLower = rawContent.toLowerCase();
-    const matchIndex = contentLower.indexOf(paymentHash);
-    if (matchIndex === -1) {
-      return null;
-    }
-
-    const matchedSubstring = rawContent.slice(matchIndex, matchIndex + paymentHash.length);
-    return new EvidenceItem({
-      kind: 'RawData',
-      ref: eventId,
-      description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
-      data: {
-        field: 'content',
-        match: matchedSubstring
-      }
-    });
-  }
-
-  private checkTags(paymentHash: string, eventId: string, rawTags: unknown): EvidenceItem[] {
-    if (!Array.isArray(rawTags)) {
-      return [];
-    }
-
-    const evidenceItems: EvidenceItem[] = [];
-
-    for (const rawTag of rawTags) {
-      if (!Array.isArray(rawTag)) {
-        continue;
-      }
-
-      const hasMatch = rawTag.some(
-        (element) => typeof element === 'string' && element.toLowerCase() === paymentHash
+    if (result.field === 'content') {
+      const contentLower = contentStr.toLowerCase();
+      const matchIndex = contentLower.indexOf(paymentHash);
+      const matchedSubstring = contentStr.slice(matchIndex, matchIndex + paymentHash.length);
+      evidenceItems.push(
+        new EvidenceItem({
+          kind: 'RawData',
+          ref: eventId,
+          description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
+          data: {
+            field: 'content',
+            match: matchedSubstring
+          }
+        })
       );
+    }
 
-      if (hasMatch) {
-        evidenceItems.push(
-          new EvidenceItem({
-            kind: 'RawData',
-            ref: eventId,
-            description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
-            data: {
-              field: 'tags',
-              match: rawTag
-            }
-          })
+    if (result.field === 'tags') {
+      for (const rawTag of parsedTags) {
+        const hasMatch = rawTag.some(
+          (element) => element.toLowerCase() === paymentHash
         );
+        if (hasMatch) {
+          evidenceItems.push(
+            new EvidenceItem({
+              kind: 'RawData',
+              ref: eventId,
+              description: `Payment hash ${paymentHash} appears in Nostr event ${eventId}.`,
+              data: {
+                field: 'tags',
+                match: rawTag
+              }
+            })
+          );
+        }
       }
     }
 

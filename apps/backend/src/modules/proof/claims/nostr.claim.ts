@@ -17,17 +17,10 @@ import {
   ClaimVerifierContext
 } from './claim.interface';
 import { ProofBuildError } from '../proof.errors';
+import { NostrEvent } from '@kepler/nostr';
 
 export interface NostrClaimInput {
-  event: {
-    id: string;
-    pubkey: string;
-    created_at: number;
-    kind: number;
-    tags: string[][];
-    content: string;
-    sig: string;
-  };
+  event: NostrEvent;
   rawDataRefs: Array<{
     source: 'Nostr';
     ref: string;
@@ -54,7 +47,7 @@ const nostrEventSchema = z.object({
   pubkey: z.string().regex(/^[0-9a-f]{64}$/, {
     message: 'pubkey must be a 64-character lowercase hex string'
   }),
-  created_at: z.number().int().nonnegative(),
+  createdAt: z.number().int().nonnegative(),
   kind: z.number().int(),
   tags: z.array(z.array(z.string())),
   content: z.string(),
@@ -92,9 +85,9 @@ export class NostrClaimBuilder implements ClaimBuilder {
     const eventForVerification: NostrToolsEvent = {
       id: validated.event.id,
       pubkey: validated.event.pubkey,
-      created_at: validated.event.created_at,
+      created_at: validated.event.createdAt,
       kind: validated.event.kind,
-      tags: validated.event.tags,
+      tags: [...validated.event.tags],
       content: validated.event.content,
       sig: validated.event.sig
     };
@@ -115,7 +108,7 @@ export class NostrClaimBuilder implements ClaimBuilder {
 
     const truncatedId = `${validated.event.id.slice(0, 8)}…${validated.event.id.slice(-8)}`;
     const truncatedPubkey = `${validated.event.pubkey.slice(0, 8)}…${validated.event.pubkey.slice(-8)}`;
-    const claimText = `Nostr event ${truncatedId} was published by pubkey ${truncatedPubkey} at ${validated.event.created_at} with a valid signature.`;
+    const claimText = `Nostr event ${truncatedId} was published by pubkey ${truncatedPubkey} at ${validated.event.createdAt} with a valid signature.`;
 
     const claim = new Claim({
       text: claimText,
@@ -228,7 +221,7 @@ export class NostrClaimVerifier implements ClaimVerifier {
     const eventForVerification: NostrToolsEvent = {
       id: typeof ev['id'] === 'string' ? ev['id'] : '',
       pubkey: typeof ev['pubkey'] === 'string' ? ev['pubkey'] : '',
-      created_at: typeof ev['created_at'] === 'number' ? ev['created_at'] : 0,
+      created_at: typeof ev['createdAt'] === 'number' ? ev['createdAt'] : 0,
       kind: typeof ev['kind'] === 'number' ? ev['kind'] : 0,
       tags: Array.isArray(ev['tags']) ? (ev['tags'] as string[][]) : [],
       content: typeof ev['content'] === 'string' ? ev['content'] : '',

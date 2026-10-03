@@ -9,6 +9,7 @@ import {
   TaintRuleContext,
   TaintRuleResult
 } from './rule.interface';
+import { matchesPreimage } from '../../../shared/taintMatching';
 
 export class SamePreimageRule implements TaintRule {
   public readonly name: string = 'same_preimage';
@@ -67,72 +68,55 @@ export class SamePreimageRule implements TaintRule {
         ? eventNode.value.trim().toLowerCase()
         : eventNode.id;
 
-    const rawContent = eventNode.metadata ? eventNode.metadata['content'] : undefined;
-    const contentEvidence = this.checkContent(preimage, eventId, rawContent);
-    if (contentEvidence !== null) {
-      evidenceItems.push(contentEvidence);
+    const rawContent = eventNode.metadata ? eventNode.metadata.content : undefined;
+    const contentStr = typeof rawContent === 'string' ? rawContent : '';
+    const rawTags = eventNode.metadata ? eventNode.metadata.tags : undefined;
+    const parsedTags: string[][] = Array.isArray(rawTags)
+      ? rawTags
+          .filter((tag): tag is unknown[] => Array.isArray(tag))
+          .map((tag) => tag.filter((e): e is string => typeof e === 'string'))
+      : [];
+
+    const result = matchesPreimage(contentStr, parsedTags, preimage);
+    if (!result.matched) {
+      return evidenceItems;
     }
 
-    const rawTags = eventNode.metadata ? eventNode.metadata['tags'] : undefined;
-    const tagEvidenceItems = this.checkTags(preimage, eventId, rawTags);
-    for (const tagEvidence of tagEvidenceItems) {
-      evidenceItems.push(tagEvidence);
-    }
-
-    return evidenceItems;
-  }
-
-  private checkContent(preimage: string, eventId: string, rawContent: unknown): EvidenceItem | null {
-    if (typeof rawContent !== 'string') {
-      return null;
-    }
-
-    const contentLower = rawContent.toLowerCase();
-    const matchIndex = contentLower.indexOf(preimage);
-    if (matchIndex === -1) {
-      return null;
-    }
-
-    const matchedSubstring = rawContent.slice(matchIndex, matchIndex + preimage.length);
-    return new EvidenceItem({
-      kind: 'RawData',
-      ref: eventId,
-      description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
-      data: {
-        field: 'content',
-        match: matchedSubstring
-      }
-    });
-  }
-
-  private checkTags(preimage: string, eventId: string, rawTags: unknown): EvidenceItem[] {
-    if (!Array.isArray(rawTags)) {
-      return [];
-    }
-
-    const evidenceItems: EvidenceItem[] = [];
-
-    for (const rawTag of rawTags) {
-      if (!Array.isArray(rawTag)) {
-        continue;
-      }
-
-      const hasMatch = rawTag.some(
-        (element) => typeof element === 'string' && element.toLowerCase() === preimage
+    if (result.field === 'content') {
+      const contentLower = contentStr.toLowerCase();
+      const matchIndex = contentLower.indexOf(preimage);
+      const matchedSubstring = contentStr.slice(matchIndex, matchIndex + preimage.length);
+      evidenceItems.push(
+        new EvidenceItem({
+          kind: 'RawData',
+          ref: eventId,
+          description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
+          data: {
+            field: 'content',
+            match: matchedSubstring
+          }
+        })
       );
+    }
 
-      if (hasMatch) {
-        evidenceItems.push(
-          new EvidenceItem({
-            kind: 'RawData',
-            ref: eventId,
-            description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
-            data: {
-              field: 'tags',
-              match: rawTag
-            }
-          })
+    if (result.field === 'tags') {
+      for (const rawTag of parsedTags) {
+        const hasMatch = rawTag.some(
+          (element) => element.toLowerCase() === preimage
         );
+        if (hasMatch) {
+          evidenceItems.push(
+            new EvidenceItem({
+              kind: 'RawData',
+              ref: eventId,
+              description: `Lightning preimage ${preimage} appears in Nostr event ${eventId}.`,
+              data: {
+                field: 'tags',
+                match: rawTag
+              }
+            })
+          );
+        }
       }
     }
 

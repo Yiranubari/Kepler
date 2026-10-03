@@ -9,6 +9,7 @@ import {
   TaintRuleContext,
   TaintRuleResult
 } from './rule.interface';
+import { matchesMintUrl } from '../../../shared/taintMatching';
 
 export class SharedMintRule implements TaintRule {
   public readonly name: string = 'shared_mint';
@@ -105,51 +106,60 @@ export class SharedMintRule implements TaintRule {
     eventId: string,
     eventNode: TaintNode
   ): EvidenceItem | null {
-    const rawContent = eventNode.metadata
-      ? eventNode.metadata['content']
-      : undefined;
+    const rawContent = eventNode.metadata.content;
+    const contentStr = typeof rawContent === 'string' ? rawContent : '';
+    const rawTags = eventNode.metadata.tags;
+    const parsedTags: string[][] = Array.isArray(rawTags)
+      ? rawTags
+          .filter((tag): tag is unknown[] => Array.isArray(tag))
+          .map((tag) => tag.filter((e): e is string => typeof e === 'string'))
+      : [];
 
-    if (typeof rawContent === 'string') {
-      const matchIndex = rawContent.indexOf(mintUrl);
-      if (matchIndex !== -1) {
-        const matchedSubstring = rawContent.slice(
-          matchIndex,
-          matchIndex + mintUrl.length
-        );
+    const result = matchesMintUrl(contentStr, parsedTags, mintUrl);
+    if (!result.matched) {
+      return null;
+    }
+
+    if (result.field === 'content') {
+      const matchTarget =
+        contentStr.indexOf(mintUrl) !== -1
+          ? mintUrl
+          : mintUrl.trim().replace(/\/+$/, '');
+      const matchIndex = contentStr.indexOf(matchTarget);
+      const matchedSubstring =
+        matchIndex !== -1
+          ? contentStr.slice(matchIndex, matchIndex + matchTarget.length)
+          : mintUrl;
+      return new EvidenceItem({
+        kind: 'RawData',
+        ref: eventId,
+        description: `Cashu mint ${mintUrl} is referenced by Nostr event ${eventId}.`,
+        data: {
+          field: 'content',
+          match: matchedSubstring,
+          mint: mintUrl
+        }
+      });
+    }
+
+    if (result.field === 'tags') {
+      const normalizedMint = mintUrl.trim().replace(/\/+$/, '');
+      const matchingTag = parsedTags.find((rawTag) =>
+        rawTag.some(
+          (element) => element === mintUrl || element === normalizedMint
+        )
+      );
+      if (matchingTag) {
         return new EvidenceItem({
           kind: 'RawData',
           ref: eventId,
           description: `Cashu mint ${mintUrl} is referenced by Nostr event ${eventId}.`,
           data: {
-            field: 'content',
-            match: matchedSubstring,
+            field: 'tags',
+            match: matchingTag,
             mint: mintUrl
           }
         });
-      }
-    }
-
-    const rawTags = eventNode.metadata ? eventNode.metadata['tags'] : undefined;
-    if (Array.isArray(rawTags)) {
-      for (const rawTag of rawTags) {
-        if (!Array.isArray(rawTag)) {
-          continue;
-        }
-        const hasMatch = rawTag.some(
-          (element) => typeof element === 'string' && element === mintUrl
-        );
-        if (hasMatch) {
-          return new EvidenceItem({
-            kind: 'RawData',
-            ref: eventId,
-            description: `Cashu mint ${mintUrl} is referenced by Nostr event ${eventId}.`,
-            data: {
-              field: 'tags',
-              match: rawTag,
-              mint: mintUrl
-            }
-          });
-        }
       }
     }
 

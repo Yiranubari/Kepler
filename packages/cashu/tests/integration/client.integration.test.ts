@@ -1,7 +1,16 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as dns from 'node:dns';
+import * as net from 'node:net';
 import type { KeplerLogger } from '@kepler/shared';
 import { CashuClient, CashuConfig, CashuToken, CashuTokenCodec } from '../../src';
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout === 'function') {
+  net.setDefaultAutoSelectFamilyAttemptTimeout(1000);
+}
 
 function loadEnvFile(filePath: string): void {
   try {

@@ -4,7 +4,7 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.39s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.26s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
@@ -16,28 +16,28 @@ Schemathesis v4.24.3
      Supports NULL byte in headers:                            ✘                
      Accepts backslash and control characters in URL paths:    ✓                
 
- ⏭   Examples (in 0.19s)                                                        
+ ⏭   Examples (in 0.14s)                                                        
                                                                                 
      ⏭  30 skipped                                                              
 
- ✅  Coverage (in 79.08s)                                                       
+ ✅  Coverage (in 53.64s)                                                       
                                                                                 
      ✅ 30 passed                                                               
 
- ✅  Fuzzing (in 790.01s)                                                       
+ ✅  Fuzzing (in 349.24s)                                                       
                                                                                 
      ✅ 30 passed                                                               
 
- ✅  Stateful (in 109.15s)                                                      
+ ✅  Stateful (in 79.05s)                                                       
 
-     Scenarios:    128                                                          
+     Scenarios:    156                                                          
      API Links:    0 covered / 11 selected / 11 total (11 inferred)             
 
-     ✅ 128 passed                                                              
+     ✅ 156 passed                                                              
 
 =================================== WARNINGS ===================================
 
-Missing test data: 8 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
+Missing test data: 7 operations repeatedly returned 404 Not Found, preventing tests from reaching your API's core logic
 
   - DELETE /api/scenarios/{id}
   - GET /api/proof/{bundleHash}
@@ -45,12 +45,11 @@ Missing test data: 8 operations repeatedly returned 404 Not Found, preventing te
   - PATCH /api/scenarios/{id}/status
   - POST /api/ai/explain
   - POST /api/ai/summarize
-  - POST /api/orchestrator/orchestrate
   - POST /api/protocols/bitcoin/transaction
 
 💡 Provide realistic parameter values in your config file so tests can access existing resources
 
-Schema validation mismatch: 15 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+Schema validation mismatch: 16 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
 
   - DELETE /api/scenarios/{id}
   - GET /api/scenarios/{id}
@@ -62,6 +61,7 @@ Schema validation mismatch: 15 operations mostly rejected generated data due to 
   - POST /api/onchain/psbt/build
   - POST /api/onchain/utxos
   - POST /api/orchestrator/orchestrate
+  - POST /api/policy/check
   - POST /api/proof/build
   - POST /api/protocols/bitcoin/address
   - POST /api/protocols/bitcoin/transaction
@@ -83,15 +83,15 @@ Test Phases:
   ✅ Stateful
 
 Warnings:
-  ⚠️ Missing valid test data: 8 operations repeatedly returned 404 responses
-  ⚠️ Schema validation mismatch: 15 operations mostly rejected generated data
+  ⚠️ Missing valid test data: 7 operations repeatedly returned 404 responses
+  ⚠️ Schema validation mismatch: 16 operations mostly rejected generated data
 
 Test cases:
-  4554 generated, 4554 passed, 187 skipped
+  4710 generated, 4710 passed, 186 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 296625392278134417604038250062296941296
+Seed: 296977544800008227835544796711338298123
 
-============================ 2 warnings in 978.60s =============================
+============================ 2 warnings in 482.17s =============================

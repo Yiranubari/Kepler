@@ -1,5 +1,6 @@
 import { finalizeEvent } from 'nostr-tools';
 import { ClaimType, EvidenceBundle, VerificationStep } from '@kepler/shared';
+import { NostrEvent } from '@kepler/nostr';
 import {
   NostrClaimBuilder,
   NostrClaimVerifier,
@@ -24,7 +25,16 @@ describe('NostrClaimBuilder and NostrClaimVerifier', () => {
     content: 'Kepler verifiable Nostr proof claim test payload'
   };
 
-  const validEvent = finalizeEvent(signedEventTemplate, testSecretKey);
+  const rawEvent = finalizeEvent(signedEventTemplate, testSecretKey);
+  const validEvent: NostrEvent = {
+    id: rawEvent.id,
+    pubkey: rawEvent.pubkey,
+    createdAt: rawEvent.created_at,
+    kind: rawEvent.kind,
+    tags: rawEvent.tags,
+    content: rawEvent.content,
+    sig: rawEvent.sig
+  };
 
   const validInput: NostrClaimInput = {
     event: validEvent,
@@ -55,7 +65,7 @@ describe('NostrClaimBuilder and NostrClaimVerifier', () => {
     const expectedPubkeySuffix = validEvent.pubkey.slice(-8);
 
     expect(bundle.claim.text).toBe(
-      `Nostr event ${expectedIdPrefix}…${expectedIdSuffix} was published by pubkey ${expectedPubkeyPrefix}…${expectedPubkeySuffix} at ${validEvent.created_at} with a valid signature.`
+      `Nostr event ${expectedIdPrefix}…${expectedIdSuffix} was published by pubkey ${expectedPubkeyPrefix}…${expectedPubkeySuffix} at ${validEvent.createdAt} with a valid signature.`
     );
 
     const result = verifier.verify({ bundle });
@@ -213,5 +223,24 @@ describe('NostrClaimBuilder and NostrClaimVerifier', () => {
     const buildTwo = builder.build(context, validInput);
 
     expect(buildOne.bundle.bundleHash).toBe(buildTwo.bundle.bundleHash);
+  });
+
+  it('preserves bundle hash across serialization and deserialization round-trip', async () => {
+    const { bundle } = builder.build({ now: 1000, scenarioId: 'scenario-nostr-rt' }, validInput);
+    const json = bundle.toJSON();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const deserialized = EvidenceBundle.fromJSON(json);
+    expect(deserialized.computeHash()).toBe(bundle.bundleHash);
+    const result = verifier.verify({ bundle: deserialized });
+    expect(result.valid).toBe(true);
+  });
+
+  it('produces identical hash for same now and different hash for different now', () => {
+    const buildA = builder.build({ now: 1000, scenarioId: 'scenario-nostr-1' }, validInput);
+    const buildB = builder.build({ now: 1000, scenarioId: 'scenario-nostr-1' }, validInput);
+    const buildC = builder.build({ now: 2000, scenarioId: 'scenario-nostr-1' }, validInput);
+
+    expect(buildA.bundle.bundleHash).toBe(buildB.bundle.bundleHash);
+    expect(buildA.bundle.bundleHash).not.toBe(buildC.bundle.bundleHash);
   });
 });

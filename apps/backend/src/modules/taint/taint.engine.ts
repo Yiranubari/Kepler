@@ -30,6 +30,7 @@ import {
   nostrIngestSchema,
   cashuIngestSchema
 } from './taint.validators';
+import { extractQuoteHashesFromRequest } from '../../shared/taintMatching';
 
 interface EdgeHop {
   readonly neighborNodeId: string;
@@ -403,9 +404,9 @@ export class TaintEngine {
       }
 
       if (quote.request && quote.request.trim().length > 0) {
-        const hexMatch = quote.request.match(/[0-9a-f]{64}/);
-        if (hexMatch) {
-          extractedQuoteHashes.push(hexMatch[0].toLowerCase());
+        const quoteHashes = extractQuoteHashesFromRequest(quote.request);
+        for (const qh of quoteHashes) {
+          extractedQuoteHashes.push(qh);
         }
 
         const invoiceNode = this.createNode(

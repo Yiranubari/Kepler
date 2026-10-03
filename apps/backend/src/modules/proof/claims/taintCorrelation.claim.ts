@@ -1,5 +1,14 @@
 import { z } from 'zod';
 import {
+  matchesPaymentHash,
+  matchesPreimage,
+  matchesPubkey,
+  matchesMintUrl,
+  matchesQuoteHash,
+  matchesTemporalWindow,
+  extractQuoteHashesFromRequest
+} from '../../../shared/taintMatching';
+import {
   Claim,
   ClaimType,
   ClaimVerificationResult,
@@ -245,14 +254,10 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
     }
 
     const { content, tags } = this.extractNostrContentAndTags(nostrRef.payload);
-    const lowerHash = paymentHash.toLowerCase();
 
-    const inContent = content.toLowerCase().includes(lowerHash);
-    const inTags = tags.some((tag) =>
-      tag.some((elem) => elem.toLowerCase() === lowerHash)
-    );
+    const result = matchesPaymentHash(content, tags, paymentHash);
 
-    if (inContent || inTags) {
+    if (result.matched) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Payment hash found in Nostr event'
@@ -290,14 +295,10 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
     }
 
     const { content, tags } = this.extractNostrContentAndTags(nostrRef.payload);
-    const lowerPreimage = preimage.toLowerCase();
 
-    const inContent = content.toLowerCase().includes(lowerPreimage);
-    const inTags = tags.some((tag) =>
-      tag.some((elem) => elem.toLowerCase() === lowerPreimage)
-    );
+    const result = matchesPreimage(content, tags, preimage);
 
-    if (inContent || inTags) {
+    if (result.matched) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Preimage found in Nostr event'
@@ -366,7 +367,7 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
       expectedPubkey = eventPubkey;
     }
 
-    if (eventPubkey.toLowerCase() === expectedPubkey.toLowerCase()) {
+    if (matchesPubkey(eventPubkey, expectedPubkey)) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Nostr event pubkey verified'
@@ -427,10 +428,9 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
 
     const { content, tags } = this.extractNostrContentAndTags(nostrRef.payload);
 
-    const inContent = content.includes(mintUrl);
-    const inTags = tags.some((tag) => tag.some((elem) => elem === mintUrl));
+    const result = matchesMintUrl(content, tags, mintUrl);
 
-    if (inContent || inTags) {
+    if (result.matched) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Cashu mint URL found in Nostr event'
@@ -477,15 +477,9 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
       });
     }
 
-    const lowerPaymentHash = paymentHash.toLowerCase();
     const candidateHashes = this.extractCashuQuoteHashes(cashuRef);
-    const exactMatch = candidateHashes.some((hash) => hash.toLowerCase() === lowerPaymentHash);
 
-    const requestString = this.extractCashuQuoteRequest(cashuRef);
-    const requestMatch =
-      requestString !== undefined && requestString.toLowerCase().includes(lowerPaymentHash);
-
-    if (candidateHashes.length === 0 && requestString === undefined) {
+    if (candidateHashes.length === 0) {
       return new ClaimVerificationResult({
         valid: false,
         reason: 'MISSING_RAW_DATA',
@@ -493,7 +487,7 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
       });
     }
 
-    if (exactMatch || requestMatch) {
+    if (matchesQuoteHash(candidateHashes, paymentHash)) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Payment hash matches Cashu quote reference'
@@ -505,7 +499,7 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
       reason: 'STEP_FAILED',
       failedStep: step.name,
       expected: paymentHash,
-      actual: candidateHashes.length > 0 ? candidateHashes.join(', ') : (requestString ?? '')
+      actual: candidateHashes.join(', ')
     });
   }
 
@@ -550,7 +544,7 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
     }
 
     const delta = Math.abs(timestampA - timestampB);
-    if (delta < windowSeconds) {
+    if (matchesTemporalWindow(timestampA, timestampB, windowSeconds)) {
       return new ClaimVerificationResult({
         valid: true,
         reason: 'Timestamps are within the configured temporal window'
@@ -673,6 +667,12 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
       if (typeof p['paymentHash'] === 'string' && p['paymentHash'].trim().length > 0) {
         hashes.push(p['paymentHash'].trim());
       }
+      if (typeof p['request'] === 'string') {
+        const quoteHashes = extractQuoteHashesFromRequest(p['request']);
+        for (const qh of quoteHashes) {
+          hashes.push(qh);
+        }
+      }
     } else if (typeof ref.payload === 'string' && ref.payload.trim().length > 0) {
       hashes.push(ref.payload.trim());
     }
@@ -685,14 +685,4 @@ export class TaintCorrelationClaimVerifier implements ClaimVerifier {
     return hashes;
   }
 
-  private extractCashuQuoteRequest(ref: RawDataRef): string | undefined {
-    if (typeof ref.payload === 'object' && ref.payload !== null) {
-      const p = ref.payload as Record<string, unknown>;
-      if (typeof p['request'] === 'string' && p['request'].trim().length > 0) {
-        return p['request'].trim();
-      }
-    }
-    return undefined;
-  }
 }
-

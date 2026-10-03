@@ -47,8 +47,11 @@ describe('Onchain Module Integration', () => {
     return base64.encode(tx.toPSBT());
   }
 
+  const hasEsplora = Boolean(process.env.ESPLORA_URL?.trim());
+  const itWithEsplora = hasEsplora ? it : it.skip;
+
   describe('POST /api/onchain/fees', () => {
-    it('returns real fees and always runs', async () => {
+    itWithEsplora('returns real fees and runs when ESPLORA_URL is set', async () => {
       const res = await request(app)
         .post('/api/onchain/fees')
         .send({

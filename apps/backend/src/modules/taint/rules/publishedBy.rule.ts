@@ -9,6 +9,7 @@ import {
   TaintRuleContext,
   TaintRuleResult
 } from './rule.interface';
+import { matchesPubkey } from '../../../shared/taintMatching';
 
 export class PublishedByRule implements TaintRule {
   public readonly name: string = 'published_by';
@@ -80,8 +81,10 @@ export class PublishedByRule implements TaintRule {
     pubkeyNodes: readonly TaintNode[]
   ): TaintNode | undefined {
     return pubkeyNodes.find((pubkeyNode) => {
-      const pubkeyVal = pubkeyNode.value.trim().toLowerCase();
-      return pubkeyVal === pubkey || pubkeyNode.id.toLowerCase() === `pubkey:${pubkey}`;
+      return (
+        matchesPubkey(pubkey, pubkeyNode.value.trim()) ||
+        pubkeyNode.id.toLowerCase() === `pubkey:${pubkey}`
+      );
     });
   }
 }

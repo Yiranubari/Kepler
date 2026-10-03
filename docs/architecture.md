@@ -64,3 +64,8 @@ Kepler operates under strict non-custodial principles:
 - On-chain Bitcoin workflows use Partially Signed Bitcoin Transactions (PSBT), exporting unsigned proposals to external signer devices.
 - Lightning operations communicate with remote user-controlled lightning nodes via encrypted Nostr Wallet Connect (NWC) connection strings.
 - Cashu workflows operate over ecash tokens signed by independent mints, with proofs stored and redeemed directly by the user client.
+
+## Known Limitations
+
+- **Process-Global DNS Resolution in Integration Tests**: In integration test suites connecting to remote protocol endpoints (such as Nostr relays, Cashu mints, and Bitcoin Esplora nodes), Node.js Happy Eyeballs auto-selection can cause socket timeouts when attempting IPv6 before IPv4. While `NODE_OPTIONS="--no-network-family-autoselection"` handles this at the runtime process level, integration test suites configuring `dns.setDefaultResultOrder('ipv4first')` introduce a process-global side effect within the test worker. Running Jest with `--runInBand` prevents cross-suite pollution.
+

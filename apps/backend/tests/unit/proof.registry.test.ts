@@ -99,4 +99,36 @@ describe('ClaimRegistry', () => {
       );
     }).toThrow(ProofUnsupportedClaimError);
   });
+
+  it('throws ProofUnsupportedClaimError when retrieving builder for reserved claim type Lightning', () => {
+    const registry = ClaimRegistry.createDefault();
+    expect(() => {
+      registry.getBuilder(ClaimType.Lightning);
+    }).toThrow(ProofUnsupportedClaimError);
+
+    try {
+      registry.getBuilder(ClaimType.Lightning);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ProofUnsupportedClaimError);
+      expect((err as ProofUnsupportedClaimError).context).toEqual({
+        claimType: ClaimType.Lightning
+      });
+    }
+  });
+
+  it('throws ProofUnsupportedClaimError when retrieving builder for reserved claim type Cashu', () => {
+    const registry = ClaimRegistry.createDefault();
+    expect(() => {
+      registry.getBuilder(ClaimType.Cashu);
+    }).toThrow(ProofUnsupportedClaimError);
+
+    try {
+      registry.getBuilder(ClaimType.Cashu);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ProofUnsupportedClaimError);
+      expect((err as ProofUnsupportedClaimError).context).toEqual({
+        claimType: ClaimType.Cashu
+      });
+    }
+  });
 });

@@ -28,8 +28,10 @@ class IntegrationTestLogger implements KeplerLogger {
     this.fatalLogs.push({ message, error, context });
   }
 }
+const hasEsplora = Boolean(process.env['ESPLORA_URL']?.trim());
+const describeIntegration = hasEsplora ? describe : describe.skip;
 
-describe('BitcoinClient On-Chain Integration', () => {
+describeIntegration('BitcoinClient On-Chain Integration', () => {
   const configuredNetwork = (process.env['BITCOIN_NETWORK'] ?? 'mainnet') as 'mainnet' | 'testnet' | 'testnet4' | 'regtest';
   const isTestnet4 = configuredNetwork === 'testnet4';
   const itTestnet4 = isTestnet4 ? it : it.skip;
