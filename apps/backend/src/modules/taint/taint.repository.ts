@@ -1,13 +1,42 @@
-import { PrismaClient, Prisma, Scenario } from '@prisma/client';
+import { PrismaClient, Scenario } from '@prisma/client';
 import {
   TaintGraph,
   TaintNodeJSON,
   TaintEdgeJSON,
   EvidencePathJSON,
-  TaintNodeType
+  TaintNodeType,
+  InternalError
 } from '@kepler/shared';
 import { TaintAnalysisResult } from './taint.types';
 import { TaintPersistenceError } from './taint.errors';
+import { toPrismaJson, fromPrismaJson } from '../../shared/prismaJson';
+
+function isTaintEdgeJSON(v: unknown): v is TaintEdgeJSON {
+  if (typeof v !== 'object' || v === null) {
+    return false;
+  }
+  const obj = v as Record<string, unknown>;
+  return (
+    typeof obj['id'] === 'string' &&
+    typeof obj['from'] === 'string' &&
+    typeof obj['to'] === 'string' &&
+    typeof obj['relationship'] === 'string' &&
+    typeof obj['confidence'] === 'number' &&
+    Array.isArray(obj['evidence'])
+  );
+}
+
+function isEvidencePathJSON(v: unknown): v is EvidencePathJSON {
+  if (typeof v !== 'object' || v === null) {
+    return false;
+  }
+  const obj = v as Record<string, unknown>;
+  return (
+    Array.isArray(obj['nodes']) &&
+    Array.isArray(obj['edges']) &&
+    typeof obj['overallConfidence'] === 'number'
+  );
+}
 
 export class TaintRepository {
   private readonly prisma: PrismaClient;
@@ -66,9 +95,9 @@ export class TaintRepository {
         await this.prisma.taintGraphRecord.update({
           where: { id: existing.id },
           data: {
-            nodes: serializedNodes as unknown as Prisma.InputJsonValue,
-            edges: serializedEdges as unknown as Prisma.InputJsonValue,
-            paths: serializedPaths as unknown as Prisma.InputJsonValue,
+            nodes: toPrismaJson(serializedNodes),
+            edges: toPrismaJson(serializedEdges),
+            paths: toPrismaJson(serializedPaths),
             createdAt: result.graph.createdAt
           }
         });
@@ -77,9 +106,9 @@ export class TaintRepository {
           data: {
             id: result.graph.id,
             scenarioId: trimmedScenarioId,
-            nodes: serializedNodes as unknown as Prisma.InputJsonValue,
-            edges: serializedEdges as unknown as Prisma.InputJsonValue,
-            paths: serializedPaths as unknown as Prisma.InputJsonValue,
+            nodes: toPrismaJson(serializedNodes),
+            edges: toPrismaJson(serializedEdges),
+            paths: toPrismaJson(serializedPaths),
             createdAt: result.graph.createdAt
           }
         });
@@ -125,9 +154,8 @@ export class TaintRepository {
       const rawPaths = Array.isArray(record.paths) ? record.paths : [];
 
       const nodes = rawNodes.map((n) => this.deserializeNode(n));
-      const edges = rawEdges.map((e) => e as unknown as TaintEdgeJSON);
-      const paths = rawPaths.map((p) => p as unknown as EvidencePathJSON);
-
+      const edges = rawEdges.map((e) => fromPrismaJson(e, isTaintEdgeJSON));
+      const paths = rawPaths.map((p) => fromPrismaJson(p, isEvidencePathJSON));
 
       return TaintGraph.fromJSON({
         id: record.id,
@@ -138,6 +166,9 @@ export class TaintRepository {
         createdAt: record.createdAt.toISOString()
       });
     } catch (error) {
+      if (error instanceof InternalError) {
+        throw error;
+      }
       const reason = error instanceof Error ? error.message : String(error);
       throw new TaintPersistenceError(
         'Failed to retrieve taint graph from database',

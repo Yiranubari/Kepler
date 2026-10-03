@@ -1,3 +1,5 @@
+import net from 'node:net';
+import dns from 'node:dns';
 import '../../src/config/env';
 import { getLogger } from '../../src/services/logger';
 import { BitcoinClient, BitcoinConfig } from '@kepler/bitcoin';
@@ -5,6 +7,13 @@ import { LightningClient, LightningConfig } from '@kepler/lightning';
 import { NostrClient, NostrConfig } from '@kepler/nostr';
 import { CashuClient, CashuConfig } from '@kepler/cashu';
 import { ProtocolsService } from '../../src/modules/protocols/protocols.service';
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+if (typeof net.setDefaultAutoSelectFamily === 'function') {
+  net.setDefaultAutoSelectFamily(false);
+}
 
 describe('Protocols Integration (Real services, no mocks)', () => {
   jest.setTimeout(30000);

@@ -4,7 +4,8 @@ import {
   TaintNode,
   TaintEdge,
   EvidenceItem,
-  TaintNodeType
+  TaintNodeType,
+  InternalError
 } from '@kepler/shared';
 import { TaintRepository } from '../../src/modules/taint/taint.repository';
 import { TaintAnalysisResult } from '../../src/modules/taint/taint.types';
@@ -140,7 +141,8 @@ describeWithDb('TaintRepository', () => {
       value: 'bc1qrepobigint0000000000000000000000001',
       metadata: {
         value: BigInt(5000000000),
-        amountMsat: BigInt(2100000000000000)
+        amountMsat: BigInt(2100000000000000),
+        valueSats: 12345n
       }
     });
 
@@ -172,6 +174,8 @@ describeWithDb('TaintRepository', () => {
     expect(loadedNode?.metadata['value']).toBe(BigInt(5000000000));
     expect(typeof loadedNode?.metadata['amountMsat']).toBe('bigint');
     expect(loadedNode?.metadata['amountMsat']).toBe(BigInt(2100000000000000));
+    expect(typeof loadedNode?.metadata['valueSats']).toBe('bigint');
+    expect(loadedNode?.metadata['valueSats']).toBe(12345n);
   }, 15000);
 
   test('reads nonexistent scenario and returns null', async () => {
@@ -235,6 +239,27 @@ describeWithDb('TaintRepository', () => {
     }
     const exists = await repository.scenarioExists('random_nonexistent_scenario_99999999');
     expect(exists).toBe(false);
+  }, 15000);
+
+  test('throws InternalError when stored graph row has malformed edge shape', async () => {
+    if (!isConnected) {
+      return;
+    }
+    await prisma.taintGraphRecord.deleteMany({
+      where: { scenarioId: scenario3 }
+    });
+    await prisma.taintGraphRecord.create({
+      data: {
+        id: 'graph_malformed_test',
+        scenarioId: scenario3,
+        nodes: [],
+        edges: [{ invalid: 'edge' }],
+        paths: [],
+        createdAt: new Date('2026-03-01T12:00:00.000Z')
+      }
+    });
+
+    await expect(repository.getGraph(scenario3)).rejects.toThrow(InternalError);
   }, 15000);
 });
 

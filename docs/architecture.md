@@ -68,4 +68,5 @@ Kepler operates under strict non-custodial principles:
 ## Known Limitations
 
 - **Process-Global DNS Resolution in Integration Tests**: In integration test suites connecting to remote protocol endpoints (such as Nostr relays, Cashu mints, and Bitcoin Esplora nodes), Node.js Happy Eyeballs auto-selection can cause socket timeouts when attempting IPv6 before IPv4. While `NODE_OPTIONS="--no-network-family-autoselection"` handles this at the runtime process level, integration test suites configuring `dns.setDefaultResultOrder('ipv4first')` introduce a process-global side effect within the test worker. Running Jest with `--runInBand` prevents cross-suite pollution.
+- Integration tests that call public Esplora, Nostr relays, or public test mints require IPv4-first DNS resolution. This is set per test file currently; a shared Jest setup will consolidate it in a follow-up.
 
