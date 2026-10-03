@@ -21,52 +21,60 @@ export {
 } from './canonical';
 
 export {
-  ProtocolType,
   TaintNodeType,
+  EvidenceItem,
+  TaintNode,
+  TaintEdge,
+  EvidencePath,
+  TaintGraph
+} from './taint';
+export type {
+  ProtocolType,
   EvidenceItemKind,
   EvidenceItemJSON,
-  EvidenceItem,
   TaintNodeJSON,
-  TaintNode,
   EdgeDraft,
   TaintEdgeJSON,
-  TaintEdge,
   EvidencePathJSON,
-  EvidencePath,
-  TaintGraphJSON,
-  TaintGraph
+  TaintGraphJSON
 } from './taint';
 
 export {
   ClaimType,
-  ClaimJSON,
   Claim,
+  RawDataRef,
+  VerificationStep,
+  EvidenceBundle,
+  ClaimVerificationResult
+} from './evidence';
+export type {
+  ClaimJSON,
   RawDataSource,
   RawDataRefJSON,
-  RawDataRef,
   VerificationStepJSON,
-  VerificationStep,
   EvidenceBundleJSON,
-  EvidenceBundle,
-  ClaimVerificationResultJSON,
-  ClaimVerificationResult
+  ClaimVerificationResultJSON
 } from './evidence';
 
 export {
   PolicyScope,
-  PolicyJSON,
   Policy
+} from './policy';
+export type {
+  PolicyJSON
 } from './policy';
 
 export {
   PaymentTargetKind,
+  PaymentTarget,
+  ScenarioStatus,
+  Scenario
+} from './scenario';
+export type {
   LightningTargetPayload,
   BitcoinTargetPayload,
   CashuTargetPayload,
   PaymentTargetPayload,
   PaymentTargetJSON,
-  PaymentTarget,
-  ScenarioStatus,
-  ScenarioJSON,
-  Scenario
+  ScenarioJSON
 } from './scenario';

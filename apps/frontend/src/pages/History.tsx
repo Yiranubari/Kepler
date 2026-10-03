@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
-import { api, type ScenarioResponse, type PaymentTargetInput } from "@/lib/api";
+import { listScenarios, type ScenarioResponse, type PaymentTargetInput } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { LoadingState } from "@/components/layout/LoadingState";
@@ -68,7 +68,7 @@ export const HistoryPage: React.FC = () => {
     refetch
   } = useQuery<ScenarioResponse[]>({
     queryKey: ["scenarios", "history"],
-    queryFn: () => api.listScenarios(50, 0)
+    queryFn: () => listScenarios(50, 0)
   });
 
   return (

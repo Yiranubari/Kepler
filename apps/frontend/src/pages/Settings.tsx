@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, type PolicyResponse } from "@/lib/api";
+import { getPolicy, type PolicyResponse } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingState } from "@/components/layout/LoadingState";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -15,7 +15,7 @@ export const SettingsPage: React.FC = () => {
     refetch
   } = useQuery<PolicyResponse>({
     queryKey: ["policy"],
-    queryFn: () => api.getPolicy()
+    queryFn: () => getPolicy()
   });
 
   return (

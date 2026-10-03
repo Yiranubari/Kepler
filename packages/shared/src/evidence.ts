@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 import { CanonicalJson } from './canonical';
 import { ValidationError } from './exceptions/ValidationError';
 import { ProofError } from './exceptions/ProofError';
@@ -267,7 +268,7 @@ export class EvidenceBundle {
       riskScore: this.riskScore
     };
 
-    return createHash('sha256').update(CanonicalJson.stringify(canonicalData)).digest('hex');
+    return bytesToHex(sha256(CanonicalJson.stringify(canonicalData)));
   }
 
   public verify(): ClaimVerificationResult {

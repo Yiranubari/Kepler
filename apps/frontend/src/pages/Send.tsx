@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import {
   api,
+  getPolicy,
   type ScenarioResponse,
   type LightningDecodeResponse,
   type OnchainFeesResponse,
@@ -158,7 +159,7 @@ export const SendPage: React.FC = () => {
         targetPayload = { request: cleanDestination };
         let mintUrl = cleanDestination;
         if (!mintUrl.startsWith("http:") && !mintUrl.startsWith("https:")) {
-          const policy = await api.getPolicy();
+          const policy = await getPolicy();
           mintUrl = policy.allowedMints[0] || "";
         }
         if (mintUrl) {

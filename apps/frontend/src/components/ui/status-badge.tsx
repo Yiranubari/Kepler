@@ -3,7 +3,7 @@ import { motion, useAnimationControls } from "motion/react";
 import { statusPulse, useReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-export type ScenarioStatusType =
+export type StatusBadgeValue =
   | "PENDING"
   | "ANALYZED"
   | "DECIDED"
@@ -12,7 +12,7 @@ export type ScenarioStatusType =
   | string;
 
 export interface StatusBadgeProps {
-  status: ScenarioStatusType;
+  status: StatusBadgeValue;
   className?: string;
 }
 

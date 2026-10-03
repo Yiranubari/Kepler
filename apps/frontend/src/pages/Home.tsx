@@ -1,93 +1,92 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Send, History, Settings, ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
+import { Scenario, Policy } from "@kepler/shared";
+import {
+  listScenarios,
+  getPolicy,
+  toScenario,
+  toPolicy,
+  ClientError
+} from "@/lib/api";
+import { useWallet } from "@/lib/wallet";
 import { useReducedMotion } from "@/lib/motion";
-
-interface HomeCardConfig {
-  title: string;
-  description: string;
-  path: string;
-  icon: React.ComponentType<{ className?: string }>;
-  actionLabel: string;
-}
-
-const CARDS: HomeCardConfig[] = [
-  {
-    title: "Send payment",
-    description: "Send Bitcoin, Lightning, or ecash with an automated privacy check.",
-    path: "/send",
-    icon: Send,
-    actionLabel: "Start payment"
-  },
-  {
-    title: "Payment history",
-    description: "Review past payments, route decisions, and receipts.",
-    path: "/history",
-    icon: History,
-    actionLabel: "View history"
-  },
-  {
-    title: "Settings",
-    description: "Manage spending limits, policy rules, and allowed services.",
-    path: "/settings",
-    icon: Settings,
-    actionLabel: "Open settings"
-  }
-];
+import {
+  GreetingRow,
+  ActivityCard,
+  LimitsCard,
+  NetworkCard,
+  ServiceBanner
+} from "@/components/dashboard";
 
 export const HomePage: React.FC = () => {
-  const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  const { address, isConnected } = useWallet();
+
+  const scenariosQuery = useQuery<Scenario[], ClientError>({
+    queryKey: ["scenarios", 5, 0],
+    queryFn: async () => {
+      const raw = await listScenarios(5, 0);
+      return raw.map(toScenario);
+    }
+  });
+
+  const policyQuery = useQuery<Policy, ClientError>({
+    queryKey: ["policy"],
+    queryFn: async () => {
+      const raw = await getPolicy();
+      return toPolicy(raw);
+    }
+  });
+
+  const configuredNetwork = (
+    import.meta.env.VITE_BITCOIN_NETWORK || "testnet4"
+  ).toLowerCase();
+
+  const scenariosServiceDown =
+    scenariosQuery.isError &&
+    scenariosQuery.error?.code === "SERVICE_UNAVAILABLE";
+  const policyServiceDown =
+    policyQuery.isError &&
+    policyQuery.error?.code === "SERVICE_UNAVAILABLE";
+  const allFailed = scenariosServiceDown && policyServiceDown;
+
+  const refetchAll = (): void => {
+    void scenariosQuery.refetch();
+    void policyQuery.refetch();
+  };
 
   return (
-    <div className="w-full space-y-8">
-      <PageHeader
-        title="Welcome to Kepler"
-        subtitle="Send Bitcoin, Lightning, and ecash with a privacy check before every payment."
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.15, ease: "easeOut" } }}
+      className="w-full space-y-16 md:space-y-24"
+    >
+      <ServiceBanner visible={allFailed} onRetry={refetchAll} />
+      <GreetingRow
+        address={address ?? null}
+        isConnected={isConnected}
       />
-
-      <StaggerList delayChildren={0.04} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {CARDS.map((card) => {
-          const Icon = card.icon;
-          return (
-            <StaggerItem key={card.path}>
-              <motion.div
-                whileHover={
-                  shouldReduceMotion
-                    ? undefined
-                    : { y: -2, transition: { duration: 0.15, ease: "easeOut" } }
-                }
-                onClick={() => navigate(card.path)}
-                className="cursor-pointer h-full"
-              >
-                <Card className="h-full p-6 flex flex-col justify-between hover:border-foreground/30 transition-colors">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-foreground">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <CardHeader className="p-0 space-y-1.5">
-                      <CardTitle className="text-lg font-semibold text-foreground">
-                        {card.title}
-                      </CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">
-                        {card.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </div>
-                  <CardContent className="p-0 pt-6 flex items-center text-sm font-medium text-foreground">
-                    <span>{card.actionLabel}</span>
-                    <ArrowUpRight className="w-4 h-4 ml-1.5 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </StaggerItem>
-          );
-        })}
-      </StaggerList>
-    </div>
+      <ActivityCard
+        scenarios={scenariosQuery.data}
+        isLoading={scenariosQuery.isLoading}
+        error={allFailed ? null : scenariosQuery.error}
+        onRetry={() => void scenariosQuery.refetch()}
+      />
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 items-stretch">
+        <LimitsCard
+          policy={policyQuery.data}
+          isLoading={policyQuery.isLoading}
+          error={allFailed ? null : policyQuery.error}
+          onRetry={() => void policyQuery.refetch()}
+        />
+        <NetworkCard
+          network={configuredNetwork}
+          isLoading={policyQuery.isLoading}
+          error={allFailed ? null : policyQuery.error}
+          onRetry={() => void policyQuery.refetch()}
+        />
+      </div>
+    </motion.div>
   );
 };

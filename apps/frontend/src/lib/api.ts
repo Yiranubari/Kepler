@@ -1,4 +1,13 @@
 import { getFriendlyMessage } from "@/lib/errorMessages";
+import {
+  Scenario,
+  Policy,
+  PaymentTarget,
+  PaymentTargetKind,
+  type PaymentTargetPayload,
+  ScenarioStatus,
+  PolicyScope
+} from "@kepler/shared";
 
 export class ClientError extends Error {
   public readonly code: string;
@@ -117,7 +126,7 @@ export class ApiClient {
     this.timeoutMs = timeoutMs;
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  public async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -138,7 +147,7 @@ export class ApiClient {
       });
 
       if (!response.ok) {
-        let code = "NETWORK_ERROR";
+        let code = "SERVICE_UNAVAILABLE";
         try {
           const body: unknown = await response.json();
           if (
@@ -157,6 +166,8 @@ export class ApiClient {
             code = "NOT_FOUND";
           } else if (response.status === 429) {
             code = "RATE_LIMIT_EXCEEDED";
+          } else {
+            code = "SERVICE_UNAVAILABLE";
           }
         }
 
@@ -168,7 +179,16 @@ export class ApiClient {
         return undefined as unknown as T;
       }
 
-      const data: unknown = await response.json();
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch {
+        throw new ClientError(
+          "SERVICE_UNAVAILABLE",
+          response.status,
+          getFriendlyMessage("SERVICE_UNAVAILABLE")
+        );
+      }
       return data as T;
     } catch (err: unknown) {
       if (err instanceof ClientError) {
@@ -177,16 +197,16 @@ export class ApiClient {
 
       if (err instanceof Error && err.name === "AbortError") {
         throw new ClientError(
-          "NETWORK_ERROR",
+          "SERVICE_UNAVAILABLE",
           408,
-          getFriendlyMessage("NETWORK_ERROR")
+          getFriendlyMessage("SERVICE_UNAVAILABLE")
         );
       }
 
       throw new ClientError(
-        "NETWORK_ERROR",
+        "SERVICE_UNAVAILABLE",
         0,
-        getFriendlyMessage("NETWORK_ERROR")
+        getFriendlyMessage("SERVICE_UNAVAILABLE")
       );
     } finally {
       clearTimeout(timeoutId);
@@ -217,35 +237,6 @@ export class ApiClient {
     });
   }
 
-  public async listScenarios(
-    limitOrParams?: number | { limit?: number; offset?: number },
-    offsetParam?: number
-  ): Promise<ScenarioResponse[]> {
-    let limit: number | undefined;
-    let offset: number | undefined;
-
-    if (typeof limitOrParams === "number") {
-      limit = limitOrParams;
-      offset = offsetParam;
-    } else if (limitOrParams) {
-      limit = limitOrParams.limit;
-      offset = limitOrParams.offset;
-    }
-
-    const searchParams = new URLSearchParams();
-    if (limit !== undefined) {
-      searchParams.set("limit", String(limit));
-    }
-    if (offset !== undefined) {
-      searchParams.set("offset", String(offset));
-    }
-    const query = searchParams.toString();
-    const path = query ? `/api/scenarios?${query}` : "/api/scenarios";
-    return this.request<ScenarioResponse[]>(path, {
-      method: "GET"
-    });
-  }
-
   public async analyzeTaint(scenarioId: string): Promise<AnalyzeResponse> {
     return this.request<AnalyzeResponse>("/api/analyze", {
       method: "POST",
@@ -264,12 +255,6 @@ export class ApiClient {
         ingestData: options?.ingestData ?? {},
         ...(options?.candidateRoutes ? { candidateRoutes: options.candidateRoutes } : {})
       })
-    });
-  }
-
-  public async getPolicy(): Promise<PolicyResponse> {
-    return this.request<PolicyResponse>("/api/policy", {
-      method: "GET"
     });
   }
 
@@ -303,3 +288,73 @@ export class ApiClient {
 }
 
 export const api = new ApiClient();
+
+export const listScenarios = (
+  limitOrParams?: number | { limit?: number; offset?: number },
+  offsetParam?: number
+): Promise<ScenarioResponse[]> => {
+  let limit: number | undefined;
+  let offset: number | undefined;
+
+  if (typeof limitOrParams === "number") {
+    limit = limitOrParams;
+    offset = offsetParam;
+  } else if (limitOrParams) {
+    limit = limitOrParams.limit;
+    offset = limitOrParams.offset;
+  }
+
+  const searchParams = new URLSearchParams();
+  if (limit !== undefined) {
+    searchParams.set("limit", String(limit));
+  }
+  if (offset !== undefined) {
+    searchParams.set("offset", String(offset));
+  }
+  const query = searchParams.toString();
+  const path = query ? `/api/scenarios?${query}` : "/api/scenarios";
+  return api.request<ScenarioResponse[]>(path, {
+    method: "GET"
+  });
+};
+
+export const getPolicy = (): Promise<PolicyResponse> => {
+  return api.request<PolicyResponse>("/api/policy", {
+    method: "GET"
+  });
+};
+
+export function toScenario(response: ScenarioResponse): Scenario {
+  const normalizedKind =
+    response.target.kind.toLowerCase() === "lightning"
+      ? PaymentTargetKind.Lightning
+      : response.target.kind.toLowerCase() === "bitcoin"
+      ? PaymentTargetKind.Bitcoin
+      : PaymentTargetKind.Cashu;
+
+  const target = new PaymentTarget({
+    kind: normalizedKind,
+    payload: response.target.payload as unknown as PaymentTargetPayload
+  });
+
+  return new Scenario({
+    id: response.id,
+    target,
+    status: response.status as ScenarioStatus,
+    createdAt: new Date(response.createdAt),
+    updatedAt: new Date(response.updatedAt)
+  });
+}
+
+export function toPolicy(response: PolicyResponse): Policy {
+  return new Policy({
+    id: response.id,
+    dailyBudgetSats: Number(response.dailyBudgetSats),
+    perTxBudgetSats: Number(response.perTxBudgetSats),
+    scopes: response.scopes as PolicyScope[],
+    allowedMints: response.allowedMints,
+    allowedRelays: response.allowedRelays,
+    allowedEsplora: response.allowedEsplora,
+    updatedAt: new Date(response.updatedAt)
+  });
+}

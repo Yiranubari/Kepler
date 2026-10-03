@@ -2,6 +2,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   VALIDATION_ERROR: "That information does not look right. Please check and try again.",
   NOT_FOUND: "We could not find that. Please check and try again.",
   NETWORK_ERROR: "We could not reach the network. Check your connection and try again.",
+  SERVICE_UNAVAILABLE: "Kepler is having trouble right now. Try again in a moment.",
   POLICY_BUDGET_VIOLATION: "This payment is above your limit. You can adjust the limit in Settings.",
   POLICY_SCOPE_VIOLATION: "This action is turned off in Settings.",
   POLICY_ALLOWLIST_VIOLATION: "That service is not on your allowed list. Update your allowlist in Settings to use it.",

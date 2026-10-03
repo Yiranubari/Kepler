@@ -51,4 +51,4 @@ export {
   type TooltipContentProps
 } from "./tooltip";
 export { CopyButton, type CopyButtonProps } from "./copy-button";
-export { StatusBadge, type StatusBadgeProps, type ScenarioStatusType } from "./status-badge";
+export { StatusBadge, type StatusBadgeProps, type StatusBadgeValue } from "./status-badge";
