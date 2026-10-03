@@ -5,7 +5,7 @@ import {
   PaymentTargetKind,
   PaymentTargetPayload
 } from '@kepler/shared';
-import { CreateScenarioInput } from './scenario.types';
+import { CreateScenarioInput, SupportedNetwork } from './scenario.types';
 import { ScenarioNotFoundError } from './scenario.errors';
 
 export class ScenarioRepository {
@@ -20,7 +20,8 @@ export class ScenarioRepository {
       ...(input.id ? { id: input.id } : {}),
       targetKind: input.target.kind,
       targetData: JSON.parse(JSON.stringify(input.target.payload)),
-      status: ScenarioStatus.Pending
+      status: ScenarioStatus.Pending,
+      network: input.network
     };
 
     const record = await this.prisma.scenario.create({ data });
@@ -43,12 +44,15 @@ export class ScenarioRepository {
     return this.mapToScenario(record);
   }
 
-  public async list(limit: number = 50, offset: number = 0): Promise<Scenario[]> {
+  public async list(limit: number = 50, offset: number = 0, network?: SupportedNetwork): Promise<Scenario[]> {
     const safeLimit = typeof limit === 'number' && !Number.isNaN(limit) ? limit : 50;
     const effectiveLimit = Math.min(Math.max(1, safeLimit), 200);
     const effectiveOffset = typeof offset === 'number' && !Number.isNaN(offset) && offset > 0 ? Math.min(offset, 1000000) : 0;
 
+    const where: Prisma.ScenarioWhereInput = network ? { network } : {};
+
     const records = await this.prisma.scenario.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       take: effectiveLimit,
       skip: effectiveOffset
@@ -97,6 +101,7 @@ export class ScenarioRepository {
     targetKind: string;
     targetData: unknown;
     status: string;
+    network?: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): Scenario | null {
@@ -106,7 +111,7 @@ export class ScenarioRepository {
           ? JSON.parse(record.targetData)
           : record.targetData;
 
-      return Scenario.fromJSON({
+      const scenario = Scenario.fromJSON({
         id: record.id,
         target: {
           kind: this.parseTargetKind(record.targetKind),
@@ -116,6 +121,18 @@ export class ScenarioRepository {
         createdAt: record.createdAt.toISOString(),
         updatedAt: record.updatedAt.toISOString()
       });
+
+      if (record.network) {
+        const network = record.network;
+        const originalToJSON = scenario.toJSON.bind(scenario);
+        scenario.toJSON = () => ({
+          ...originalToJSON(),
+          network
+        });
+        Object.assign(scenario, { network });
+      }
+
+      return scenario;
     } catch {
       return null;
     }

@@ -10,13 +10,9 @@ import { ScenarioService } from './scenario.service';
 import {
   PaymentTargetSchema,
   ScenarioIdParamSchema,
-  UpdateStatusRequestSchema
+  UpdateStatusRequestSchema,
+  ListScenariosQuerySchema
 } from './scenario.validators';
-
-const listQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(200).optional(),
-  offset: z.coerce.number().int().nonnegative().max(1000000).optional()
-});
 
 export class ScenarioController {
   private readonly service: ScenarioService;
@@ -107,8 +103,8 @@ export class ScenarioController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const query = listQuerySchema.parse(req.query);
-      const scenarios = await this.service.list(query.limit, query.offset);
+      const query = ListScenariosQuerySchema.parse(req.query);
+      const scenarios = await this.service.list(query.limit, query.offset, query.network);
       res.status(200).json(scenarios.map((s) => s.toJSON()));
     } catch (error) {
       if (error instanceof z.ZodError) {

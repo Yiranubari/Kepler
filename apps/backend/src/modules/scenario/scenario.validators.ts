@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { PaymentTargetKind, ScenarioStatus } from '@kepler/shared';
 import { IdentifierString } from '../taint/taint.validators';
+import { SupportedNetworkSchema } from '../config/config.validators';
 
 export const LightningTargetSchema = z.object({
   kind: z.literal(PaymentTargetKind.Lightning),
@@ -81,8 +82,15 @@ export const ScenarioResponseSchema = z.object({
   id: z.string().min(1),
   target: ScenarioResponseTargetSchema,
   status: z.nativeEnum(ScenarioStatus),
+  network: SupportedNetworkSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string()
+});
+
+export const ListScenariosQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(200).optional(),
+  offset: z.coerce.number().int().nonnegative().max(1000000).optional(),
+  network: SupportedNetworkSchema.optional()
 });
 
 export const ListScenariosResponseSchema = z.array(ScenarioResponseSchema);
@@ -93,3 +101,4 @@ export type ScenarioIdParam = z.infer<typeof ScenarioIdParamSchema>;
 export type UpdateStatusRequest = z.infer<typeof UpdateStatusRequestSchema>;
 export type ScenarioResponseOutput = z.infer<typeof ScenarioResponseSchema>;
 export type ListScenariosResponse = z.infer<typeof ListScenariosResponseSchema>;
+export type ListScenariosQuery = z.infer<typeof ListScenariosQuerySchema>;

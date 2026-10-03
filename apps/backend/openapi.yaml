@@ -65,6 +65,12 @@ paths:
             maximum: 1000000
             default: 0
           description: Number of scenarios to skip
+        - name: network
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SupportedNetwork'
+          description: Filter scenarios by Bitcoin network
       responses:
         '200':
           description: List of payment scenarios
@@ -1400,6 +1406,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/config:
+    get:
+      summary: Get application configuration
+      operationId: getAppConfig
+      security: []
+      responses:
+        '200':
+          description: Application configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConfigResponse'
+        '404':
+          description: Configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/config/network:
+    put:
+      summary: Update application network
+      operationId: updateAppNetwork
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNetworkRequest'
+      responses:
+        '200':
+          description: Application configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConfigResponse'
+        '400':
+          description: Invalid network value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     PaymentTargetKind:
@@ -1439,6 +1501,8 @@ components:
           $ref: '#/components/schemas/PaymentTarget'
         status:
           $ref: '#/components/schemas/ScenarioStatus'
+        network:
+          $ref: '#/components/schemas/SupportedNetwork'
         createdAt:
           type: string
           format: date-time
@@ -1475,6 +1539,35 @@ components:
           $ref: '#/components/schemas/ScenarioStatus'
       required:
         - status
+
+    SupportedNetwork:
+      type: string
+      enum:
+        - mainnet
+        - testnet
+        - testnet4
+        - signet
+        - regtest
+
+    AppConfigResponse:
+      type: object
+      required:
+        - network
+        - updatedAt
+      properties:
+        network:
+          $ref: '#/components/schemas/SupportedNetwork'
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateNetworkRequest:
+      type: object
+      required:
+        - network
+      properties:
+        network:
+          $ref: '#/components/schemas/SupportedNetwork'
 
     TaintNodeType:
       type: string

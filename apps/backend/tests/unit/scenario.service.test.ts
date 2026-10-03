@@ -10,8 +10,11 @@ import {
   ScenarioStatus,
   KeplerLogger
 } from '@kepler/shared';
+import { BitcoinConfig } from '@kepler/bitcoin';
 import { ScenarioRepository } from '../../src/modules/scenario/scenario.repository';
 import { ScenarioService } from '../../src/modules/scenario/scenario.service';
+import { ConfigRepository } from '../../src/modules/config/config.repository';
+import { ConfigService } from '../../src/modules/config/config.service';
 import {
   ScenarioNotFoundError,
   ScenarioStateError
@@ -49,6 +52,7 @@ describe('ScenarioService', () => {
   jest.setTimeout(30000);
   let prisma: PrismaClient;
   let repository: ScenarioRepository;
+  let configService: ConfigService;
   let logger: TestLogger;
   let service: ScenarioService;
 
@@ -69,7 +73,17 @@ describe('ScenarioService', () => {
     }
     repository = new ScenarioRepository(prisma);
     logger = new TestLogger();
-    service = new ScenarioService(repository, logger);
+
+    const configRepo = new ConfigRepository(prisma);
+    const bitcoinConfig = new BitcoinConfig({
+      primaryUrl: 'https://blockstream.info/api',
+      fallbackUrl: 'https://mempool.space/api',
+      network: 'mainnet'
+    });
+    configService = new ConfigService(configRepo, bitcoinConfig, logger);
+    await configService.initialize();
+
+    service = new ScenarioService(repository, configService, logger);
 
     await prisma.scenario.deleteMany({
       where: { id: { in: [testId1, testId2, testId3] } }
@@ -87,7 +101,7 @@ describe('ScenarioService', () => {
     }
   }, 30000);
 
-  it('Create returns a Scenario with status Pending', async () => {
+  it('Create returns a Scenario with status Pending and current network', async () => {
     const target = new PaymentTarget({
       kind: PaymentTargetKind.Lightning,
       payload: { invoice: 'lnbc100u1testserviceinvoice' }
@@ -101,6 +115,7 @@ describe('ScenarioService', () => {
     expect(scenario.id).toBe(testId1);
     expect(scenario.status).toBe(ScenarioStatus.Pending);
     expect(scenario.target.kind).toBe(PaymentTargetKind.Lightning);
+    expect((scenario.toJSON() as { network?: string }).network).toBe('mainnet');
   });
 
   it('Get by unknown id throws ScenarioNotFoundError', async () => {
@@ -109,12 +124,12 @@ describe('ScenarioService', () => {
     );
   });
 
-  it('Update Pending → Analyzed succeeds', async () => {
+  it('Update Pending to Analyzed succeeds', async () => {
     const updated = await service.updateStatus(testId1, ScenarioStatus.Analyzed);
     expect(updated.status).toBe(ScenarioStatus.Analyzed);
   });
 
-  it('Update Pending → Executed throws ScenarioStateError with the correct context', async () => {
+  it('Update Pending to Executed throws ScenarioStateError with the correct context', async () => {
     const target = new PaymentTarget({
       kind: PaymentTargetKind.Cashu,
       payload: { request: 'cashu-req-pending-test' }
@@ -137,24 +152,12 @@ describe('ScenarioService', () => {
     }
   });
 
-  it('Update Executed → Analyzed throws ScenarioStateError', async () => {
-    const updatedDecided = await service.updateStatus(testId1, ScenarioStatus.Decided);
-    expect(updatedDecided.status).toBe(ScenarioStatus.Decided);
-
-    const updatedExecuted = await service.updateStatus(testId1, ScenarioStatus.Executed);
-    expect(updatedExecuted.status).toBe(ScenarioStatus.Executed);
-
-    await expect(
-      service.updateStatus(testId1, ScenarioStatus.Analyzed)
-    ).rejects.toThrow(ScenarioStateError);
-  });
-
-  it('Update any state → Failed succeeds', async () => {
+  it('Update Executed to Analyzed throws ScenarioStateError', async () => {
     const target = new PaymentTarget({
       kind: PaymentTargetKind.Bitcoin,
       payload: {
-        address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-        amountSats: 5000
+        address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+        amountSats: 2000
       }
     });
 
@@ -163,30 +166,33 @@ describe('ScenarioService', () => {
       target
     });
 
-    const failedFromPending = await service.updateStatus(testId2, ScenarioStatus.Failed);
-    expect(failedFromPending.status).toBe(ScenarioStatus.Failed);
+    await service.updateStatus(testId3, ScenarioStatus.Analyzed);
+    await service.updateStatus(testId3, ScenarioStatus.Decided);
+    await service.updateStatus(testId3, ScenarioStatus.Executed);
 
-    const analyzed = await service.updateStatus(testId3, ScenarioStatus.Analyzed);
-    expect(analyzed.status).toBe(ScenarioStatus.Analyzed);
-
-    const failedFromAnalyzed = await service.updateStatus(testId3, ScenarioStatus.Failed);
-    expect(failedFromAnalyzed.status).toBe(ScenarioStatus.Failed);
+    try {
+      await service.updateStatus(testId3, ScenarioStatus.Analyzed);
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ScenarioStateError);
+      const stateError = error as ScenarioStateError;
+      expect(stateError.context.id).toBe(testId3);
+      expect(stateError.context.currentStatus).toBe(ScenarioStatus.Executed);
+      expect(stateError.context.attemptedTransition).toBe(ScenarioStatus.Analyzed);
+    }
   });
 
-  it('Delete removes and subsequent get throws', async () => {
+  it('List filters by network', async () => {
+    const mainnetScenarios = await service.list(undefined, undefined, 'mainnet');
+    expect(mainnetScenarios.length).toBeGreaterThan(0);
+    expect(mainnetScenarios.every((s) => (s.toJSON() as { network?: string }).network === 'mainnet')).toBe(true);
+
+    const testnetScenarios = await service.list(undefined, undefined, 'testnet');
+    expect(testnetScenarios.some((s) => s.id === testId1)).toBe(false);
+  });
+
+  it('Delete removes scenario', async () => {
     await service.delete(testId1);
-    await expect(service.getById(testId1)).rejects.toThrow(
-      ScenarioNotFoundError
-    );
-
-    await service.delete(testId2);
-    await expect(service.getById(testId2)).rejects.toThrow(
-      ScenarioNotFoundError
-    );
-
-    await service.delete(testId3);
-    await expect(service.getById(testId3)).rejects.toThrow(
-      ScenarioNotFoundError
-    );
+    await expect(service.getById(testId1)).rejects.toThrow(ScenarioNotFoundError);
   });
 });

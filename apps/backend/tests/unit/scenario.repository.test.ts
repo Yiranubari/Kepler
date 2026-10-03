@@ -53,7 +53,7 @@ describe('ScenarioRepository', () => {
     }
   }, 30000);
 
-  it('Create → get by id round-trips', async () => {
+  it('Create and get by id round-trips', async () => {
     const target = new PaymentTarget({
       kind: PaymentTargetKind.Lightning,
       payload: { invoice: 'lnbc100u1testinvoicerepo' }
@@ -61,7 +61,8 @@ describe('ScenarioRepository', () => {
 
     const scenario = await repository.create({
       id: testScenarioId1,
-      target
+      target,
+      network: 'mainnet'
     });
 
     expect(scenario.id).toBe(testScenarioId1);
@@ -75,6 +76,7 @@ describe('ScenarioRepository', () => {
     expect(fetched?.status).toBe(ScenarioStatus.Pending);
     expect(fetched?.target.kind).toBe(PaymentTargetKind.Lightning);
     expect(fetched?.target.payload).toEqual({ invoice: 'lnbc100u1testinvoicerepo' });
+    expect((fetched?.toJSON() as { network?: string })?.network).toBe('mainnet');
   });
 
   it('Get by unknown id returns null', async () => {
@@ -82,7 +84,7 @@ describe('ScenarioRepository', () => {
     expect(absent).toBeNull();
   });
 
-  it('List returns newest first, respects limit/offset', async () => {
+  it('List returns newest first, respects limit, offset, and network filter', async () => {
     const target2 = new PaymentTarget({
       kind: PaymentTargetKind.Cashu,
       payload: { request: 'cashu-token-repo-test' }
@@ -90,7 +92,8 @@ describe('ScenarioRepository', () => {
 
     await repository.create({
       id: testScenarioId2,
-      target: target2
+      target: target2,
+      network: 'mainnet'
     });
 
     const target3 = new PaymentTarget({
@@ -103,7 +106,8 @@ describe('ScenarioRepository', () => {
 
     await repository.create({
       id: testScenarioId3,
-      target: target3
+      target: target3,
+      network: 'regtest'
     });
 
     const list = await repository.list(10, 0);
@@ -120,6 +124,10 @@ describe('ScenarioRepository', () => {
     expect(offsetList).toHaveLength(1);
     expect(offsetList[0].id).not.toBe(capped[0].id);
     expect(capped[0].createdAt.getTime()).toBeGreaterThanOrEqual(offsetList[0].createdAt.getTime());
+
+    const regtestOnly = await repository.list(10, 0, 'regtest');
+    expect(regtestOnly.some((s) => s.id === testScenarioId3)).toBe(true);
+    expect(regtestOnly.some((s) => s.id === testScenarioId2)).toBe(false);
   });
 
   it('Update status persists', async () => {

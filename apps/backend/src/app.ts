@@ -114,11 +114,6 @@ export function createApp(
   const proofController = new ProofController(proofService);
   const proofRoutes = createProofRoutes(proofController, limiter);
 
-  const scenarioRepository = new ScenarioRepository(prisma);
-  const scenarioService = new ScenarioService(scenarioRepository, logger);
-  const scenarioController = new ScenarioController(scenarioService);
-  const scenarioRoutes = createScenarioRoutes(scenarioController, limiter);
-
   let activeProtocolsConfig: ProtocolsConfig;
   let bitcoinConfig: BitcoinConfig;
   if (protocolsConfig) {
@@ -158,6 +153,11 @@ export function createApp(
   const configService = new ConfigService(configRepository, bitcoinConfig, logger);
   const configController = new ConfigController(configService);
   const configRoutes = createConfigRoutes(configController, limiter);
+
+  const scenarioRepository = new ScenarioRepository(prisma);
+  const scenarioService = new ScenarioService(scenarioRepository, configService, logger);
+  const scenarioController = new ScenarioController(scenarioService);
+  const scenarioRoutes = createScenarioRoutes(scenarioController, limiter);
 
   const protocolsService = new ProtocolsService(activeProtocolsConfig, logger);
   const protocolsController = new ProtocolsController(protocolsService);

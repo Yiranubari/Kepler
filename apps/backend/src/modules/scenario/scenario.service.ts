@@ -3,24 +3,67 @@ import {
   ScenarioStatus,
   KeplerLogger
 } from '@kepler/shared';
+import { PrismaClient } from '@prisma/client';
+import { BitcoinConfig } from '@kepler/bitcoin';
 import { ScenarioRepository } from './scenario.repository';
-import { CreateScenarioInput } from './scenario.types';
+import { CreateScenarioInput, SupportedNetwork } from './scenario.types';
 import { ScenarioNotFoundError, ScenarioStateError } from './scenario.errors';
+import { ConfigService } from '../config/config.service';
+import { ConfigRepository } from '../config/config.repository';
 
 export class ScenarioService {
   private readonly repository: ScenarioRepository;
+  private readonly configService: ConfigService;
   private readonly logger: KeplerLogger;
 
-  constructor(repository: ScenarioRepository, logger: KeplerLogger) {
+  constructor(
+    repository: ScenarioRepository,
+    configServiceOrLogger: ConfigService | KeplerLogger,
+    maybeLogger?: KeplerLogger
+  ) {
     this.repository = repository;
-    this.logger = logger;
+    if (configServiceOrLogger instanceof ConfigService) {
+      this.configService = configServiceOrLogger;
+      this.logger = maybeLogger!;
+    } else {
+      this.logger = configServiceOrLogger;
+      const candidatePrisma = (repository as unknown as { prisma?: PrismaClient }).prisma;
+      const fallbackBitcoinConfig = BitcoinConfig.fromEnv({
+        ...process.env,
+        BITCOIN_NETWORK: process.env.BITCOIN_NETWORK || 'mainnet'
+      });
+      if (candidatePrisma) {
+        this.configService = new ConfigService(
+          new ConfigRepository(candidatePrisma),
+          fallbackBitcoinConfig,
+          this.logger
+        );
+      } else {
+        this.configService = new ConfigService(
+          {
+            get: async () => ({
+              id: 'default',
+              network: fallbackBitcoinConfig.network as SupportedNetwork,
+              updatedAt: new Date()
+            })
+          } as unknown as ConfigRepository,
+          fallbackBitcoinConfig,
+          this.logger
+        );
+      }
+    }
   }
 
-  public async create(input: CreateScenarioInput): Promise<Scenario> {
-    const scenario = await this.repository.create(input);
+  public async create(input: Omit<CreateScenarioInput, 'network'>): Promise<Scenario> {
+    const config = await this.configService.get();
+    const scenario = await this.repository.create({
+      ...input,
+      network: config.network
+    });
     this.logger.info('Scenario created', {
       scenarioId: scenario.id,
-      targetKind: scenario.target.kind
+      targetKind: scenario.target.kind,
+      network: config.network
     });
     return scenario;
   }
@@ -33,8 +76,8 @@ export class ScenarioService {
     return scenario;
   }
 
-  public async list(limit?: number, offset?: number): Promise<Scenario[]> {
-    return this.repository.list(limit, offset);
+  public async list(limit?: number, offset?: number, network?: SupportedNetwork): Promise<Scenario[]> {
+    return this.repository.list(limit, offset, network);
   }
 
   public async updateStatus(id: string, next: ScenarioStatus): Promise<Scenario> {
