@@ -1,14 +1,10 @@
 import { z } from 'zod';
 import { base64 } from '@scure/base';
+import { IdentifierString } from '../../shared/identifierString';
+export { IdentifierString };
 import type { SupportedNetwork } from './onchain.types';
 
-export const IdentifierString = z
-  .string()
-  .min(1)
-  .max(256)
-  .refine((value) => !/[\u0000-\u001F\u007F]/.test(value), {
-    message: 'Identifier must not contain control characters'
-  });
+
 
 export const SupportedNetworkSchema = z.enum([
   'mainnet',

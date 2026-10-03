@@ -1,17 +1,12 @@
 import { z } from 'zod';
+import { IdentifierString } from '../../shared/identifierString';
 import { TaintIngestPayloadSchema } from '../taint';
+
+export { IdentifierString };
 
 function refineNoControlCharacters(value: string): boolean {
   return !/[\u0000-\u001F\u007F]/.test(value);
 }
-
-export const IdentifierString = z
-  .string()
-  .min(1)
-  .max(256)
-  .refine(refineNoControlCharacters, {
-    message: 'Identifier must not contain control characters'
-  });
 
 export const RouteCandidateSchema = z
   .object({

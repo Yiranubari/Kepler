@@ -215,11 +215,18 @@ export class RoutingClaimVerifier implements ClaimVerifier {
     const targetKind = stepInput['targetKind'] as PaymentTargetKind;
     const candidates = stepInput['candidates'] as RouteCandidate[];
 
+    if (!targetKind || !Array.isArray(candidates)) {
+      return new ClaimVerificationResult({
+        valid: false,
+        reason: 'STEP_FAILED',
+        failedStep: step.name,
+        expected: String(step.expected),
+        actual: 'Malformed step input: targetKind or candidates missing'
+      });
+    }
+
     let selected: RouteCandidate;
     try {
-      if (!targetKind || !Array.isArray(candidates)) {
-        throw new Error('Malformed step input: targetKind or candidates missing');
-      }
       selected = RouteSelector.select(targetKind, candidates);
     } catch (error) {
       const actualMessage = error instanceof Error ? error.message : String(error);

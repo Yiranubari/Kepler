@@ -12,31 +12,6 @@ servers:
 security:
   - {}
 paths:
-  /api/health:
-    get:
-      summary: Health check endpoint
-      operationId: getHealth
-      security: []
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /api/scenarios:
     post:
       summary: Create a new payment scenario
@@ -342,37 +317,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/decide:
-    post:
-      summary: Create route decision and evidence bundle for a scenario
-      operationId: decideRoute
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DecisionRequest'
-      responses:
-        '200':
-          description: Decision and evidence created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DecisionResponse'
-        '400':
-          description: Decision creation failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /api/proof/build:
     post:
       summary: Build and persist an evidence bundle for a claim
@@ -512,99 +456,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Evidence bundle not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/execute:
-    post:
-      summary: Execute payment route
-      operationId: executeRoute
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExecuteRequest'
-      responses:
-        '200':
-          description: Route execution result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExecuteResponse'
-        '400':
-          description: Execution failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/nostr/log:
-    post:
-      summary: Publish Nostr audit log event
-      operationId: logToNostr
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NostrLogRequest'
-      responses:
-        '200':
-          description: Nostr event published
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NostrLogResponse'
-        '400':
-          description: Failed to publish Nostr log
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/nostr/log/{id}:
-    get:
-      summary: Get Nostr audit log event by identifier
-      operationId: getNostrLogById
-      security: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Nostr event details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NostrLogResponse'
-        '400':
-          description: Nostr log event not found
           content:
             application/json:
               schema:
@@ -1992,74 +1843,6 @@ components:
       items:
         $ref: '#/components/schemas/EvidenceBundle'
 
-    DecisionRequest:
-      type: object
-      properties:
-        scenarioId:
-          type: string
-      required:
-        - scenarioId
-
-    DecisionResponse:
-      type: object
-      properties:
-        decisionId:
-          type: string
-        scenarioId:
-          type: string
-        route:
-          type: object
-          additionalProperties: true
-        evidence:
-          $ref: '#/components/schemas/EvidenceBundle'
-        createdAt:
-          type: string
-          format: date-time
-      required:
-        - decisionId
-        - scenarioId
-        - route
-        - evidence
-        - createdAt
-
-    ExecuteRequest:
-      type: object
-      properties:
-        scenarioId:
-          type: string
-        decisionId:
-          type: string
-      required:
-        - scenarioId
-        - decisionId
-
-    ExecuteResponse:
-      type: object
-      properties:
-        executionId:
-          type: string
-        scenarioId:
-          type: string
-        protocol:
-          type: string
-        status:
-          type: string
-        nostrEventId:
-          type: string
-        detail:
-          type: object
-          additionalProperties: true
-        executedAt:
-          type: string
-          format: date-time
-      required:
-        - executionId
-        - scenarioId
-        - protocol
-        - status
-        - detail
-        - executedAt
-
     PolicyScope:
       type: string
       enum:
@@ -2238,67 +2021,6 @@ components:
             perTxLimitSats:
               type: string
               pattern: '^[0-9]+$'
-
-    NostrLogRequest:
-      type: object
-      properties:
-        scenarioId:
-          type: string
-        decisionId:
-          type: string
-        content:
-          type: string
-      required:
-        - scenarioId
-        - decisionId
-        - content
-
-    NostrLogResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        eventId:
-          type: string
-        pubkey:
-          type: string
-        kind:
-          type: integer
-        content:
-          type: string
-        tags:
-          type: object
-          additionalProperties: true
-        sig:
-          type: string
-        relay:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-      required:
-        - id
-        - eventId
-        - pubkey
-        - kind
-        - content
-        - tags
-        - sig
-        - relay
-        - createdAt
-
-    HealthResponse:
-      type: object
-      properties:
-        status:
-          type: string
-          example: ok
-        timestamp:
-          type: string
-          format: date-time
-      required:
-        - status
-        - timestamp
 
     ErrorResponse:
       type: object

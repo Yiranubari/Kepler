@@ -3,8 +3,8 @@ import { getPublicKey, nip19 } from 'nostr-tools';
 import { NostrConfigError } from './errors';
 
 export interface NostrConfigParams {
-  readonly privateKey: string;
-  readonly relays: readonly string[] | string;
+  readonly privateKey?: string | null;
+  readonly relays?: readonly string[] | string | null;
   readonly timeoutMs?: number;
   readonly publishTimeoutMs?: number;
   readonly subscriptionLimit?: number;
@@ -42,7 +42,8 @@ export class NostrConfig {
 
   private static readonly POSITIVE_INT_SCHEMA = z.number().int().positive();
 
-  private readonly _privateKey: string;
+  private readonly _isConfigured: boolean;
+  private readonly _privateKeyBytes: Uint8Array | null;
   private readonly _publicKey: string;
   private readonly _npub: string;
   private readonly _relays: readonly string[];
@@ -51,57 +52,6 @@ export class NostrConfig {
   private readonly _subscriptionLimit: number;
 
   constructor(params: NostrConfigParams) {
-    const keyResult = NostrConfig.PRIVATE_KEY_SCHEMA.safeParse(params.privateKey);
-    if (!keyResult.success) {
-      throw new NostrConfigError('Invalid or missing private key: must be a 64-character hexadecimal string', {
-        field: 'privateKey',
-        reason: keyResult.error.message
-      });
-    }
-
-    const privateKey = keyResult.data.toLowerCase();
-
-    let derivedPublicKey = '';
-    let derivedNpub = '';
-    try {
-      const secretKeyBytes = Uint8Array.from(Buffer.from(privateKey, 'hex'));
-      derivedPublicKey = getPublicKey(secretKeyBytes);
-      derivedNpub = nip19.npubEncode(derivedPublicKey);
-    } catch (err: unknown) {
-      const cause = err instanceof Error ? err : new Error(String(err));
-      throw new NostrConfigError('Failed to derive public key from private key', {
-        field: 'privateKey',
-        reason: cause.message
-      }, cause);
-    }
-
-    let parsedRelays: string[];
-    if (typeof params.relays === 'string') {
-      const trimmed = params.relays.trim();
-      if (trimmed === '') {
-        throw new NostrConfigError('Invalid or missing relays: must provide at least one wss:// URL', {
-          field: 'relays',
-          reason: 'Relays string is empty'
-        });
-      }
-      parsedRelays = trimmed.split(',').map((r) => r.trim()).filter((r) => r.length > 0);
-    } else if (Array.isArray(params.relays)) {
-      parsedRelays = params.relays.map((r) => typeof r === 'string' ? r.trim() : r);
-    } else {
-      throw new NostrConfigError('Invalid relays: must be an array or comma-separated string of wss:// URLs', {
-        field: 'relays',
-        reason: 'Relays must be an array or comma-separated string'
-      });
-    }
-
-    const relaysResult = NostrConfig.RELAYS_ARRAY_SCHEMA.safeParse(parsedRelays);
-    if (!relaysResult.success) {
-      throw new NostrConfigError('Invalid relays: must be a list containing at least one valid wss:// URL', {
-        field: 'relays',
-        reason: relaysResult.error.message
-      });
-    }
-
     let timeoutMs = NostrConfig.DEFAULT_TIMEOUT_MS;
     if (params.timeoutMs !== undefined) {
       const timeoutResult = NostrConfig.POSITIVE_INT_SCHEMA.safeParse(params.timeoutMs);
@@ -138,17 +88,91 @@ export class NostrConfig {
       subscriptionLimit = subscriptionLimitResult.data;
     }
 
-    this._privateKey = privateKey;
-    this._publicKey = derivedPublicKey;
-    this._npub = derivedNpub;
-    this._relays = Object.freeze(relaysResult.data);
     this._timeoutMs = timeoutMs;
     this._publishTimeoutMs = publishTimeoutMs;
     this._subscriptionLimit = subscriptionLimit;
+
+    const isKeyAbsent = params.privateKey === undefined || params.privateKey === null || params.privateKey.trim() === '';
+    let parsedKeyBytes: Uint8Array | null = null;
+    let derivedPublicKey: string | null = null;
+    let derivedNpub: string | null = null;
+
+    if (!isKeyAbsent) {
+      const keyResult = NostrConfig.PRIVATE_KEY_SCHEMA.safeParse(params.privateKey);
+      if (!keyResult.success) {
+        throw new NostrConfigError('Invalid or missing private key: must be a 64-character hexadecimal string', {
+          field: 'privateKey',
+          reason: keyResult.error.message
+        });
+      }
+
+      const privateKey = keyResult.data.toLowerCase();
+      try {
+        parsedKeyBytes = Uint8Array.from(Buffer.from(privateKey, 'hex'));
+        derivedPublicKey = getPublicKey(parsedKeyBytes);
+        derivedNpub = nip19.npubEncode(derivedPublicKey);
+      } catch (err: unknown) {
+        const cause = err instanceof Error ? err : new Error(String(err));
+        throw new NostrConfigError('Failed to derive public key from private key', {
+          field: 'privateKey',
+          reason: cause.message
+        }, cause);
+      }
+    }
+
+    const isRelaysAbsent = params.relays === undefined || params.relays === null ||
+      (typeof params.relays === 'string' && params.relays.trim() === '') ||
+      (Array.isArray(params.relays) && params.relays.length === 0);
+
+    let parsedRelaysList: string[] = [];
+
+    if (!isRelaysAbsent) {
+      let rawRelayList: string[];
+      if (typeof params.relays === 'string') {
+        rawRelayList = params.relays.split(',').map((r) => r.trim()).filter((r) => r.length > 0);
+      } else if (Array.isArray(params.relays)) {
+        rawRelayList = params.relays.map((r) => typeof r === 'string' ? r.trim() : r);
+      } else {
+        throw new NostrConfigError('Invalid relays: must be an array or comma-separated string of wss:// URLs', {
+          field: 'relays',
+          reason: 'Relays must be an array or comma-separated string'
+        });
+      }
+
+      const relaysResult = NostrConfig.RELAYS_ARRAY_SCHEMA.safeParse(rawRelayList);
+      if (!relaysResult.success) {
+        throw new NostrConfigError('Invalid relays: must be a list containing at least one valid wss:// URL', {
+          field: 'relays',
+          reason: relaysResult.error.message
+        });
+      }
+      parsedRelaysList = relaysResult.data;
+    }
+
+    if (isKeyAbsent || isRelaysAbsent) {
+      this._isConfigured = false;
+      this._privateKeyBytes = null;
+      this._publicKey = '';
+      this._npub = '';
+      this._relays = Object.freeze(parsedRelaysList);
+    } else {
+      this._isConfigured = true;
+      this._privateKeyBytes = parsedKeyBytes;
+      this._publicKey = derivedPublicKey!;
+      this._npub = derivedNpub!;
+      this._relays = Object.freeze(parsedRelaysList);
+    }
   }
 
-  public get privateKey(): string {
-    return this._privateKey;
+  public get isConfigured(): boolean {
+    return this._isConfigured;
+  }
+
+  public get privateKeyBytes(): Uint8Array | null {
+    if (!this._privateKeyBytes) {
+      return null;
+    }
+    return new Uint8Array(this._privateKeyBytes);
   }
 
   public get publicKey(): string {
@@ -177,6 +201,7 @@ export class NostrConfig {
 
   public toJSON(): Record<string, unknown> {
     return {
+      isConfigured: this._isConfigured,
       publicKey: this._publicKey,
       npub: this._npub,
       relays: [...this._relays],
@@ -188,7 +213,7 @@ export class NostrConfig {
 
   public [Symbol.for('nodejs.util.inspect.custom')](): Record<string, unknown> {
     return {
-      privateKey: '[REDACTED]',
+      isConfigured: this._isConfigured,
       publicKey: this._publicKey,
       npub: this._npub,
       relays: [...this._relays],
@@ -200,33 +225,7 @@ export class NostrConfig {
 
   public static fromEnv(env: Record<string, string | undefined> = process.env): NostrConfig {
     const rawPrivateKey = env['NOSTR_PRIVATE_KEY'];
-    const keyResult = NostrConfig.PRIVATE_KEY_SCHEMA.safeParse(rawPrivateKey);
-    if (!keyResult.success) {
-      throw new NostrConfigError('Invalid or missing NOSTR_PRIVATE_KEY: must be a 64-character hexadecimal string', {
-        variable: 'NOSTR_PRIVATE_KEY',
-        field: 'NOSTR_PRIVATE_KEY',
-        reason: keyResult.error.message
-      });
-    }
-
     const rawRelays = env['NOSTR_RELAYS'];
-    if (!rawRelays || rawRelays.trim() === '') {
-      throw new NostrConfigError('Invalid or missing NOSTR_RELAYS: must be a comma-separated list of wss:// URLs', {
-        variable: 'NOSTR_RELAYS',
-        field: 'NOSTR_RELAYS',
-        reason: 'Missing or empty NOSTR_RELAYS environment variable'
-      });
-    }
-
-    const relayList = rawRelays.split(',').map((r) => r.trim()).filter((r) => r.length > 0);
-    const relaysResult = NostrConfig.RELAYS_ARRAY_SCHEMA.safeParse(relayList);
-    if (!relaysResult.success) {
-      throw new NostrConfigError('Invalid or missing NOSTR_RELAYS: must contain at least one valid wss:// URL', {
-        variable: 'NOSTR_RELAYS',
-        field: 'NOSTR_RELAYS',
-        reason: relaysResult.error.message
-      });
-    }
 
     let timeoutMs: number | undefined;
     const rawTimeout = env['NOSTR_TIMEOUT_MS'];
@@ -273,10 +272,40 @@ export class NostrConfig {
       subscriptionLimit = subscriptionLimitResult.data;
     }
 
+    const hasKey = rawPrivateKey !== undefined && rawPrivateKey.trim() !== '';
+    const hasRelays = rawRelays !== undefined && rawRelays.trim() !== '';
+
+    let validatedKey: string | null = null;
+    if (hasKey) {
+      const keyResult = NostrConfig.PRIVATE_KEY_SCHEMA.safeParse(rawPrivateKey);
+      if (!keyResult.success) {
+        throw new NostrConfigError('Invalid or missing NOSTR_PRIVATE_KEY: must be a 64-character hexadecimal string', {
+          variable: 'NOSTR_PRIVATE_KEY',
+          field: 'NOSTR_PRIVATE_KEY',
+          reason: keyResult.error.message
+        });
+      }
+      validatedKey = keyResult.data;
+    }
+
+    let validatedRelays: string[] | null = null;
+    if (hasRelays) {
+      const relayList = rawRelays!.split(',').map((r) => r.trim()).filter((r) => r.length > 0);
+      const relaysResult = NostrConfig.RELAYS_ARRAY_SCHEMA.safeParse(relayList);
+      if (!relaysResult.success) {
+        throw new NostrConfigError('Invalid or missing NOSTR_RELAYS: must contain at least one valid wss:// URL', {
+          variable: 'NOSTR_RELAYS',
+          field: 'NOSTR_RELAYS',
+          reason: relaysResult.error.message
+        });
+      }
+      validatedRelays = relaysResult.data;
+    }
+
     try {
       return new NostrConfig({
-        privateKey: keyResult.data,
-        relays: relaysResult.data,
+        privateKey: validatedKey,
+        relays: validatedRelays,
         timeoutMs,
         publishTimeoutMs,
         subscriptionLimit

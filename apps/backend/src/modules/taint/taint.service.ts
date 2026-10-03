@@ -80,7 +80,8 @@ export class TaintService {
       engine.ingestCashu(ingestData.cashu);
     }
 
-    const result = engine.analyze();
+    const now = Date.now();
+    const result = engine.analyze(now);
 
     const scenario = await this.repository.getScenario(trimmedScenarioId);
     if (scenario && scenario.targetData) {

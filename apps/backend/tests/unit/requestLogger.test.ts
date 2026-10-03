@@ -40,7 +40,6 @@ describe('requestLogger middleware', () => {
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {
-      // Ignore cleanup error
     }
   });
 

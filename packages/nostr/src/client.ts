@@ -3,6 +3,7 @@ import type { KeplerLogger } from '@kepler/shared';
 import { NostrConfig } from './config';
 import { NostrKind } from './kinds';
 import {
+  NostrConfigError,
   NostrConnectionError,
   NostrTimeoutError,
   NostrPublishError,
@@ -26,7 +27,7 @@ export class NostrClient {
   private readonly _config: NostrConfig;
   private readonly _logger: KeplerLogger;
   private readonly _pool: SimplePool;
-  private readonly _secretBytes: Uint8Array;
+  private readonly _secretBytes: Uint8Array | null;
   private _connected: boolean = false;
   private _connectedRelays: string[] = [];
 
@@ -34,7 +35,7 @@ export class NostrClient {
     this._config = config;
     this._logger = logger;
     this._pool = pool ?? new SimplePool();
-    this._secretBytes = Uint8Array.from(Buffer.from(this._config.privateKey, 'hex'));
+    this._secretBytes = this._config.isConfigured ? this._config.privateKeyBytes : null;
   }
 
   public get config(): NostrConfig {
@@ -50,6 +51,12 @@ export class NostrClient {
   }
 
   public async connect(): Promise<void> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (this._connected) {
       return;
     }
@@ -124,6 +131,9 @@ export class NostrClient {
   }
 
   public async disconnect(): Promise<void> {
+    if (!this._config.isConfigured) {
+      return;
+    }
     if (!this._connected && this._connectedRelays.length === 0) {
       return;
     }
@@ -136,12 +146,20 @@ export class NostrClient {
   }
 
   public async publish(event: Omit<NostrEvent, 'id' | 'sig'>): Promise<PublishResult> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (!this._connected) {
       throw new NostrConnectionError('Client is not connected. Call connect() first.', {
         relays: [...this._config.relays]
       });
     }
 
+    const secretBytes = this._secretBytes!;
+    const publicKey = this._config.publicKey!;
     const relays = this._connectedRelays.length > 0 ? this._connectedRelays : this._config.relays;
     const createdAt = event.createdAt ?? Math.floor(Date.now() / 1000);
     const template = {
@@ -151,11 +169,11 @@ export class NostrClient {
       content: event.content
     };
 
-    const signed = finalizeEvent(template, this._secretBytes);
+    const signed = finalizeEvent(template, secretBytes);
 
     const signedNostrEvent: NostrEvent = {
       id: signed.id,
-      pubkey: this._config.publicKey,
+      pubkey: publicKey,
       createdAt: signed.created_at,
       kind: signed.kind,
       tags: signed.tags,
@@ -228,6 +246,12 @@ export class NostrClient {
   }
 
   public async publishDecision(payload: KeplerDecisionPayload): Promise<PublishResult> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const tags: string[][] = [
       ['d', payload.scenarioId],
       ['kepler', 'true'],
@@ -237,7 +261,7 @@ export class NostrClient {
     ];
 
     return this.publish({
-      pubkey: this._config.publicKey,
+      pubkey: this._config.publicKey!,
       createdAt: Math.floor(Date.now() / 1000),
       kind: NostrKind.AppSpecificData,
       tags,
@@ -246,6 +270,12 @@ export class NostrClient {
   }
 
   public async fetchEvents(filters: NostrFilter[], timeoutMs?: number): Promise<VerifiedNostrEvent[]> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (!this._connected) {
       throw new NostrConnectionError('Client is not connected. Call connect() first.', {
         relays: [...this._config.relays]
@@ -386,6 +416,12 @@ export class NostrClient {
   }
 
   public async fetchEventById(id: string): Promise<VerifiedNostrEvent | null> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (!id || id.trim() === '') {
       return null;
     }
@@ -404,6 +440,12 @@ export class NostrClient {
     pubkey: string,
     options?: { kinds?: number[]; since?: number; until?: number; limit?: number }
   ): Promise<VerifiedNostrEvent[]> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const validHex = /^[0-9a-fA-F]{64}$/.test(pubkey);
     if (!validHex) {
       throw new NostrParseError('Invalid pubkey: must be a 64-character hexadecimal string', {
@@ -428,6 +470,12 @@ export class NostrClient {
     value: string,
     options?: { limit?: number }
   ): Promise<VerifiedNostrEvent[]> {
+    if (!this._config.isConfigured) {
+      throw new NostrConfigError('Nostr is not configured', {
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (!value || value.trim() === '') {
       throw new NostrParseError('Tag value must be non-empty', {
         input: value,

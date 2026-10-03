@@ -3,6 +3,7 @@ import { SimplePool, getPublicKey, finalizeEvent, nip04, type Event } from 'nost
 import {
   LightningClient,
   LightningConfig,
+  LightningConfigError,
   Bolt11,
   LightningConnectionError,
   LightningTimeoutError,
@@ -455,6 +456,35 @@ describe('LightningClient', () => {
       expect(txs[1].amountMsat).toBe(25000n);
       expect(txs[1].feeMsat).toBe(100n);
       expect(txs[1].status).toBe('failed');
+    });
+  });
+
+  describe('unconfigured client', () => {
+    it('constructing a LightningClient with an unconfigured config does not throw', () => {
+      const unconfigured = new LightningConfig({});
+      expect(unconfigured.isConfigured).toBe(false);
+      expect(() => new LightningClient(unconfigured, logger)).not.toThrow();
+    });
+
+    it('calling payInvoice on an unconfigured client throws LightningConfigError with reason NOT_CONFIGURED', async () => {
+      const unconfigured = new LightningConfig({});
+      const unconfiguredClient = new LightningClient(unconfigured, logger);
+      try {
+        await unconfiguredClient.payInvoice('lnbc1...');
+        fail('Expected LightningConfigError');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(LightningConfigError);
+        const configErr = err as LightningConfigError;
+        expect(configErr.code).toBe('LIGHTNING_CONFIG_ERROR');
+        expect(configErr.context['reason']).toBe('NOT_CONFIGURED');
+        expect(configErr.context['variable']).toBe('NWC_CONNECTION_STRING');
+      }
+    });
+
+    it('calling disconnect on an unconfigured client is a no-op and does not throw', async () => {
+      const unconfigured = new LightningConfig({});
+      const unconfiguredClient = new LightningClient(unconfigured, logger);
+      await expect(unconfiguredClient.disconnect()).resolves.toBeUndefined();
     });
   });
 });

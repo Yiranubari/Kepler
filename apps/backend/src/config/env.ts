@@ -30,7 +30,7 @@ const EnvSchema = z.object({
   RATE_LIMIT_PROPOSE_PER_MINUTE: positiveInt,
   RATE_LIMIT_SEND_PER_HOUR: positiveInt,
   RATE_LIMIT_PUBLISH_PER_HOUR: positiveInt,
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']),
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug', 'silent']),
   LOG_DIR: z.string().min(1)
 });
 

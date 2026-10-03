@@ -3,14 +3,13 @@ import { nip47 } from 'nostr-tools';
 import { LightningConfigError } from './errors';
 
 export interface LightningConfigParams {
-  readonly connectionString: string;
+  readonly connectionString?: string | null;
   readonly requestTimeoutMs?: number;
 }
 
 export class LightningConfig {
   public static readonly DEFAULT_REQUEST_TIMEOUT_MS: number = 30_000;
   private static readonly SCHEME_PREFIX: string = 'nostr+walletconnect://';
-
   private static readonly CONNECTION_STRING_SCHEMA = z.string()
     .trim()
     .min(1)
@@ -20,13 +19,37 @@ export class LightningConfig {
 
   private static readonly TIMEOUT_SCHEMA = z.number().int().positive();
 
-  private readonly _connectionString: string;
-  private readonly _walletPubkey: string;
-  private readonly _relayUrl: string;
-  private readonly _secret: string;
+  private readonly _isConfigured: boolean;
+  private readonly _connectionString: string | null;
+  private readonly _walletPubkey: string | null;
+  private readonly _relayUrl: string | null;
+  private readonly _secretBytes: Uint8Array | null;
   private readonly _requestTimeoutMs: number;
 
   constructor(params: LightningConfigParams) {
+    let timeoutMs = LightningConfig.DEFAULT_REQUEST_TIMEOUT_MS;
+    if (params.requestTimeoutMs !== undefined) {
+      const timeoutResult = LightningConfig.TIMEOUT_SCHEMA.safeParse(params.requestTimeoutMs);
+      if (!timeoutResult.success) {
+        throw new LightningConfigError('Invalid requestTimeoutMs: must be a positive integer', {
+          variable: 'NWC_TIMEOUT_MS',
+          field: 'requestTimeoutMs',
+          reason: timeoutResult.error.message
+        });
+      }
+      timeoutMs = timeoutResult.data;
+    }
+    this._requestTimeoutMs = timeoutMs;
+
+    if (params.connectionString === undefined || params.connectionString === null || params.connectionString.trim() === '') {
+      this._isConfigured = false;
+      this._connectionString = null;
+      this._walletPubkey = null;
+      this._relayUrl = null;
+      this._secretBytes = null;
+      return;
+    }
+
     const stringResult = LightningConfig.CONNECTION_STRING_SCHEMA.safeParse(params.connectionString);
     if (!stringResult.success) {
       throw new LightningConfigError('Invalid or missing NWC_CONNECTION_STRING: must be a non-empty string starting with nostr+walletconnect://', {
@@ -80,40 +103,34 @@ export class LightningConfig {
       });
     }
 
-    let timeoutMs = LightningConfig.DEFAULT_REQUEST_TIMEOUT_MS;
-    if (params.requestTimeoutMs !== undefined) {
-      const timeoutResult = LightningConfig.TIMEOUT_SCHEMA.safeParse(params.requestTimeoutMs);
-      if (!timeoutResult.success) {
-        throw new LightningConfigError('Invalid requestTimeoutMs: must be a positive integer', {
-          variable: 'NWC_TIMEOUT_MS',
-          field: 'requestTimeoutMs',
-          reason: timeoutResult.error.message
-        });
-      }
-      timeoutMs = timeoutResult.data;
-    }
-
+    this._isConfigured = true;
     this._connectionString = connectionString;
     this._walletPubkey = parsedPubkey;
     this._relayUrl = parsedRelay;
-    this._secret = parsedSecret;
-    this._requestTimeoutMs = timeoutMs;
+    this._secretBytes = Uint8Array.from(Buffer.from(parsedSecret, 'hex'));
   }
 
-  public get connectionString(): string {
+  public get isConfigured(): boolean {
+    return this._isConfigured;
+  }
+
+  public get connectionString(): string | null {
     return this._connectionString;
   }
 
-  public get walletPubkey(): string {
+  public get walletPubkey(): string | null {
     return this._walletPubkey;
   }
 
-  public get relayUrl(): string {
+  public get relayUrl(): string | null {
     return this._relayUrl;
   }
 
-  public get secret(): string {
-    return this._secret;
+  public get secretBytes(): Uint8Array | null {
+    if (!this._secretBytes) {
+      return null;
+    }
+    return new Uint8Array(this._secretBytes);
   }
 
   public get requestTimeoutMs(): number {
@@ -143,15 +160,6 @@ export class LightningConfig {
 
   public static fromEnv(env: Record<string, string | undefined> = process.env): LightningConfig {
     const rawConnectionString = env['NWC_CONNECTION_STRING'];
-    const connectionStringResult = LightningConfig.CONNECTION_STRING_SCHEMA.safeParse(rawConnectionString);
-    if (!connectionStringResult.success) {
-      throw new LightningConfigError('Invalid or missing NWC_CONNECTION_STRING: must be a non-empty string starting with nostr+walletconnect://', {
-        variable: 'NWC_CONNECTION_STRING',
-        field: 'connectionString',
-        reason: connectionStringResult.error.message
-      });
-    }
-
     let timeoutMs: number | undefined;
     const rawTimeout = env['NWC_TIMEOUT_MS'];
     if (rawTimeout !== undefined && rawTimeout.trim() !== '') {
@@ -165,6 +173,22 @@ export class LightningConfig {
         });
       }
       timeoutMs = timeoutResult.data;
+    }
+
+    if (rawConnectionString === undefined || rawConnectionString.trim() === '') {
+      return new LightningConfig({
+        connectionString: null,
+        requestTimeoutMs: timeoutMs
+      });
+    }
+
+    const connectionStringResult = LightningConfig.CONNECTION_STRING_SCHEMA.safeParse(rawConnectionString);
+    if (!connectionStringResult.success) {
+      throw new LightningConfigError('Invalid or missing NWC_CONNECTION_STRING: must be a non-empty string starting with nostr+walletconnect://', {
+        variable: 'NWC_CONNECTION_STRING',
+        field: 'connectionString',
+        reason: connectionStringResult.error.message
+      });
     }
 
     return new LightningConfig({

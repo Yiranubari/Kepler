@@ -223,7 +223,7 @@ describe('Orchestrator Integration (Real Services, Guarded)', () => {
 
     testNostr('validates Nostr configuration and connects to relays', async () => {
       const nostrConfig = NostrConfig.fromEnv();
-      expect(nostrConfig.privateKey).toBeDefined();
+      expect(nostrConfig.privateKeyBytes).toBeDefined();
       expect(nostrConfig.relays.length).toBeGreaterThan(0);
     });
   });

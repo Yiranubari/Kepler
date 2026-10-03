@@ -108,17 +108,24 @@ export class XpubDeriver {
     try {
       const decoded = XpubDeriver.base58check.decode(xpub);
       if (decoded.length !== 78) {
-        throw new Error('Invalid extended key length');
+        throw new OnchainDerivationError('Failed to parse xpub', {
+          reason: 'Invalid extended key length'
+        });
       }
 
       if (decoded[45] === 0) {
-        throw new Error('Expected extended public key, received private key');
+        throw new OnchainDerivationError('Failed to parse xpub', {
+          reason: 'Expected extended public key, received private key'
+        });
       }
 
       const view = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
       const version = view.getUint32(0, false);
       return HDKey.fromExtendedKey(xpub, { private: 0, public: version });
     } catch (err: unknown) {
+      if (err instanceof OnchainDerivationError) {
+        throw err;
+      }
       const reason = err instanceof Error ? err.message : 'Invalid extended key';
       throw new OnchainDerivationError('Failed to parse xpub', { reason }, err instanceof Error ? err : undefined);
     }

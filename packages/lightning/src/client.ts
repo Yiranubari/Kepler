@@ -3,6 +3,7 @@ import type { KeplerLogger, ProtocolError } from '@kepler/shared';
 import { LightningConfig } from './config';
 import { Bolt11 } from './bolt11';
 import {
+  LightningConfigError,
   LightningConnectionError,
   LightningTimeoutError,
   LightningNetworkError,
@@ -31,16 +32,25 @@ export class LightningClient {
   private readonly _config: LightningConfig;
   private readonly _logger: KeplerLogger;
   private readonly _pool: SimplePool;
-  private readonly _secretBytes: Uint8Array;
-  private readonly _clientPubkey: string;
+  private readonly _secretBytes: Uint8Array | null;
+  private readonly _clientPubkey: string | null;
   private _connected: boolean = false;
 
   constructor(config: LightningConfig, logger: KeplerLogger, pool?: SimplePool) {
     this._config = config;
     this._logger = logger;
     this._pool = pool ?? new SimplePool();
-    this._secretBytes = Uint8Array.from(Buffer.from(this._config.secret, 'hex'));
-    this._clientPubkey = getPublicKey(this._secretBytes);
+    if (this._config.isConfigured && this._config.secretBytes) {
+      this._secretBytes = this._config.secretBytes;
+      this._clientPubkey = getPublicKey(this._secretBytes);
+    } else {
+      this._secretBytes = null;
+      this._clientPubkey = null;
+    }
+  }
+
+  public get config(): LightningConfig {
+    return this._config;
   }
 
   public get isConnected(): boolean {
@@ -56,15 +66,25 @@ export class LightningClient {
   }
 
   public async connect(): Promise<void> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
+    const relayUrl = this._config.relayUrl!;
+    const walletPubkey = this._config.walletPubkey!;
+
     try {
       try {
-        await this._pool.ensureRelay(this._config.relayUrl, {
+        await this._pool.ensureRelay(relayUrl, {
           connectionTimeout: this._config.requestTimeoutMs
         });
       } catch (relayErr: unknown) {
         const connErr = new LightningConnectionError('Failed to connect to NWC relay', {
-          relayUrl: this._config.relayUrl,
-          pubkey: this._config.walletPubkey,
+          relayUrl,
+          pubkey: walletPubkey,
           reason: relayErr instanceof Error ? relayErr.message : String(relayErr)
         }, relayErr instanceof Error ? relayErr : undefined);
         this.logAndThrow(connErr, 'connect');
@@ -78,8 +98,8 @@ export class LightningClient {
           this.logAndThrow(infoErr, 'get_info');
         }
         const connErr = new LightningConnectionError('Failed to reach Lightning wallet via NWC', {
-          relayUrl: this._config.relayUrl,
-          pubkey: this._config.walletPubkey,
+          relayUrl,
+          pubkey: walletPubkey,
           reason: infoErr instanceof Error ? infoErr.message : String(infoErr)
         }, infoErr instanceof Error ? infoErr : undefined);
         this.logAndThrow(connErr, 'connect');
@@ -93,6 +113,7 @@ export class LightningClient {
       });
     } catch (err: unknown) {
       if (
+        err instanceof LightningConfigError ||
         err instanceof LightningConnectionError ||
         err instanceof LightningTimeoutError ||
         err instanceof LightningNetworkError ||
@@ -103,7 +124,7 @@ export class LightningClient {
         throw err;
       }
       const connErr = new LightningConnectionError('Unexpected connection failure', {
-        relayUrl: this._config.relayUrl,
+        relayUrl,
         reason: err instanceof Error ? err.message : String(err)
       }, err instanceof Error ? err : undefined);
       this.logAndThrow(connErr, 'connect');
@@ -111,17 +132,25 @@ export class LightningClient {
   }
 
   public async disconnect(): Promise<void> {
-    if (!this._connected) {
+    if (!this._config.isConfigured || !this._connected) {
       return;
     }
     try {
-      this._pool.close([this._config.relayUrl]);
+      if (this._config.relayUrl) {
+        this._pool.close([this._config.relayUrl]);
+      }
     } catch {
     }
     this._connected = false;
   }
 
   public async getInfo(): Promise<NWCWalletInfo> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
     const result = await this.executeRequest('get_info', {});
     const validation = NWCGetInfoResultSchema.safeParse(result);
     if (!validation.success) {
@@ -154,6 +183,13 @@ export class LightningClient {
     description: string,
     expirySeconds?: number
   ): Promise<InvoiceCreationResult> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const params: Record<string, unknown> = {
       amount: Number(amountMsat),
       description
@@ -205,6 +241,13 @@ export class LightningClient {
   }
 
   public async payInvoice(invoice: string, amountMsat?: bigint): Promise<PaymentResult> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     let decoded: LightningInvoice;
     try {
       decoded = Bolt11.decode(invoice);
@@ -256,6 +299,13 @@ export class LightningClient {
   }
 
   public async lookupInvoice(paymentHash: string): Promise<LightningPayment> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const hexRegex = /^[0-9a-f]{64}$/;
     if (!hexRegex.test(paymentHash)) {
       const err = new LightningParseError('Invalid payment hash format for lookup', {
@@ -302,6 +352,13 @@ export class LightningClient {
     unpaid?: boolean;
     type?: 'incoming' | 'outgoing';
   }): Promise<LightningTransaction[]> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const params: Record<string, unknown> = {};
     if (options?.from !== undefined) params['from'] = options.from;
     if (options?.until !== undefined) params['until'] = options.until;
@@ -344,6 +401,17 @@ export class LightningClient {
   }
 
   private async executeRequest(method: string, params: Record<string, unknown>): Promise<unknown> {
+    if (!this._config.isConfigured || !this._secretBytes || !this._config.walletPubkey || !this._config.relayUrl || !this._clientPubkey) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+    const secretBytes = this._secretBytes;
+    const walletPubkey = this._config.walletPubkey;
+    const relayUrl = this._config.relayUrl;
+    const clientPubkey = this._clientPubkey;
+
     const startTime = Date.now();
     let subCloser: { close: () => void } | undefined;
     let timer: NodeJS.Timeout | undefined;
@@ -352,11 +420,11 @@ export class LightningClient {
       const payloadString = JSON.stringify({ method, params });
       let encryptedContent: string;
       try {
-        encryptedContent = await nip04.encrypt(this._secretBytes, this._config.walletPubkey, payloadString);
+        encryptedContent = await nip04.encrypt(secretBytes, walletPubkey, payloadString);
       } catch (encErr: unknown) {
         throw new LightningNetworkError('Failed to encrypt NWC request payload', {
           method,
-          relayUrl: this._config.relayUrl,
+          relayUrl,
           reason: encErr instanceof Error ? encErr.message : String(encErr)
         }, encErr instanceof Error ? encErr : undefined);
       }
@@ -364,9 +432,9 @@ export class LightningClient {
       const requestEvent = finalizeEvent({
         kind: 23194,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [['p', this._config.walletPubkey]],
+        tags: [['p', walletPubkey]],
         content: encryptedContent
-      }, this._secretBytes);
+      }, secretBytes);
 
       const responsePromise = new Promise<unknown>((resolve, reject) => {
         timer = setTimeout(() => {
@@ -381,10 +449,10 @@ export class LightningClient {
 
         try {
           subCloser = this._pool.subscribeMany(
-            [this._config.relayUrl],
+            [relayUrl],
             {
               kinds: [23195],
-              '#p': [this._clientPubkey],
+              '#p': [clientPubkey],
               '#e': [requestEvent.id]
             },
             {
@@ -397,7 +465,7 @@ export class LightningClient {
                 }
 
                 try {
-                  const decrypted = await nip04.decrypt(this._secretBytes, this._config.walletPubkey, event.content);
+                  const decrypted = await nip04.decrypt(secretBytes, walletPubkey, event.content);
                   let parsedJson: unknown;
                   try {
                     parsedJson = JSON.parse(decrypted);
@@ -440,7 +508,7 @@ export class LightningClient {
                 } catch (decErr: unknown) {
                   reject(new LightningNetworkError('Failed to decrypt NWC response event', {
                     method,
-                    relayUrl: this._config.relayUrl,
+                    relayUrl,
                     reason: decErr instanceof Error ? decErr.message : String(decErr)
                   }, decErr instanceof Error ? decErr : undefined));
                 }
@@ -453,14 +521,14 @@ export class LightningClient {
           }
           reject(new LightningNetworkError('Failed to subscribe for NWC response on relay', {
             method,
-            relayUrl: this._config.relayUrl,
+            relayUrl,
             reason: subErr instanceof Error ? subErr.message : String(subErr)
           }, subErr instanceof Error ? subErr : undefined));
         }
       });
 
       try {
-        await Promise.all(this._pool.publish([this._config.relayUrl], requestEvent));
+        await Promise.all(this._pool.publish([relayUrl], requestEvent));
       } catch (pubErr: unknown) {
         if (timer) {
           clearTimeout(timer);
@@ -470,7 +538,7 @@ export class LightningClient {
         }
         throw new LightningNetworkError('Failed to publish NWC request event to relay', {
           method,
-          relayUrl: this._config.relayUrl,
+          relayUrl,
           reason: pubErr instanceof Error ? pubErr.message : String(pubErr)
         }, pubErr instanceof Error ? pubErr : undefined);
       }
@@ -481,6 +549,7 @@ export class LightningClient {
       return result;
     } catch (err: unknown) {
       if (
+        err instanceof LightningConfigError ||
         err instanceof LightningConnectionError ||
         err instanceof LightningTimeoutError ||
         err instanceof LightningNetworkError ||
@@ -492,7 +561,7 @@ export class LightningClient {
       }
       const genericErr = new LightningNetworkError('Unexpected NWC communication error', {
         method,
-        relayUrl: this._config.relayUrl,
+        relayUrl,
         reason: err instanceof Error ? err.message : String(err)
       }, err instanceof Error ? err : undefined);
       this.logAndThrow(genericErr, method);

@@ -647,4 +647,37 @@ describe('NostrClient', () => {
       expect(() => client.npubDecode('note1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq')).toThrow(NostrParseError);
     });
   });
+
+  describe('unconfigured client', () => {
+    let unconfiguredConfig: NostrConfig;
+    let unconfiguredClient: NostrClient;
+
+    beforeEach(() => {
+      unconfiguredConfig = new NostrConfig({});
+      unconfiguredClient = new NostrClient(unconfiguredConfig, logger, pool);
+    });
+
+    it('constructing a NostrClient with an unconfigured config does not throw', () => {
+      expect(() => new NostrClient(unconfiguredConfig, logger, pool)).not.toThrow();
+    });
+
+    it('calling publish on an unconfigured client throws NostrConfigError with reason: NOT_CONFIGURED', async () => {
+      await expect(
+        unconfiguredClient.publish({
+          pubkey: '687c062df7ee56c2f6ba249bafb74ee86ed896da753f0b2a57d83d0c999200db',
+          createdAt: 1700000000,
+          kind: 1,
+          tags: [],
+          content: 'test'
+        })
+      ).rejects.toMatchObject({
+        name: 'NostrConfigError',
+        context: { reason: 'NOT_CONFIGURED' }
+      });
+    });
+
+    it('calling disconnect on an unconfigured client is a no-op and does not throw', async () => {
+      await expect(unconfiguredClient.disconnect()).resolves.toBeUndefined();
+    });
+  });
 });

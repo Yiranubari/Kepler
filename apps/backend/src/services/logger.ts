@@ -4,7 +4,7 @@ import winston from 'winston';
 import { ConfigurationError, KeplerError } from '@kepler/shared';
 import type { KeplerLogger as KeplerLoggerContract } from '@kepler/shared';
 
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'silent';
 export type Environment = 'development' | 'test' | 'production';
 
 export interface LoggerConfig {
@@ -178,20 +178,27 @@ export class Logger extends KeplerLogger {
       })
     );
 
+    const isSilent = (config.level ?? process.env.LOG_LEVEL) === 'silent';
+    const effectiveLevel = isSilent
+      ? (config.environment === 'development' ? 'debug' : 'silent')
+      : (config.level ?? process.env.LOG_LEVEL ?? 'info');
+
     const consoleTransport = new winston.transports.Console({
       format: consoleFormat,
-      stderrLevels: ['fatal', 'error', 'warn']
+      stderrLevels: ['fatal', 'error', 'warn'],
+      silent: isSilent
     });
 
     const fileTransport = new winston.transports.File({
       filename: logFilePath,
-      format: fileFormat
+      format: fileFormat,
+      silent: effectiveLevel === 'silent'
     });
 
-    const effectiveLevel = config.level ?? process.env.LOG_LEVEL ?? 'info';
     const winstonLogger = winston.createLogger({
       levels: customLevels,
-      level: effectiveLevel,
+      level: effectiveLevel === 'silent' ? 'debug' : effectiveLevel,
+      silent: effectiveLevel === 'silent',
       transports: [consoleTransport, fileTransport]
     });
 

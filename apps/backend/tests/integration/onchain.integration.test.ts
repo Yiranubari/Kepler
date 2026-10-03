@@ -1,9 +1,15 @@
+import net from 'node:net';
+import dns from 'node:dns';
 import '../../src/config/env';
 import request from 'supertest';
 import * as btc from '@scure/btc-signer';
 import { base64 } from '@scure/base';
 import { createApp, getLimiter } from '../../src/app';
 import { getLogger } from '../../src/services/logger';
+
+dns.setDefaultResultOrder('ipv4first');
+net.setDefaultAutoSelectFamilyAttemptTimeout(1000);
+jest.setTimeout(30000);
 
 describe('Onchain Module Integration', () => {
   const logger = getLogger('test-onchain-integration');

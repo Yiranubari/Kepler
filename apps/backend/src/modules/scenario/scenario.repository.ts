@@ -6,6 +6,7 @@ import {
   PaymentTargetPayload
 } from '@kepler/shared';
 import { CreateScenarioInput } from './scenario.types';
+import { ScenarioNotFoundError } from './scenario.errors';
 
 export class ScenarioRepository {
   private readonly prisma: PrismaClient;
@@ -25,7 +26,7 @@ export class ScenarioRepository {
     const record = await this.prisma.scenario.create({ data });
     const scenario = this.mapToScenario(record);
     if (!scenario) {
-      throw new Error(`Failed to map created scenario ${record.id}`);
+      throw new ScenarioNotFoundError(`Failed to map created scenario ${record.id}`, { id: record.id });
     }
     return scenario;
   }
@@ -71,7 +72,7 @@ export class ScenarioRepository {
 
     const scenario = this.mapToScenario(record);
     if (!scenario) {
-      throw new Error(`Failed to map scenario ${id}`);
+      throw new ScenarioNotFoundError(`Failed to map scenario ${id}`, { id });
     }
     return scenario;
   }

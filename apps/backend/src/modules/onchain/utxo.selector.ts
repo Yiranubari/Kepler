@@ -1,5 +1,5 @@
 import type { Utxo } from '@kepler/bitcoin';
-import { OnchainInsufficientFundsError } from './onchain.errors';
+import { OnchainInsufficientFundsError, OnchainPsbtBuildError } from './onchain.errors';
 
 export const DUST_THRESHOLD_SATS = 294n;
 
@@ -18,11 +18,17 @@ export class UtxoSelector {
     changeAddress: string
   ): UtxoSelectionResult<T> {
     if (!changeAddress || typeof changeAddress !== 'string') {
-      throw new Error('changeAddress must be a non-empty string');
+      throw new OnchainPsbtBuildError('changeAddress must be a non-empty string', {
+        reason: 'changeAddress must be a non-empty string',
+        step: 'utxo_selection'
+      });
     }
 
     if (!Number.isFinite(feeRate) || feeRate <= 0) {
-      throw new Error('feeRate must be a positive number');
+      throw new OnchainPsbtBuildError('feeRate must be a positive number', {
+        reason: 'feeRate must be a positive number',
+        step: 'utxo_selection'
+      });
     }
 
     let totalAvailableSats = 0n;

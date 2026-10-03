@@ -4,7 +4,7 @@ import { CashuConfigError } from './errors';
 export type CashuUnit = 'sat' | 'msat';
 
 export interface CashuConfigParams {
-  readonly mintUrl: string;
+  readonly mintUrl?: string | null;
   readonly fallbackMintUrl?: string | null;
   readonly unit?: CashuUnit;
   readonly requestTimeoutMs?: number;
@@ -33,19 +33,28 @@ export class CashuConfig {
 
   private static readonly TIMEOUT_SCHEMA = z.number().int().positive();
 
+  private readonly _isConfigured: boolean;
   private readonly _mintUrl: string;
   private readonly _fallbackMintUrl: string | null;
   private readonly _unit: CashuUnit;
   private readonly _requestTimeoutMs: number;
 
   constructor(params: CashuConfigParams) {
-    const mintUrlResult = CashuConfig.URL_SCHEMA.safeParse(params.mintUrl);
-    if (!mintUrlResult.success) {
-      throw new CashuConfigError('Invalid mintUrl: must be a valid http or https URL', {
-        variable: 'CASHU_MINT_URL',
-        field: 'mintUrl',
-        reason: mintUrlResult.error.message
-      });
+    const isMintUrlAbsent = params.mintUrl === undefined || params.mintUrl === null || params.mintUrl.trim() === '';
+    let mintUrl = '';
+    if (!isMintUrlAbsent) {
+      const mintUrlResult = CashuConfig.URL_SCHEMA.safeParse(params.mintUrl);
+      if (!mintUrlResult.success) {
+        throw new CashuConfigError('Invalid mintUrl: must be a valid http or https URL', {
+          variable: 'CASHU_MINT_URL',
+          field: 'mintUrl',
+          reason: mintUrlResult.error.message
+        });
+      }
+      mintUrl = mintUrlResult.data;
+      this._isConfigured = true;
+    } else {
+      this._isConfigured = false;
     }
 
     let fallbackMintUrl: string | null = null;
@@ -87,10 +96,14 @@ export class CashuConfig {
       requestTimeoutMs = timeoutResult.data;
     }
 
-    this._mintUrl = mintUrlResult.data;
+    this._mintUrl = mintUrl;
     this._fallbackMintUrl = fallbackMintUrl;
     this._unit = unit;
     this._requestTimeoutMs = requestTimeoutMs;
+  }
+
+  public get isConfigured(): boolean {
+    return this._isConfigured;
   }
 
   public get mintUrl(): string {
@@ -111,21 +124,19 @@ export class CashuConfig {
 
   public static fromEnv(env: Record<string, string | undefined> = process.env): CashuConfig {
     const rawMintUrl = env['CASHU_MINT_URL'];
-    if (!rawMintUrl || rawMintUrl.trim() === '') {
-      throw new CashuConfigError('Invalid or missing CASHU_MINT_URL: must be a non-empty http or https URL', {
-        variable: 'CASHU_MINT_URL',
-        field: 'CASHU_MINT_URL',
-        reason: 'Missing required environment variable CASHU_MINT_URL'
-      });
-    }
+    const isMintUrlAbsent = rawMintUrl === undefined || rawMintUrl === null || rawMintUrl.trim() === '';
+    let validatedMintUrl: string | undefined;
 
-    const mintUrlResult = CashuConfig.URL_SCHEMA.safeParse(rawMintUrl);
-    if (!mintUrlResult.success) {
-      throw new CashuConfigError('Invalid CASHU_MINT_URL: must be a valid http or https URL', {
-        variable: 'CASHU_MINT_URL',
-        field: 'mintUrl',
-        reason: mintUrlResult.error.message
-      });
+    if (!isMintUrlAbsent) {
+      const mintUrlResult = CashuConfig.URL_SCHEMA.safeParse(rawMintUrl);
+      if (!mintUrlResult.success) {
+        throw new CashuConfigError('Invalid CASHU_MINT_URL: must be a valid http or https URL', {
+          variable: 'CASHU_MINT_URL',
+          field: 'mintUrl',
+          reason: mintUrlResult.error.message
+        });
+      }
+      validatedMintUrl = mintUrlResult.data;
     }
 
     const rawFallbackUrl = env['CASHU_MINT_URL_FALLBACK'];
@@ -180,7 +191,7 @@ export class CashuConfig {
     }
 
     return new CashuConfig({
-      mintUrl: mintUrlResult.data,
+      mintUrl: validatedMintUrl,
       fallbackMintUrl,
       unit,
       requestTimeoutMs

@@ -15,7 +15,8 @@ describe('NostrConfig', () => {
         relays: validRelays
       });
 
-      expect(config.privateKey).toBe(validPrivateKey);
+      expect(config.privateKeyBytes).toBeInstanceOf(Uint8Array);
+      expect(config.privateKeyBytes!.length).toBe(32);
       expect(config.publicKey).toBe(expectedPublicKey);
       expect(config.npub).toBe(expectedNpub);
       expect(config.relays).toEqual(validRelays);
@@ -54,7 +55,8 @@ describe('NostrConfig', () => {
         relays: validRelays
       });
 
-      expect(config.privateKey).toBe(validPrivateKey);
+      expect(config.privateKeyBytes).toBeInstanceOf(Uint8Array);
+      expect(config.privateKeyBytes!.length).toBe(32);
       expect(config.publicKey).toBe(expectedPublicKey);
       expect(config.npub).toBe(expectedNpub);
     });
@@ -70,15 +72,26 @@ describe('NostrConfig', () => {
       expect(config.relays).toEqual(validRelays);
     });
 
-    it('redacts private key in inspect output', () => {
+    it('does not leak private key in inspect output', () => {
       const config = new NostrConfig({
         privateKey: validPrivateKey,
         relays: validRelays
       });
 
       const inspected = util.inspect(config);
-      expect(inspected).toContain('[REDACTED]');
       expect(inspected).not.toContain(validPrivateKey);
+      expect(inspected).not.toContain('privateKey');
+    });
+
+    it('returns a defensive copy of privateKeyBytes', () => {
+      const config = new NostrConfig({
+        privateKey: validPrivateKey,
+        relays: validRelays
+      });
+      const bytes1 = config.privateKeyBytes!;
+      const originalValue = bytes1[0]!;
+      bytes1[0] = (originalValue + 1) % 256;
+      expect(config.privateKeyBytes![0]).toBe(originalValue);
     });
 
     it('does not expose private key in toJSON', () => {
@@ -94,19 +107,15 @@ describe('NostrConfig', () => {
       expect(json['relays']).toEqual(validRelays);
     });
 
-    it('throws NostrConfigError when private key is empty', () => {
-      try {
-        new NostrConfig({
-          privateKey: '',
-          relays: validRelays
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['field']).toBe('privateKey');
-      }
+    it('sets isConfigured to false when private key is empty', () => {
+      const config = new NostrConfig({
+        privateKey: '',
+        relays: validRelays
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
+      expect(config.publicKey).toBe('');
+      expect(config.npub).toBe('');
     });
 
     it('throws NostrConfigError when private key length is invalid', () => {
@@ -160,34 +169,22 @@ describe('NostrConfig', () => {
       }
     });
 
-    it('throws NostrConfigError when relays array is empty', () => {
-      try {
-        new NostrConfig({
-          privateKey: validPrivateKey,
-          relays: []
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['field']).toBe('relays');
-      }
+    it('sets isConfigured to false when relays array is empty', () => {
+      const config = new NostrConfig({
+        privateKey: validPrivateKey,
+        relays: []
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
     });
 
-    it('throws NostrConfigError when relays string is empty or whitespace', () => {
-      try {
-        new NostrConfig({
-          privateKey: validPrivateKey,
-          relays: '   '
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['field']).toBe('relays');
-      }
+    it('sets isConfigured to false when relays string is empty or whitespace', () => {
+      const config = new NostrConfig({
+        privateKey: validPrivateKey,
+        relays: '   '
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
     });
 
     it('throws NostrConfigError when relay URL does not use wss:// protocol', () => {
@@ -277,7 +274,8 @@ describe('NostrConfig', () => {
       };
 
       const config = NostrConfig.fromEnv(env);
-      expect(config.privateKey).toBe(validPrivateKey);
+      expect(config.privateKeyBytes).toBeInstanceOf(Uint8Array);
+      expect(config.privateKeyBytes!.length).toBe(32);
       expect(config.publicKey).toBe(expectedPublicKey);
       expect(config.npub).toBe(expectedNpub);
       expect(config.relays).toEqual(validRelays);
@@ -316,19 +314,21 @@ describe('NostrConfig', () => {
       expect(config.subscriptionLimit).toBe(500);
     });
 
-    it('throws NostrConfigError when NOSTR_PRIVATE_KEY is missing in env', () => {
-      try {
-        NostrConfig.fromEnv({
-          NOSTR_RELAYS: validRelaysString
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['variable']).toBe('NOSTR_PRIVATE_KEY');
-        expect(configErr.context['field']).toBe('NOSTR_PRIVATE_KEY');
-      }
+    it('returns unconfigured config when NOSTR_PRIVATE_KEY is missing in env', () => {
+      const config = NostrConfig.fromEnv({
+        NOSTR_RELAYS: validRelaysString
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
+    });
+
+    it('returns unconfigured config when NOSTR_PRIVATE_KEY is empty in env', () => {
+      const config = NostrConfig.fromEnv({
+        NOSTR_PRIVATE_KEY: '',
+        NOSTR_RELAYS: validRelaysString
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
     });
 
     it('throws NostrConfigError when NOSTR_PRIVATE_KEY is malformed in env', () => {
@@ -347,35 +347,21 @@ describe('NostrConfig', () => {
       }
     });
 
-    it('throws NostrConfigError when NOSTR_RELAYS is missing in env', () => {
-      try {
-        NostrConfig.fromEnv({
-          NOSTR_PRIVATE_KEY: validPrivateKey
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['variable']).toBe('NOSTR_RELAYS');
-        expect(configErr.context['field']).toBe('NOSTR_RELAYS');
-      }
+    it('returns unconfigured config when NOSTR_RELAYS is missing in env', () => {
+      const config = NostrConfig.fromEnv({
+        NOSTR_PRIVATE_KEY: validPrivateKey
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
     });
 
-    it('throws NostrConfigError when NOSTR_RELAYS is empty in env', () => {
-      try {
-        NostrConfig.fromEnv({
-          NOSTR_PRIVATE_KEY: validPrivateKey,
-          NOSTR_RELAYS: '   '
-        });
-        fail('Expected NostrConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(NostrConfigError);
-        const configErr = err as NostrConfigError;
-        expect(configErr.code).toBe('NOSTR_CONFIG_ERROR');
-        expect(configErr.context['variable']).toBe('NOSTR_RELAYS');
-        expect(configErr.context['field']).toBe('NOSTR_RELAYS');
-      }
+    it('returns unconfigured config when NOSTR_RELAYS is empty in env', () => {
+      const config = NostrConfig.fromEnv({
+        NOSTR_PRIVATE_KEY: validPrivateKey,
+        NOSTR_RELAYS: '   '
+      });
+      expect(config.isConfigured).toBe(false);
+      expect(config.privateKeyBytes).toBeNull();
     });
 
     it('throws NostrConfigError when NOSTR_RELAYS contains non-wss URL in env', () => {

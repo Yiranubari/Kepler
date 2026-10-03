@@ -9,10 +9,21 @@ describe('CashuConfig', () => {
       const config = new CashuConfig({
         mintUrl: validMintUrl
       });
+      expect(config.isConfigured).toBe(true);
       expect(config.mintUrl).toBe(validMintUrl);
       expect(config.fallbackMintUrl).toBeNull();
       expect(config.unit).toBe('sat');
       expect(config.requestTimeoutMs).toBe(15_000);
+    });
+
+    it('sets isConfigured to false when mintUrl is absent or empty', () => {
+      const config1 = new CashuConfig({});
+      expect(config1.isConfigured).toBe(false);
+      expect(config1.mintUrl).toBe('');
+
+      const config2 = new CashuConfig({ mintUrl: '' });
+      expect(config2.isConfigured).toBe(false);
+      expect(config2.mintUrl).toBe('');
     });
 
     it('creates an instance with all valid parameters', () => {
@@ -181,28 +192,16 @@ describe('CashuConfig', () => {
       expect(config.requestTimeoutMs).toBe(15_000);
     });
 
-    it('throws CashuConfigError when CASHU_MINT_URL is unset', () => {
-      try {
-        CashuConfig.fromEnv({});
-        fail('Expected CashuConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(CashuConfigError);
-        const configError = err as CashuConfigError;
-        expect(configError.context['variable']).toBe('CASHU_MINT_URL');
-        expect(configError.context['field']).toBe('CASHU_MINT_URL');
-        expect(configError.context['protocol']).toBe('cashu');
-      }
+    it('returns config with isConfigured false when CASHU_MINT_URL is unset', () => {
+      const config = CashuConfig.fromEnv({});
+      expect(config.isConfigured).toBe(false);
+      expect(config.mintUrl).toBe('');
     });
 
-    it('throws CashuConfigError when CASHU_MINT_URL is empty', () => {
-      try {
-        CashuConfig.fromEnv({ CASHU_MINT_URL: '   ' });
-        fail('Expected CashuConfigError');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(CashuConfigError);
-        const configError = err as CashuConfigError;
-        expect(configError.context['field']).toBe('CASHU_MINT_URL');
-      }
+    it('returns config with isConfigured false when CASHU_MINT_URL is empty', () => {
+      const config = CashuConfig.fromEnv({ CASHU_MINT_URL: '   ' });
+      expect(config.isConfigured).toBe(false);
+      expect(config.mintUrl).toBe('');
     });
 
     it('throws CashuConfigError when CASHU_MINT_URL is invalid', () => {

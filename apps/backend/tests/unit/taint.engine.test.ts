@@ -22,6 +22,7 @@ import {
   TaintRuleResult
 } from '../../src/modules/taint/rules/rule.interface';
 import {
+  TaintEngineError,
   TaintIngestError,
   TaintRuleError,
   TaintPathError
@@ -341,7 +342,7 @@ describe('TaintEngine', () => {
       addresses: []
     });
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
     expect(result.edgeCount).toBe(0);
     expect(result.graph.edges).toHaveLength(0);
   });
@@ -374,7 +375,7 @@ describe('TaintEngine', () => {
     const rule = new SingleEdgeFixtureRule();
     registry.register(rule);
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
     expect(result.edgeCount).toBe(1);
 
     const nodes = engine.getGraph().nodes;
@@ -417,7 +418,7 @@ describe('TaintEngine', () => {
     registry.register(new MergeRuleA());
     registry.register(new MergeRuleB());
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
     expect(result.edgeCount).toBe(1);
     expect(result.graph.edges).toHaveLength(1);
 
@@ -430,9 +431,7 @@ describe('TaintEngine', () => {
   });
 
   test('determinism: ingesting same data into two engines and analyzing with same now yields byte-identical serialize() output', () => {
-    const fixedNow = new Date('2026-03-01T12:00:00.000Z');
-    jest.useFakeTimers();
-    jest.setSystemTime(fixedNow);
+    const fixedNow = 1700000000000;
 
     const testConfig = new TaintConfig();
     const testRegistry1 = new TaintRuleRegistry();
@@ -472,15 +471,13 @@ describe('TaintEngine', () => {
     engine1.ingestBitcoin(payload);
     engine2.ingestBitcoin(payload);
 
-    engine1.analyze();
-    engine2.analyze();
+    engine1.analyze(fixedNow);
+    engine2.analyze(fixedNow);
 
     const serialized1 = engine1.getGraph().serialize();
     const serialized2 = engine2.getGraph().serialize();
 
     expect(serialized1).toBe(serialized2);
-
-    jest.useRealTimers();
   });
 
   test('enforces maxNodesPerGraph and throws TaintIngestError when ceiling is exceeded', () => {
@@ -549,11 +546,11 @@ describe('TaintEngine', () => {
     registry.register(new OverflowEdgesRule());
 
     expect(() => {
-      limitedEngine.analyze();
+      limitedEngine.analyze(1700000000000);
     }).toThrow(TaintRuleError);
 
     try {
-      limitedEngine.analyze();
+      limitedEngine.analyze(1700000000000);
     } catch (error) {
       expect(error).toBeInstanceOf(TaintRuleError);
       const taintError = error as TaintRuleError;
@@ -612,7 +609,7 @@ describe('TaintEngine', () => {
       ]
     });
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
     const edges = result.graph.edges.filter((edge) => edge.relationship === 'SAME_PAYMENT_HASH');
 
     expect(edges).toHaveLength(1);
@@ -656,7 +653,7 @@ describe('TaintEngine', () => {
       ]
     });
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
     const edges = result.graph.edges.filter((edge) => edge.relationship === 'SAME_PREIMAGE');
 
     expect(edges).toHaveLength(1);
@@ -768,7 +765,7 @@ describe('TaintEngine', () => {
       ]
     });
 
-    const result = engine.analyze();
+    const result = engine.analyze(1700000000000);
 
     const paymentHashEdges = result.graph.edges.filter(
       (edge) => edge.relationship === 'SAME_PAYMENT_HASH'
@@ -1017,7 +1014,7 @@ describe('TaintEngine', () => {
       ]
     });
 
-    eng.analyze();
+    eng.analyze(1700000000000);
 
     const invoiceNodeId = `invoice:${bolt11.toLowerCase()}`;
     const topPaths = eng.findTopPaths(invoiceNodeId, 5, 5);
@@ -1093,6 +1090,20 @@ describe('TaintEngine', () => {
     const mergedNode = eng.getGraph().getNode('mint:https://mint.example.com');
     expect(mergedNode).toBeDefined();
     expect(mergedNode?.metadata['quoteHashes']).toEqual(['a', 'b', 'c']);
+  });
+
+  test('analyze throws TaintEngineError with INVALID_NOW for invalid now parameter', () => {
+    const invalidInputs = [0, -1, -100, 1.5, NaN, Infinity, -Infinity, undefined, null, '1700000000000'];
+    for (const invalid of invalidInputs) {
+      try {
+        engine.analyze(invalid as unknown as number);
+        fail(`Expected analyze(${String(invalid)}) to throw`);
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(TaintEngineError);
+        const engineError = err as TaintEngineError;
+        expect(engineError.context.reason).toBe('INVALID_NOW');
+      }
+    }
   });
 });
 

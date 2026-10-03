@@ -4,11 +4,11 @@ Schemathesis v4.24.3
 ━━━━━━━━━━━━━━━━━━━━
 
 
- ✅  Loaded specification from openapi.yaml (in 0.31s)                          
+ ✅  Loaded specification from openapi.yaml (in 0.39s)                          
 
      Base URL:         http://localhost:3000                                    
      Specification:    Open API 3.1.0                                           
-     Operations:       30 selected / 38 total                                   
+     Operations:       30 selected / 33 total                                   
 
 
  ✅  API capabilities:                                                          
@@ -16,43 +16,24 @@ Schemathesis v4.24.3
      Supports NULL byte in headers:                            ✘                
      Accepts backslash and control characters in URL paths:    ✓                
 
- ⏭   Examples (in 0.15s)                                                        
+ ⏭   Examples (in 0.19s)                                                        
                                                                                 
      ⏭  30 skipped                                                              
 
- ✅  Coverage (in 114.13s)                                                      
+ ✅  Coverage (in 79.08s)                                                       
                                                                                 
      ✅ 30 passed                                                               
 
- ✅  Fuzzing (in 1516.27s)                                                      
+ ✅  Fuzzing (in 790.01s)                                                       
                                                                                 
      ✅ 30 passed                                                               
 
- ❌  Stateful (in 190.42s)                                                      
+ ✅  Stateful (in 109.15s)                                                      
 
-     Scenarios:    178                                                          
+     Scenarios:    128                                                          
      API Links:    0 covered / 11 selected / 11 total (11 inferred)             
 
-     ✅ 177 passed  ❌ 1 failed                                                 
-
-=================================== FAILURES ===================================
-________________________________ Stateful tests ________________________________
-1. Test Case ID: TEsSmQ
-
-- Undocumented HTTP status code
-
-    Received: 500
-    Documented: 200, 400, 429
-
-[500] Internal Server Error:
-
-    `{"error":{"code":"INTERNAL_ERROR","message":"An unexpected error occurred","context":{}}}`
-
-Reproduce with:
-
-    curl -X GET 'http://localhost:3000/api/scenarios?offset=848&limit=105'
-    
-    st replay TEsSmQ
+     ✅ 128 passed                                                              
 
 =================================== WARNINGS ===================================
 
@@ -92,28 +73,25 @@ Schema validation mismatch: 15 operations mostly rejected generated data due to 
 =================================== SUMMARY ====================================
 
 API Operations:
-  Selected: 30/38
+  Selected: 30/33
   Tested: 30
 
 Test Phases:
   ⏭  Examples
   ✅ Coverage
   ✅ Fuzzing
-  ❌ Stateful
-
-Failures:
-  ❌ Undocumented HTTP status code: 1
+  ✅ Stateful
 
 Warnings:
   ⚠️ Missing valid test data: 8 operations repeatedly returned 404 responses
   ⚠️ Schema validation mismatch: 15 operations mostly rejected generated data
 
 Test cases:
-  4920 generated, 1 found 1 unique failures, 191 skipped
+  4554 generated, 4554 passed, 187 skipped
 
 Reports:
   - JUNIT: tests/schemathesis/report.xml
 
-Seed: 23163902515953548791518005340425372894
+Seed: 296625392278134417604038250062296941296
 
-====================== 1 failure, 2 warnings in 1821.08s =======================
+============================ 2 warnings in 978.60s =============================

@@ -115,6 +115,13 @@ export class CashuClient {
   }
 
   public async getMintInfo(url?: string): Promise<CashuMintInfo> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const targetUrl = url ?? this._config.mintUrl;
     const start = Date.now();
     const mint = this.getMint(targetUrl);
@@ -184,6 +191,13 @@ export class CashuClient {
   }
 
   public async mint(amountSats: bigint, memo?: string): Promise<CashuMintResult> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (amountSats <= 0n) {
       throw new CashuMintError('Mint amount must be greater than zero', {
         amountSats
@@ -236,6 +250,13 @@ export class CashuClient {
   }
 
   public async checkMintQuote(quote: string): Promise<CashuMintQuote> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (typeof quote !== 'string' || quote.trim() === '') {
       throw new CashuParseError('Quote ID must be a non-empty string', {
         reason: 'Empty quote ID'
@@ -303,6 +324,13 @@ export class CashuClient {
   }
 
   public async mintTokens(quote: string, amountSats: bigint): Promise<CashuMintResult> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (typeof quote !== 'string' || quote.trim() === '') {
       throw new CashuMintError('Quote ID must be a non-empty string', {
         quote,
@@ -376,6 +404,13 @@ export class CashuClient {
     amountSats?: bigint,
     proofsInput?: CashuProof[] | CashuToken
   ): Promise<CashuMeltResult> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (typeof bolt11 !== 'string' || bolt11.trim() === '') {
       throw new CashuParseError('bolt11 invoice must be a non-empty string', {
         input: bolt11,
@@ -492,6 +527,13 @@ export class CashuClient {
   }
 
   public async swap(token: CashuToken, amountSats: bigint): Promise<CashuSwapResult> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     if (!token || !Array.isArray(token.proofs) || token.proofs.length === 0) {
       throw new CashuSwapError('Cannot swap token with empty proofs', {
         reason: 'Empty proofs'
@@ -551,6 +593,13 @@ export class CashuClient {
   }
 
   public async restore(blindedMessages: string[]): Promise<CashuProof[]> {
+    if (!this._config.isConfigured) {
+      throw new CashuConfigError('Cashu is not configured', {
+        variable: 'CASHU_MINT_URL',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+
     const mint = this.getMint();
     const outputs = blindedMessages.map((msg: string) => {
       try {

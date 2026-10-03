@@ -75,33 +75,6 @@ export function getLimiter(): RateLimiter {
   return defaultLimiterInstance;
 }
 
-let mempoolFallbackConfigured = false;
-
-function ensureMempoolFallback(): void {
-  if (mempoolFallbackConfigured) return;
-  mempoolFallbackConfigured = true;
-  const originalFetch = globalThis.fetch;
-  if (!originalFetch) return;
-  globalThis.fetch = async (input, init) => {
-    const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : '';
-    if (urlStr.includes('mempool.space')) {
-      const fallbackUrl = urlStr.replace('mempool.space', 'mempool.emzy.de');
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        timeoutId.unref();
-        const res = await originalFetch(input, { ...init, signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (res.ok) return res;
-      } catch {
-        return originalFetch(fallbackUrl, init);
-      }
-      return originalFetch(fallbackUrl, init);
-    }
-    return originalFetch(input, init);
-  };
-}
-
 export function createApp(
   limiter: RateLimiter,
   logger: KeplerLogger,
@@ -109,7 +82,6 @@ export function createApp(
   protocolsConfig?: ProtocolsConfig,
   lifecycle?: Lifecycle
 ): Express {
-  ensureMempoolFallback();
   const app = express();
 
   app.use(requestLogger(logger));

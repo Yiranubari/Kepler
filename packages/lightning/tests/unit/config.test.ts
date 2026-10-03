@@ -11,11 +11,24 @@ describe('LightningConfig', () => {
       const config = new LightningConfig({
         connectionString: validConnectionString
       });
+      expect(config.isConfigured).toBe(true);
       expect(config.connectionString).toBe(validConnectionString);
       expect(config.walletPubkey).toBe(validPubkey);
       expect(config.relayUrl).toBe(validRelay);
-      expect(config.secret).toBe(validSecret);
+      expect(config.secretBytes).toBeInstanceOf(Uint8Array);
+      expect(config.secretBytes?.length).toBe(32);
       expect(config.requestTimeoutMs).toBe(30000);
+    });
+
+    it('returns a defensive copy of secretBytes', () => {
+      const config = new LightningConfig({
+        connectionString: validConnectionString
+      });
+      const bytes1 = config.secretBytes;
+      expect(bytes1).not.toBeNull();
+      const originalValue = bytes1![0];
+      bytes1![0] = (originalValue + 1) % 256;
+      expect(config.secretBytes?.[0]).toBe(originalValue);
     });
 
     it('creates an instance with custom requestTimeoutMs', () => {
@@ -26,18 +39,22 @@ describe('LightningConfig', () => {
       expect(config.requestTimeoutMs).toBe(15000);
     });
 
-    it('throws LightningConfigError when connectionString is empty', () => {
-      try {
-        new LightningConfig({ connectionString: '' });
-        fail('Expected error not thrown');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(LightningConfigError);
-        const configErr = err as LightningConfigError;
-        expect(configErr.code).toBe('LIGHTNING_CONFIG_ERROR');
-        expect(configErr.context['variable']).toBe('NWC_CONNECTION_STRING');
-        expect(configErr.context['field']).toBe('connectionString');
-        expect(configErr.context['protocol']).toBe('lightning');
-      }
+    it('sets isConfigured to false when connectionString is empty', () => {
+      const config = new LightningConfig({ connectionString: '' });
+      expect(config.isConfigured).toBe(false);
+      expect(config.connectionString).toBeNull();
+      expect(config.walletPubkey).toBeNull();
+      expect(config.relayUrl).toBeNull();
+      expect(config.secretBytes).toBeNull();
+    });
+
+    it('sets isConfigured to false when connectionString is missing or null', () => {
+      const config = new LightningConfig({});
+      expect(config.isConfigured).toBe(false);
+      expect(config.connectionString).toBeNull();
+      expect(config.walletPubkey).toBeNull();
+      expect(config.relayUrl).toBeNull();
+      expect(config.secretBytes).toBeNull();
     });
 
     it('throws LightningConfigError when connectionString does not start with nostr+walletconnect://', () => {
@@ -126,10 +143,12 @@ describe('LightningConfig', () => {
         NWC_CONNECTION_STRING: validConnectionString
       };
       const config = LightningConfig.fromEnv(env);
+      expect(config.isConfigured).toBe(true);
       expect(config.connectionString).toBe(validConnectionString);
       expect(config.walletPubkey).toBe(validPubkey);
       expect(config.relayUrl).toBe(validRelay);
-      expect(config.secret).toBe(validSecret);
+      expect(config.secretBytes).toBeInstanceOf(Uint8Array);
+      expect(config.secretBytes?.length).toBe(32);
       expect(config.requestTimeoutMs).toBe(30000);
     });
 
@@ -142,17 +161,22 @@ describe('LightningConfig', () => {
       expect(config.requestTimeoutMs).toBe(45000);
     });
 
-    it('throws LightningConfigError when NWC_CONNECTION_STRING is missing in env', () => {
-      try {
-        LightningConfig.fromEnv({});
-        fail('Expected error not thrown');
-      } catch (err: unknown) {
-        expect(err).toBeInstanceOf(LightningConfigError);
-        const configErr = err as LightningConfigError;
-        expect(configErr.code).toBe('LIGHTNING_CONFIG_ERROR');
-        expect(configErr.context['variable']).toBe('NWC_CONNECTION_STRING');
-        expect(configErr.context['field']).toBe('connectionString');
-      }
+    it('returns a config with isConfigured false when NWC_CONNECTION_STRING is empty', () => {
+      const config = LightningConfig.fromEnv({ NWC_CONNECTION_STRING: '' });
+      expect(config.isConfigured).toBe(false);
+      expect(config.connectionString).toBeNull();
+      expect(config.walletPubkey).toBeNull();
+      expect(config.relayUrl).toBeNull();
+      expect(config.secretBytes).toBeNull();
+    });
+
+    it('returns a config with isConfigured false when NWC_CONNECTION_STRING is missing entirely', () => {
+      const config = LightningConfig.fromEnv({});
+      expect(config.isConfigured).toBe(false);
+      expect(config.connectionString).toBeNull();
+      expect(config.walletPubkey).toBeNull();
+      expect(config.relayUrl).toBeNull();
+      expect(config.secretBytes).toBeNull();
     });
 
     it('throws LightningConfigError when NWC_CONNECTION_STRING is malformed in env', () => {

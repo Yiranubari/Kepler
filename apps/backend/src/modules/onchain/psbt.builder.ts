@@ -79,10 +79,16 @@ export class PsbtBuilder {
       try {
         const decoded = btc.Address(btcNetwork).decode(address);
         if (decoded.type !== 'wpkh') {
-          throw new Error(`Expected P2WPKH address, got type: ${decoded.type}`);
+          throw new OnchainPsbtBuildError(`Expected P2WPKH address, got type: ${decoded.type}`, {
+            reason: `Expected P2WPKH address, got type: ${decoded.type}`,
+            step: 'derive_script'
+          });
         }
         script = btc.OutScript.encode({ type: 'wpkh', hash: decoded.hash });
       } catch (err: unknown) {
+        if (err instanceof OnchainPsbtBuildError) {
+          throw err;
+        }
         const reason = err instanceof Error ? err.message : 'Failed to derive script from address';
         throw new OnchainPsbtBuildError(`Failed to derive witness script for address ${address}`, {
           reason,

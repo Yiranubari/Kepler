@@ -451,15 +451,20 @@ export class TaintEngine {
     }
   }
 
-  public analyze(overrideNow?: number): TaintAnalysisResult {
-    const now = overrideNow ?? Date.now();
+  public analyze(now: number): TaintAnalysisResult {
+    if (typeof now !== 'number' || !Number.isFinite(now) || !Number.isInteger(now) || now <= 0) {
+      throw new TaintEngineError('Analysis requires a finite positive integer timestamp', {
+        reason: 'INVALID_NOW'
+      });
+    }
+    const timestampMs = now;
     this.graph = new TaintGraph({
       id: this.graph.id,
       scenarioId: this.graph.scenarioId,
       nodes: [...this.graph.nodes],
       edges: [...this.graph.edges],
       paths: [...this.graph.paths],
-      createdAt: new Date(now)
+      createdAt: new Date(timestampMs)
     });
     const rules = this.registry.getRules();
 
@@ -468,7 +473,7 @@ export class TaintEngine {
         graph: this.graph,
         config: this.config,
         scorer: this.scorer,
-        now
+        now: timestampMs
       });
 
       for (const edge of result.edges) {
@@ -532,7 +537,7 @@ export class TaintEngine {
     return {
       graph: this.graph,
       scenarioId,
-      analyzedAt: new Date(now).toISOString(),
+      analyzedAt: new Date(timestampMs).toISOString(),
       ruleCount: rules.length,
       nodeCount: this.graph.nodes.length,
       edgeCount: this.graph.edges.length,
