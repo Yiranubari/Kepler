@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import { fadeInUp, useReducedMotion } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ export interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   className?: string;
+  variant?: Variants;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -19,13 +20,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   actionLabel,
   onAction,
-  className
+  className,
+  variant
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      variants={fadeInUp}
+      variants={variant ?? fadeInUp}
       initial={shouldReduceMotion ? { opacity: 0 } : "initial"}
       animate={shouldReduceMotion ? { opacity: 1 } : "animate"}
       className={cn(

@@ -15,7 +15,7 @@ export class ClientError extends Error {
 }
 
 export interface PaymentTargetInput {
-  kind: "lightning" | "bitcoin" | "cashu";
+  kind: "Lightning" | "Bitcoin" | "Cashu" | "lightning" | "bitcoin" | "cashu";
   payload: Record<string, unknown>;
 }
 
@@ -194,9 +194,20 @@ export class ApiClient {
   }
 
   public async createScenario(target: PaymentTargetInput): Promise<ScenarioResponse> {
+    const normalizedKind =
+      target.kind.toLowerCase() === "lightning"
+        ? "Lightning"
+        : target.kind.toLowerCase() === "bitcoin"
+        ? "Bitcoin"
+        : "Cashu";
     return this.request<ScenarioResponse>("/api/scenarios", {
       method: "POST",
-      body: JSON.stringify({ target })
+      body: JSON.stringify({
+        target: {
+          kind: normalizedKind,
+          payload: target.payload
+        }
+      })
     });
   }
 
@@ -206,16 +217,27 @@ export class ApiClient {
     });
   }
 
-  public async listScenarios(params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<ScenarioResponse[]> {
-    const searchParams = new URLSearchParams();
-    if (params?.limit !== undefined) {
-      searchParams.set("limit", String(params.limit));
+  public async listScenarios(
+    limitOrParams?: number | { limit?: number; offset?: number },
+    offsetParam?: number
+  ): Promise<ScenarioResponse[]> {
+    let limit: number | undefined;
+    let offset: number | undefined;
+
+    if (typeof limitOrParams === "number") {
+      limit = limitOrParams;
+      offset = offsetParam;
+    } else if (limitOrParams) {
+      limit = limitOrParams.limit;
+      offset = limitOrParams.offset;
     }
-    if (params?.offset !== undefined) {
-      searchParams.set("offset", String(params.offset));
+
+    const searchParams = new URLSearchParams();
+    if (limit !== undefined) {
+      searchParams.set("limit", String(limit));
+    }
+    if (offset !== undefined) {
+      searchParams.set("offset", String(offset));
     }
     const query = searchParams.toString();
     const path = query ? `/api/scenarios?${query}` : "/api/scenarios";

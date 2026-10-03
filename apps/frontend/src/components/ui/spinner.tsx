@@ -22,7 +22,6 @@ export const Spinner: React.FC<SpinnerProps> = ({
       aria-label="Loading"
       viewBox="0 0 24 24"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
       className={cn("animate-spin text-foreground shrink-0", sizeClasses[size], className)}
       {...props}
     >

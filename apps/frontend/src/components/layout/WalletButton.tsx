@@ -1,7 +1,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Spinner } from "@/components/ui/spinner";
-import { useWallet } from "@/hooks/useWallet";
+import { useWallet } from "@/lib/wallet";
 import { useReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 

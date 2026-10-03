@@ -6,7 +6,7 @@ import { fadeIn, useReducedMotion } from "@/lib/motion";
 import { HomePage } from "@/pages/Home";
 import { SendPage } from "@/pages/Send";
 import { HistoryPage } from "@/pages/History";
-import { PaymentDetailPage } from "@/pages/PaymentDetail";
+import { HistoryDetailPage } from "@/pages/HistoryDetail";
 import { SettingsPage } from "@/pages/Settings";
 import { NotFoundPage } from "@/pages/NotFound";
 
@@ -69,7 +69,7 @@ export const App: React.FC = () => {
             path="/history/:id"
             element={
               <PageTransition>
-                <PaymentDetailPage />
+                <HistoryDetailPage />
               </PageTransition>
             }
           />

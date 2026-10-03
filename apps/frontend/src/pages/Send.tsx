@@ -56,7 +56,7 @@ function detectDestinationKind(raw: string): DestinationKind | null {
     return "cashu";
   }
 
-  if (lower.startsWith("http://") || lower.startsWith("https://")) {
+  if (lower.startsWith("http:") || lower.startsWith("https:")) {
     if (lower.includes("mint") || lower.includes("cashu")) {
       return "cashu";
     }
@@ -156,11 +156,15 @@ export const SendPage: React.FC = () => {
         setBitcoinFees(fees);
       } else if (detectedKind === "cashu") {
         targetPayload = { request: cleanDestination };
-        const mintUrl = cleanDestination.startsWith("http")
-          ? cleanDestination
-          : "https://legend.lnbits.com/cashu/api/v1/4gr9Xcmz3XEkUNmsDiwhWW";
-        const mintInfo = await api.getMintInfo(mintUrl);
-        setCashuMintDetails(mintInfo);
+        let mintUrl = cleanDestination;
+        if (!mintUrl.startsWith("http:") && !mintUrl.startsWith("https:")) {
+          const policy = await api.getPolicy();
+          mintUrl = policy.allowedMints[0] || "";
+        }
+        if (mintUrl) {
+          const mintInfo = await api.getMintInfo(mintUrl);
+          setCashuMintDetails(mintInfo);
+        }
       }
 
       const created = await api.createScenario({
