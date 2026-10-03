@@ -59,6 +59,12 @@ import {
   createPolicyRoutes
 } from './modules/policy';
 import {
+  ConfigRepository,
+  ConfigService,
+  ConfigController,
+  createConfigRoutes
+} from './modules/config';
+import {
   OrchestratorService,
   OrchestratorController,
   createOrchestratorRoutes
@@ -114,10 +120,18 @@ export function createApp(
   const scenarioRoutes = createScenarioRoutes(scenarioController, limiter);
 
   let activeProtocolsConfig: ProtocolsConfig;
+  let bitcoinConfig: BitcoinConfig;
   if (protocolsConfig) {
     activeProtocolsConfig = protocolsConfig;
+    const candidateConfig = (protocolsConfig.bitcoinClient as unknown as { _config?: BitcoinConfig })._config;
+    bitcoinConfig = candidateConfig instanceof BitcoinConfig
+      ? candidateConfig
+      : BitcoinConfig.fromEnv({
+          ...process.env,
+          BITCOIN_NETWORK: process.env.BITCOIN_NETWORK || 'mainnet'
+        });
   } else {
-    const bitcoinConfig = BitcoinConfig.fromEnv({
+    bitcoinConfig = BitcoinConfig.fromEnv({
       ...process.env,
       BITCOIN_NETWORK: process.env.BITCOIN_NETWORK || 'mainnet'
     });
@@ -139,6 +153,11 @@ export function createApp(
       cashuClient
     };
   }
+
+  const configRepository = new ConfigRepository(prisma);
+  const configService = new ConfigService(configRepository, bitcoinConfig, logger);
+  const configController = new ConfigController(configService);
+  const configRoutes = createConfigRoutes(configController, limiter);
 
   const protocolsService = new ProtocolsService(activeProtocolsConfig, logger);
   const protocolsController = new ProtocolsController(protocolsService);
@@ -184,10 +203,16 @@ export function createApp(
   const orchestratorRoutes = createOrchestratorRoutes(orchestratorController, limiter);
 
   if (lifecycle) {
+    lifecycle.registerStartupHook('configService', async (): Promise<void> => {
+      await configService.initialize();
+    });
     lifecycle.registerStartupHook('policyService', async (): Promise<void> => {
       await policyService.initialize();
     });
   } else {
+    void configService.initialize().catch((err: unknown) => {
+      logger.error('Failed to initialize config service', err instanceof Error ? err : undefined);
+    });
     void policyService.initialize().catch((err: unknown) => {
       logger.error('Failed to initialize policy service', err instanceof Error ? err : undefined);
     });
@@ -201,6 +226,7 @@ export function createApp(
   app.use('/api/ai', aiRoutes);
   app.use('/api/policy', policyRoutes);
   app.use('/api/orchestrator', orchestratorRoutes);
+  app.use('/api/config', configRoutes);
 
   app.use(errorMiddleware);
 

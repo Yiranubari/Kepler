@@ -48,6 +48,8 @@ function statusForError(err: KeplerError): number {
   if (err.code === 'POLICY_BUDGET_VIOLATION') return 403;
   if (err.code === 'POLICY_ALLOWLIST_VIOLATION') return 403;
   if (err.code === 'POLICY_INPUT_ERROR') return 400;
+  if (err.code === 'CONFIG_NOT_FOUND') return 404;
+  if (err.code === 'CONFIG_NETWORK_INVALID') return 400;
   if (err instanceof ConfigurationError) return 500;
   if (err instanceof InternalError) return 500;
   if (err instanceof ValidationError) return 400;
