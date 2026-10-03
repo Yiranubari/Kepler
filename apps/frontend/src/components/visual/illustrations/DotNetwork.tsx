@@ -1,0 +1,263 @@
+import React from "react";
+import { cn } from "@/lib/utils";
+
+export interface DotNetworkProps extends React.SVGAttributes<SVGSVGElement> {
+  size?: number;
+}
+
+export const DotNetwork: React.FC<DotNetworkProps> = ({
+  size = 480,
+  className,
+  ...props
+}) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 480 480"
+      fill="none"
+      aria-hidden="true"
+      className={cn("shrink-0 select-none", className)}
+      {...props}
+    >
+      <circle cx="92.0" cy="128.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="104.0" cy="116.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="116.0" cy="104.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="128.0" cy="92.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="156.7" cy="76.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="173.3" cy="73.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="190.0" cy="70.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="206.7" cy="66.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="223.3" cy="63.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="256.7" cy="65.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="273.3" cy="70.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="290.0" cy="75.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="306.7" cy="80.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="323.3" cy="85.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="352.0" cy="102.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="364.0" cy="114.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="376.0" cy="126.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="388.0" cy="138.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="81.7" cy="156.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="83.3" cy="173.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="85.0" cy="190.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="86.7" cy="206.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="88.3" cy="223.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="145.7" cy="97.1" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="151.4" cy="114.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="157.1" cy="131.4" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="162.9" cy="148.6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="168.6" cy="165.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="174.3" cy="182.9" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="245.7" cy="77.1" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="251.4" cy="94.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="257.1" cy="111.4" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="262.9" cy="128.6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="268.6" cy="145.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="274.3" cy="162.9" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="344.4" cy="106.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="348.9" cy="123.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="353.3" cy="140.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="357.8" cy="156.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="362.2" cy="173.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="366.7" cy="190.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="371.1" cy="206.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="375.6" cy="223.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="396.0" cy="168.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="392.0" cy="186.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="388.0" cy="204.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="384.0" cy="222.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="105.0" cy="233.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="120.0" cy="226.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="135.0" cy="220.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="150.0" cy="213.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="165.0" cy="206.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="196.7" cy="196.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="213.3" cy="193.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="230.0" cy="190.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="246.7" cy="186.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="263.3" cy="183.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="294.3" cy="188.6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="308.6" cy="197.1" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="322.9" cy="205.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="337.1" cy="214.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="351.4" cy="222.9" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="365.7" cy="231.4" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="98.0" cy="256.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="106.0" cy="272.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="114.0" cy="288.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="122.0" cy="304.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="186.7" cy="215.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="193.3" cy="230.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="200.0" cy="245.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="206.7" cy="260.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="213.3" cy="275.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="285.7" cy="197.1" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="291.4" cy="214.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="297.1" cy="231.4" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="302.9" cy="248.6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="308.6" cy="265.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="314.3" cy="282.9" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="381.7" cy="256.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="383.3" cy="273.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="385.0" cy="290.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="386.7" cy="306.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="388.3" cy="323.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="148.0" cy="314.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="166.0" cy="308.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="184.0" cy="302.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="202.0" cy="296.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="236.7" cy="291.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="253.3" cy="293.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="270.0" cy="295.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="286.7" cy="296.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="303.3" cy="298.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="334.0" cy="308.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="348.0" cy="316.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="362.0" cy="324.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="376.0" cy="332.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="138.0" cy="336.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="146.0" cy="352.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="154.0" cy="368.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="162.0" cy="384.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="226.2" cy="306.2" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="232.5" cy="322.5" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="238.8" cy="338.8" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="245.0" cy="355.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="251.2" cy="371.2" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="257.5" cy="387.5" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="263.8" cy="403.8" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="324.3" cy="315.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="328.6" cy="331.4" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="332.9" cy="347.1" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="337.1" cy="362.9" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="341.4" cy="378.6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="345.7" cy="394.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="382.0" cy="354.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="374.0" cy="368.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="366.0" cy="382.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="358.0" cy="396.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="186.7" cy="403.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="203.3" cy="406.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="220.0" cy="410.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="236.7" cy="413.3" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="253.3" cy="416.7" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="286.0" cy="418.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="302.0" cy="416.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="318.0" cy="414.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="334.0" cy="412.0" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="80" cy="140" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="88.0" cy="140.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="84.0" cy="146.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="76.0" cy="146.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="72.0" cy="140.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="76.0" cy="133.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="84.0" cy="133.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="140" cy="80" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="148.0" cy="80.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="144.0" cy="86.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="136.0" cy="86.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="132.0" cy="80.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="136.0" cy="73.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="144.0" cy="73.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="240" cy="60" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="248.0" cy="60.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="244.0" cy="66.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="236.0" cy="66.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="232.0" cy="60.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="236.0" cy="53.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="244.0" cy="53.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="340" cy="90" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="348.0" cy="90.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="344.0" cy="96.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="336.0" cy="96.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="332.0" cy="90.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="336.0" cy="83.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="344.0" cy="83.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="400" cy="150" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="408.0" cy="150.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="404.0" cy="156.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="396.0" cy="156.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="392.0" cy="150.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="396.0" cy="143.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="404.0" cy="143.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="90" cy="240" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="98.0" cy="240.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="94.0" cy="246.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="86.0" cy="246.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="82.0" cy="240.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="86.0" cy="233.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="94.0" cy="233.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="180" cy="200" r="2.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="188.0" cy="200.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="184.0" cy="206.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="176.0" cy="206.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="172.0" cy="200.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="176.0" cy="193.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="184.0" cy="193.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="280" cy="180" r="2.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="288.0" cy="180.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="284.0" cy="186.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="276.0" cy="186.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="272.0" cy="180.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="276.0" cy="173.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="284.0" cy="173.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="380" cy="240" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="388.0" cy="240.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="384.0" cy="246.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="376.0" cy="246.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="372.0" cy="240.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="376.0" cy="233.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="384.0" cy="233.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="130" cy="320" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="138.0" cy="320.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="134.0" cy="326.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="126.0" cy="326.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="122.0" cy="320.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="126.0" cy="313.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="134.0" cy="313.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="220" cy="290" r="2.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="228.0" cy="290.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="224.0" cy="296.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="216.0" cy="296.9" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="212.0" cy="290.0" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="216.0" cy="283.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="224.0" cy="283.1" r="1.8" fill="hsl(var(--accent))" opacity="0.95" />
+      <circle cx="320" cy="300" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="328.0" cy="300.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="324.0" cy="306.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="316.0" cy="306.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="312.0" cy="300.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="316.0" cy="293.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="324.0" cy="293.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="390" cy="340" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="398.0" cy="340.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="394.0" cy="346.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="386.0" cy="346.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="382.0" cy="340.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="386.0" cy="333.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="394.0" cy="333.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="170" cy="400" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="178.0" cy="400.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="174.0" cy="406.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="166.0" cy="406.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="162.0" cy="400.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="166.0" cy="393.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="174.0" cy="393.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="270" cy="420" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="278.0" cy="420.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="274.0" cy="426.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="266.0" cy="426.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="262.0" cy="420.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="266.0" cy="413.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="274.0" cy="413.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="350" cy="410" r="2.8" fill="currentColor" opacity="0.75" />
+      <circle cx="358.0" cy="410.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="354.0" cy="416.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="346.0" cy="416.9" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="342.0" cy="410.0" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="346.0" cy="403.1" r="1.8" fill="currentColor" opacity="0.75" />
+      <circle cx="354.0" cy="403.1" r="1.8" fill="currentColor" opacity="0.75" />
+    </svg>
+  );
+};

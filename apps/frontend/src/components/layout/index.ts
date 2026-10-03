@@ -1,4 +1,5 @@
 export { AppShell, type AppShellProps } from "./AppShell";
+export { LandingLayout, type LandingLayoutProps } from "./LandingLayout";
 export { PageHeader, type PageHeaderProps } from "./PageHeader";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { LoadingState, type LoadingStateProps } from "./LoadingState";

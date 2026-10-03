@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-const tailwindConfig: Config = {
+export const tailwindConfig: Config = {
   darkMode: ["class"],
   content: [
     "./index.html",
@@ -8,6 +8,21 @@ const tailwindConfig: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["'Open Sans'", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["'Space Grotesk'", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"]
+      },
+      fontSize: {
+        "display-1": ["clamp(3rem, 5vw + 1rem, 6rem)", { lineHeight: "0.95", letterSpacing: "-0.04em", fontWeight: "700" }],
+        "display-2": ["clamp(3rem, 4vw + 1rem, 4rem)", { lineHeight: "1.0", letterSpacing: "-0.03em", fontWeight: "700" }],
+        "heading-1": ["clamp(2.25rem, 2.5vw + 1rem, 2.75rem)", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "heading-2": ["1.375rem", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "body-lg": ["18px", { lineHeight: "1.5", fontWeight: "400" }],
+        body: ["15px", { lineHeight: "1.6", fontWeight: "400" }],
+        "body-sm": ["13px", { lineHeight: "1.5", fontWeight: "400" }],
+        "label-caps": ["11px", { letterSpacing: "0.12em", fontWeight: "600" }]
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -53,4 +68,4 @@ const tailwindConfig: Config = {
   plugins: []
 };
 
-export { tailwindConfig as default, tailwindConfig };
+export default tailwindConfig;

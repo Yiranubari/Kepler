@@ -2,7 +2,9 @@ import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { AppShell } from "@/components/layout/AppShell";
+import { LandingLayout } from "@/components/layout/LandingLayout";
 import { fadeIn, useReducedMotion } from "@/lib/motion";
+import { LandingPage } from "@/pages/Landing";
 import { HomePage } from "@/pages/Home";
 import { SendPage } from "@/pages/Send";
 import { HistoryPage } from "@/pages/History";
@@ -38,59 +40,77 @@ export const App: React.FC = () => {
   const location = useLocation();
 
   return (
-    <AppShell>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route
-            path="/"
-            element={
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <LandingLayout>
+              <PageTransition>
+                <LandingPage />
+              </PageTransition>
+            </LandingLayout>
+          }
+        />
+        <Route
+          path="/app"
+          element={
+            <AppShell>
               <PageTransition>
                 <HomePage />
               </PageTransition>
-            }
-          />
-          <Route
-            path="/send"
-            element={
+            </AppShell>
+          }
+        />
+        <Route
+          path="/app/send"
+          element={
+            <AppShell>
               <PageTransition>
                 <SendPage />
               </PageTransition>
-            }
-          />
-          <Route
-            path="/history"
-            element={
+            </AppShell>
+          }
+        />
+        <Route
+          path="/app/history"
+          element={
+            <AppShell>
               <PageTransition>
                 <HistoryPage />
               </PageTransition>
-            }
-          />
-          <Route
-            path="/history/:id"
-            element={
+            </AppShell>
+          }
+        />
+        <Route
+          path="/app/history/:id"
+          element={
+            <AppShell>
               <PageTransition>
                 <HistoryDetailPage />
               </PageTransition>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
+            </AppShell>
+          }
+        />
+        <Route
+          path="/app/settings"
+          element={
+            <AppShell>
               <PageTransition>
                 <SettingsPage />
               </PageTransition>
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <PageTransition>
-                <NotFoundPage />
-              </PageTransition>
-            }
-          />
-        </Routes>
-      </AnimatePresence>
-    </AppShell>
+            </AppShell>
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <PageTransition>
+              <NotFoundPage />
+            </PageTransition>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
   );
 };

@@ -1,6 +1,7 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { Home, ArrowUpRight, History, Settings } from "lucide-react";
+import { motion } from "motion/react";
 import { WalletButton } from "@/components/layout/WalletButton";
 import { cn } from "@/lib/utils";
 
@@ -15,40 +16,51 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Home", to: "/", icon: Home },
-  { label: "Send", to: "/send", icon: ArrowUpRight },
-  { label: "History", to: "/history", icon: History },
-  { label: "Settings", to: "/settings", icon: Settings }
+  { label: "Home", to: "/app", icon: Home },
+  { label: "Send", to: "/app/send", icon: ArrowUpRight },
+  { label: "History", to: "/app/history", icon: History },
+  { label: "Settings", to: "/app/settings", icon: Settings }
 ];
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-accent selection:text-accent-foreground">
-      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/90 backdrop-blur-md">
-        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
-            <NavLink
-              to="/"
-              className="text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
+    <div className="min-h-screen bg-black text-foreground flex flex-col selection:bg-accent selection:text-accent-foreground">
+      <header className="sticky top-0 z-40 w-full h-16 border-b border-white/[0.08] bg-black">
+        <div className="max-w-[1280px] w-full mx-auto px-6 md:px-12 lg:px-16 h-full flex items-center justify-between gap-4">
+          <div className="flex items-center gap-8 h-full">
+            <Link
+              to="/app"
+              className="font-display font-black text-[18px] tracking-[0.08em] uppercase text-foreground hover:opacity-90 transition-opacity"
             >
-              Kepler
-            </NavLink>
-            <nav className="hidden sm:flex items-center gap-1">
+              KEPLER
+            </Link>
+            <nav className="hidden sm:flex items-center gap-1 h-full">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === "/"}
+                  end={item.to === "/app"}
                   className={({ isActive }) =>
                     cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-150 select-none",
+                      "relative h-16 flex items-center px-4 text-sm font-medium transition-colors select-none",
                       isActive
-                        ? "bg-secondary text-foreground border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     )
                   }
                 >
-                  {item.label}
+                  {({ isActive }) => (
+                    <>
+                      <span>{item.label}</span>
+                      {isActive ? (
+                        <motion.div
+                          layoutId="appNavUnderline"
+                          className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent"
+                          transition={{ duration: 0.15 }}
+                        />
+                      ) : null}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </nav>
@@ -59,13 +71,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-8">
+      <main className="flex-1 flex flex-col w-full max-w-[1280px] mx-auto px-6 md:px-12 lg:px-16 py-8 pb-24 sm:pb-8">
         {children}
       </main>
 
       <nav
         aria-label="Mobile navigation"
-        className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/95 backdrop-blur-md px-2 py-2 flex items-center justify-around"
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-black px-2 py-2 flex items-center justify-around"
       >
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -73,10 +85,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === "/"}
+              end={item.to === "/app"}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-md text-[11px] font-medium transition-colors duration-150 select-none min-w-[56px]",
+                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-md text-[11px] font-medium transition-colors select-none min-w-[56px]",
                   isActive
                     ? "text-foreground font-semibold"
                     : "text-muted-foreground hover:text-foreground"
