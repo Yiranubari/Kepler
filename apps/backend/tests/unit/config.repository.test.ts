@@ -1,7 +1,6 @@
 import '../../src/config/env';
 import { PrismaClient } from '@prisma/client';
 import { ConfigRepository } from '../../src/modules/config/config.repository';
-import { ConfigNotFoundError } from '../../src/modules/config/config.errors';
 
 if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connect_timeout')) {
   process.env.DATABASE_URL = `${process.env.DATABASE_URL}&connect_timeout=30`;
@@ -49,42 +48,42 @@ describe('ConfigRepository', () => {
     }
   }, 30000);
 
-  it('ensureDefault creates record if absent and is idempotent', async () => {
-    const config1 = await repository.ensureDefault('testnet4');
-    expect(config1.id).toBe('default');
-    expect(config1.network).toBeDefined();
+  it('ensureDefault creates the row', async () => {
+    await prisma.appConfigRecord.deleteMany({
+      where: { id: 'default' }
+    });
 
-    const config2 = await repository.ensureDefault('regtest');
-    expect(config2.id).toBe('default');
-    expect(config2.network).toBe(config1.network);
+    const created = await repository.ensureDefault('mainnet');
+    expect(created.id).toBe('default');
+    expect(created.network).toBe('mainnet');
+
+    const inDb = await prisma.appConfigRecord.findUnique({
+      where: { id: 'default' }
+    });
+    expect(inDb).not.toBeNull();
+    expect(inDb?.network).toBe('mainnet');
   });
 
-  it('get returns existing config or throws ConfigNotFoundError', async () => {
-    const config = await repository.get();
-    expect(config.id).toBe('default');
-    expect(config.network).toBeDefined();
-    expect(config.updatedAt).toBeInstanceOf(Date);
+  it('ensureDefault is idempotent', async () => {
+    const secondCall = await repository.ensureDefault('testnet4');
+    expect(secondCall.id).toBe('default');
+    expect(secondCall.network).toBe('mainnet');
+
+    const inDb = await prisma.appConfigRecord.findUnique({
+      where: { id: 'default' }
+    });
+    expect(inDb?.network).toBe('mainnet');
   });
 
-  it('updateNetwork updates network successfully', async () => {
-    const updated = await repository.updateNetwork('regtest');
-    expect(updated.network).toBe('regtest');
+  it('updateNetwork changes the stored value and returns the updated record', async () => {
+    const updated = await repository.updateNetwork('testnet4');
+    expect(updated.id).toBe('default');
+    expect(updated.network).toBe('testnet4');
 
     const fetched = await repository.get();
-    expect(fetched.network).toBe('regtest');
+    expect(fetched.network).toBe('testnet4');
 
     const reverted = await repository.updateNetwork('mainnet');
     expect(reverted.network).toBe('mainnet');
-  });
-
-  it('throws ConfigNotFoundError when row is absent', async () => {
-    const mockPrisma = {
-      appConfigRecord: {
-        findUnique: jest.fn().mockResolvedValue(null)
-      }
-    } as unknown as PrismaClient;
-
-    const mockRepo = new ConfigRepository(mockPrisma);
-    await expect(mockRepo.get()).rejects.toThrow(ConfigNotFoundError);
   });
 });

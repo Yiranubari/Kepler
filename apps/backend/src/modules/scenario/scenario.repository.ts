@@ -44,18 +44,41 @@ export class ScenarioRepository {
     return this.mapToScenario(record);
   }
 
-  public async list(limit: number = 50, offset: number = 0, network?: SupportedNetwork): Promise<Scenario[]> {
-    const safeLimit = typeof limit === 'number' && !Number.isNaN(limit) ? limit : 50;
-    const effectiveLimit = Math.min(Math.max(1, safeLimit), 200);
-    const effectiveOffset = typeof offset === 'number' && !Number.isNaN(offset) && offset > 0 ? Math.min(offset, 1000000) : 0;
+  public async list(
+    limitOrQuery?: number | { limit?: number; offset?: number; network?: SupportedNetwork },
+    offset?: number,
+    network?: SupportedNetwork
+  ): Promise<Scenario[]> {
+    let effectiveLimit = 50;
+    let effectiveOffset = 0;
+    let effectiveNetwork: SupportedNetwork | undefined = network;
 
-    const where: Prisma.ScenarioWhereInput = network ? { network } : {};
+    if (typeof limitOrQuery === 'object' && limitOrQuery !== null) {
+      if (typeof limitOrQuery.limit === 'number' && !Number.isNaN(limitOrQuery.limit)) {
+        effectiveLimit = limitOrQuery.limit;
+      }
+      if (typeof limitOrQuery.offset === 'number' && !Number.isNaN(limitOrQuery.offset)) {
+        effectiveOffset = limitOrQuery.offset;
+      }
+      if (limitOrQuery.network) {
+        effectiveNetwork = limitOrQuery.network;
+      }
+    } else if (typeof limitOrQuery === 'number' && !Number.isNaN(limitOrQuery)) {
+      effectiveLimit = limitOrQuery;
+      if (typeof offset === 'number' && !Number.isNaN(offset) && offset > 0) {
+        effectiveOffset = offset;
+      }
+    }
+
+    const safeLimit = Math.min(Math.max(1, effectiveLimit), 200);
+    const safeOffset = Math.min(Math.max(0, effectiveOffset), 1000000);
+    const where: Prisma.ScenarioWhereInput = effectiveNetwork ? { network: effectiveNetwork } : {};
 
     const records = await this.prisma.scenario.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: effectiveLimit,
-      skip: effectiveOffset
+      take: safeLimit,
+      skip: safeOffset
     });
 
     const scenarios: Scenario[] = [];

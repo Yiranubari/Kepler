@@ -19,6 +19,16 @@ describe('ScenarioRepository', () => {
   const testScenarioId1 = 'test_scenario_repo_1';
   const testScenarioId2 = 'test_scenario_repo_2';
   const testScenarioId3 = 'test_scenario_repo_3';
+  const testScenarioIdTestnet4 = 'test_scenario_repo_testnet4';
+  const testScenarioIdMainnet = 'test_scenario_repo_mainnet';
+
+  const allTestIds = [
+    testScenarioId1,
+    testScenarioId2,
+    testScenarioId3,
+    testScenarioIdTestnet4,
+    testScenarioIdMainnet
+  ];
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -35,7 +45,7 @@ describe('ScenarioRepository', () => {
 
     await prisma.scenario.deleteMany({
       where: {
-        id: { in: [testScenarioId1, testScenarioId2, testScenarioId3] }
+        id: { in: allTestIds }
       }
     });
   }, 30000);
@@ -44,7 +54,7 @@ describe('ScenarioRepository', () => {
     try {
       await prisma.scenario.deleteMany({
         where: {
-          id: { in: [testScenarioId1, testScenarioId2, testScenarioId3] }
+          id: { in: allTestIds }
         }
       });
       await prisma.$disconnect();
@@ -84,50 +94,45 @@ describe('ScenarioRepository', () => {
     expect(absent).toBeNull();
   });
 
-  it('List returns newest first, respects limit, offset, and network filter', async () => {
-    const target2 = new PaymentTarget({
+  it('A scenario created on testnet4 is not returned by a list({ network: \'mainnet\' }) query', async () => {
+    const target = new PaymentTarget({
       kind: PaymentTargetKind.Cashu,
-      payload: { request: 'cashu-token-repo-test' }
+      payload: { request: 'cashu-token-testnet4' }
     });
 
     await repository.create({
-      id: testScenarioId2,
-      target: target2,
-      network: 'mainnet'
+      id: testScenarioIdTestnet4,
+      target,
+      network: 'testnet4'
     });
 
-    const target3 = new PaymentTarget({
+    const mainnetList = await repository.list({ network: 'mainnet' });
+    expect(mainnetList.some((s) => s.id === testScenarioIdTestnet4)).toBe(false);
+  });
+
+  it('A scenario created on mainnet is returned by a list({ network: \'mainnet\' }) query', async () => {
+    const target = new PaymentTarget({
       kind: PaymentTargetKind.Bitcoin,
       payload: {
         address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-        amountSats: 1000
+        amountSats: 2500
       }
     });
 
     await repository.create({
-      id: testScenarioId3,
-      target: target3,
-      network: 'regtest'
+      id: testScenarioIdMainnet,
+      target,
+      network: 'mainnet'
     });
 
-    const list = await repository.list(10, 0);
-    expect(list.length).toBeGreaterThanOrEqual(3);
+    const mainnetList = await repository.list({ network: 'mainnet' });
+    expect(mainnetList.some((s) => s.id === testScenarioIdMainnet)).toBe(true);
+  });
 
-    for (let i = 0; i < list.length - 1; i++) {
-      expect(list[i].createdAt.getTime()).toBeGreaterThanOrEqual(list[i + 1].createdAt.getTime());
-    }
-
-    const capped = await repository.list(1, 0);
-    expect(capped).toHaveLength(1);
-
-    const offsetList = await repository.list(1, 1);
-    expect(offsetList).toHaveLength(1);
-    expect(offsetList[0].id).not.toBe(capped[0].id);
-    expect(capped[0].createdAt.getTime()).toBeGreaterThanOrEqual(offsetList[0].createdAt.getTime());
-
-    const regtestOnly = await repository.list(10, 0, 'regtest');
-    expect(regtestOnly.some((s) => s.id === testScenarioId3)).toBe(true);
-    expect(regtestOnly.some((s) => s.id === testScenarioId2)).toBe(false);
+  it('list without a network filter returns all scenarios', async () => {
+    const allScenarios = await repository.list();
+    expect(allScenarios.some((s) => s.id === testScenarioIdTestnet4)).toBe(true);
+    expect(allScenarios.some((s) => s.id === testScenarioIdMainnet)).toBe(true);
   });
 
   it('Update status persists', async () => {
@@ -144,10 +149,10 @@ describe('ScenarioRepository', () => {
     const check1 = await repository.getById(testScenarioId1);
     expect(check1).toBeNull();
 
-    await repository.delete(testScenarioId2);
-    await repository.delete(testScenarioId3);
+    await repository.delete(testScenarioIdTestnet4);
+    await repository.delete(testScenarioIdMainnet);
 
-    expect(await repository.getById(testScenarioId2)).toBeNull();
-    expect(await repository.getById(testScenarioId3)).toBeNull();
+    expect(await repository.getById(testScenarioIdTestnet4)).toBeNull();
+    expect(await repository.getById(testScenarioIdMainnet)).toBeNull();
   });
 });

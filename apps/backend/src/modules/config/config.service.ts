@@ -1,4 +1,4 @@
-import { BitcoinConfig, BitcoinNetwork } from '@kepler/bitcoin';
+import { BitcoinConfig } from '@kepler/bitcoin';
 import type { KeplerLogger } from '@kepler/shared';
 import { ConfigRepository } from './config.repository';
 import { AppConfig, SupportedNetwork } from './config.types';
@@ -21,7 +21,7 @@ export class ConfigService {
   }
 
   public async initialize(): Promise<void> {
-    await this.repository.ensureDefault(this.bitcoinConfig.network as SupportedNetwork);
+    await this.repository.ensureDefault(this.bitcoinConfig.network);
     const persisted = await this.repository.get();
     if (persisted.network !== this.bitcoinConfig.network) {
       this.syncBitcoinConfig(persisted.network);
@@ -46,20 +46,20 @@ export class ConfigService {
 
     const validatedNetwork = validationResult.data;
     const from = this.bitcoinConfig.network;
-    const to = validatedNetwork;
 
-    const updated = await this.repository.updateNetwork(validatedNetwork);
-    this.syncBitcoinConfig(validatedNetwork);
+    this.bitcoinConfig.setNetwork(validatedNetwork);
 
-    this.logger.info('Network configuration changed', { from, to });
-
-    return updated;
+    try {
+      const updated = await this.repository.updateNetwork(validatedNetwork);
+      this.logger.info('Network configuration changed', { from, to: validatedNetwork });
+      return updated;
+    } catch (err) {
+      this.bitcoinConfig.setNetwork(from);
+      throw err;
+    }
   }
 
   private syncBitcoinConfig(network: SupportedNetwork): void {
-    try {
-      this.bitcoinConfig.setNetwork(network as BitcoinNetwork);
-    } catch {
-    }
+    this.bitcoinConfig.setNetwork(network);
   }
 }

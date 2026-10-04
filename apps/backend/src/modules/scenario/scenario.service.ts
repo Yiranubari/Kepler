@@ -76,8 +76,12 @@ export class ScenarioService {
     return scenario;
   }
 
-  public async list(limit?: number, offset?: number, network?: SupportedNetwork): Promise<Scenario[]> {
-    return this.repository.list(limit, offset, network);
+  public async list(
+    limitOrQuery?: number | { limit?: number; offset?: number; network?: SupportedNetwork },
+    offset?: number,
+    network?: SupportedNetwork
+  ): Promise<Scenario[]> {
+    return this.repository.list(limitOrQuery, offset, network);
   }
 
   public async updateStatus(id: string, next: ScenarioStatus): Promise<Scenario> {

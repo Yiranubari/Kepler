@@ -17,13 +17,20 @@ describe('BitcoinConfig', () => {
       expect(config.network).toBe('mainnet');
     });
 
-    it('accepts testnet and regtest networks', () => {
+    it('accepts testnet, testnet4, signet, and regtest networks', () => {
       const testnetConfig = new BitcoinConfig({
         primaryUrl: validPrimaryUrl,
         fallbackUrl: validFallbackUrl,
         network: 'testnet'
       });
       expect(testnetConfig.network).toBe('testnet');
+
+      const signetConfig = new BitcoinConfig({
+        primaryUrl: validPrimaryUrl,
+        fallbackUrl: validFallbackUrl,
+        network: 'signet'
+      });
+      expect(signetConfig.network).toBe('signet');
 
       const regtestConfig = new BitcoinConfig({
         primaryUrl: validPrimaryUrl,
@@ -88,7 +95,7 @@ describe('BitcoinConfig', () => {
         new BitcoinConfig({
           primaryUrl: validPrimaryUrl,
           fallbackUrl: validFallbackUrl,
-          network: 'signet' as unknown as 'mainnet'
+          network: 'invalidnet' as never
         });
       } catch (err) {
         expect(err).toBeInstanceOf(BitcoinConfigError);
@@ -247,6 +254,28 @@ describe('BitcoinConfig', () => {
           delete process.env['BITCOIN_NETWORK'];
         }
       }
+    });
+  });
+
+  describe('setNetwork', () => {
+    it('setNetwork("signet") succeeds', () => {
+      const config = new BitcoinConfig({
+        primaryUrl: validPrimaryUrl,
+        fallbackUrl: validFallbackUrl,
+        network: 'mainnet'
+      });
+      config.setNetwork('signet');
+      expect(config.network).toBe('signet');
+    });
+
+    it('mempoolBaseUrl returns the signet URL', () => {
+      const config = new BitcoinConfig({
+        primaryUrl: validPrimaryUrl,
+        fallbackUrl: validFallbackUrl,
+        network: 'mainnet'
+      });
+      config.setNetwork('signet');
+      expect(config.mempoolBaseUrl).toBe('https://mempool.space/signet/api');
     });
   });
 });

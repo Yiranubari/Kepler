@@ -59,6 +59,7 @@ describe('ScenarioService', () => {
   const testId1 = 'test_service_scenario_1';
   const testId2 = 'test_service_scenario_2';
   const testId3 = 'test_service_scenario_3';
+  const testId4 = 'test_service_scenario_4';
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -86,14 +87,14 @@ describe('ScenarioService', () => {
     service = new ScenarioService(repository, configService, logger);
 
     await prisma.scenario.deleteMany({
-      where: { id: { in: [testId1, testId2, testId3] } }
+      where: { id: { in: [testId1, testId2, testId3, testId4] } }
     });
   }, 30000);
 
   afterAll(async () => {
     try {
       await prisma.scenario.deleteMany({
-        where: { id: { in: [testId1, testId2, testId3] } }
+        where: { id: { in: [testId1, testId2, testId3, testId4] } }
       });
       await prisma.$disconnect();
     } catch {
@@ -101,7 +102,9 @@ describe('ScenarioService', () => {
     }
   }, 30000);
 
-  it('Create returns a Scenario with status Pending and current network', async () => {
+  it('Creating a scenario reads the current network from ConfigService', async () => {
+    await configService.setNetwork('testnet4');
+
     const target = new PaymentTarget({
       kind: PaymentTargetKind.Lightning,
       payload: { invoice: 'lnbc100u1testserviceinvoice' }
@@ -115,6 +118,23 @@ describe('ScenarioService', () => {
     expect(scenario.id).toBe(testId1);
     expect(scenario.status).toBe(ScenarioStatus.Pending);
     expect(scenario.target.kind).toBe(PaymentTargetKind.Lightning);
+    expect((scenario.toJSON() as { network?: string }).network).toBe('testnet4');
+  });
+
+  it('After ConfigService.setNetwork(\'mainnet\'), a new scenario is created with network: \'mainnet\'', async () => {
+    await configService.setNetwork('mainnet');
+
+    const target = new PaymentTarget({
+      kind: PaymentTargetKind.Cashu,
+      payload: { request: 'cashu-req-mainnet-test' }
+    });
+
+    const scenario = await service.create({
+      id: testId4,
+      target
+    });
+
+    expect(scenario.id).toBe(testId4);
     expect((scenario.toJSON() as { network?: string }).network).toBe('mainnet');
   });
 
