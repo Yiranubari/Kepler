@@ -7,3 +7,4 @@ export * from "./DotCoin";
 export * from "./DotLock";
 export * from "./DotLink";
 export * from "./DotEye";
+export * from "./DotCheck";

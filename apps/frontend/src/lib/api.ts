@@ -59,6 +59,10 @@ export interface AnalyzeResponse {
   pathCount: number;
 }
 
+export interface AnalyzeOptions {
+  ingestData?: Record<string, unknown>;
+}
+
 export interface OrchestrateOptions {
   ingestData?: Record<string, unknown>;
   candidateRoutes?: unknown[];
@@ -253,10 +257,21 @@ export class ApiClient {
     });
   }
 
-  public async analyzeTaint(scenarioId: string): Promise<AnalyzeResponse> {
+  public async analyzeTaint(
+    scenarioId: string,
+    ingestDataOrOptions?: Record<string, unknown> | AnalyzeOptions
+  ): Promise<AnalyzeResponse> {
+    const ingestData =
+      ingestDataOrOptions && "ingestData" in ingestDataOrOptions
+        ? ingestDataOrOptions.ingestData
+        : ingestDataOrOptions;
+
     return this.request<AnalyzeResponse>("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ scenarioId })
+      body: JSON.stringify({
+        scenarioId,
+        ...(ingestData ? { ingestData } : {})
+      })
     });
   }
 
@@ -317,16 +332,56 @@ export class ApiClient {
   }
 }
 
-export const api = new ApiClient();
+const defaultClient = new ApiClient();
+
+export const createScenario = (
+  target: PaymentTargetInput
+): Promise<ScenarioResponse> => {
+  return defaultClient.createScenario(target);
+};
+
+export const getScenario = (id: string): Promise<ScenarioResponse> => {
+  return defaultClient.getScenario(id);
+};
+
+export const analyzeTaint = (
+  scenarioId: string,
+  ingestDataOrOptions?: Record<string, unknown> | AnalyzeOptions
+): Promise<AnalyzeResponse> => {
+  return defaultClient.analyzeTaint(scenarioId, ingestDataOrOptions);
+};
+
+export const orchestrate = (
+  scenarioId: string,
+  options?: OrchestrateOptions
+): Promise<OrchestrateResponse> => {
+  return defaultClient.orchestrate(scenarioId, options);
+};
+
+export const getFees = (network?: string): Promise<OnchainFeesResponse> => {
+  return defaultClient.getFees(network);
+};
+
+export const decodeLightningInvoice = (
+  invoice: string
+): Promise<LightningDecodeResponse> => {
+  return defaultClient.decodeLightningInvoice(invoice);
+};
+
+export const getMintInfo = (
+  mintUrl: string
+): Promise<CashuMintInfoResponse> => {
+  return defaultClient.getMintInfo(mintUrl);
+};
 
 export const getAppConfig = (): Promise<AppConfigResponse> => {
-  return api.getAppConfig();
+  return defaultClient.getAppConfig();
 };
 
 export const setNetwork = (
   network: SupportedNetwork
 ): Promise<AppConfigResponse> => {
-  return api.setNetwork(network);
+  return defaultClient.setNetwork(network);
 };
 
 export const listScenarios = (
@@ -361,13 +416,13 @@ export const listScenarios = (
   }
   const query = searchParams.toString();
   const path = query ? `/api/scenarios?${query}` : "/api/scenarios";
-  return api.request<ScenarioResponse[]>(path, {
+  return defaultClient.request<ScenarioResponse[]>(path, {
     method: "GET"
   });
 };
 
 export const getPolicy = (): Promise<PolicyResponse> => {
-  return api.request<PolicyResponse>("/api/policy", {
+  return defaultClient.request<PolicyResponse>("/api/policy", {
     method: "GET"
   });
 };

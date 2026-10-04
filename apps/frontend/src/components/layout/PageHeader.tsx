@@ -25,12 +25,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       animate={shouldReduceMotion ? { opacity: 1 } : "animate"}
       className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8", className)}
     >
-      <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+      <div className="space-y-2">
+        <h1 className="font-display text-heading-1 font-bold tracking-[-0.02em] text-foreground">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm text-muted-foreground">
+          <p className="font-sans text-body text-muted-foreground">
             {subtitle}
           </p>
         )}

@@ -1,150 +1,231 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPolicy, type PolicyResponse } from "@/lib/api";
+import { motion } from "motion/react";
+import {
+  getPolicy,
+  getAppConfig,
+  type PolicyResponse,
+  type AppConfigResponse,
+  ClientError
+} from "@/lib/api";
+import { networkLabel } from "@/lib/networkLabel";
+import { useWallet } from "@/lib/wallet";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { LoadingState } from "@/components/layout/LoadingState";
 import { ErrorState } from "@/components/layout/ErrorState";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider
+} from "@/components/ui/tooltip";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import { useReducedMotion } from "@/lib/motion";
 
 export const SettingsPage: React.FC = () => {
+  const shouldReduceMotion = useReducedMotion();
+  const { address, isConnected, connect, disconnect } = useWallet();
+
   const {
     data: policy,
-    isLoading,
-    error,
-    refetch
-  } = useQuery<PolicyResponse>({
+    isLoading: isPolicyLoading,
+    error: policyError,
+    refetch: refetchPolicy
+  } = useQuery<PolicyResponse, ClientError>({
     queryKey: ["policy"],
-    queryFn: () => getPolicy()
+    queryFn: getPolicy
   });
 
+  const {
+    data: appConfig,
+    isLoading: isConfigLoading,
+    error: configError,
+    refetch: refetchConfig
+  } = useQuery<AppConfigResponse, ClientError>({
+    queryKey: ["appConfig"],
+    queryFn: getAppConfig
+  });
+
+  const appVersion = import.meta.env.VITE_APP_VERSION || "0.1.0";
+  const githubUrl = import.meta.env.VITE_GITHUB_URL || "";
+
+  const formattedWalletAddress =
+    isConnected && address
+      ? `Connected as ${address.slice(0, 8)}...${address.slice(-6)}`
+      : "No wallet connected";
+
   return (
-    <div className="w-full space-y-6">
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.15, ease: "easeOut" } }}
+      className="w-full space-y-16 md:space-y-24 max-w-3xl"
+    >
       <PageHeader
         title="Settings"
-        subtitle="Policy rules, spending limits, and service allowlists."
+        subtitle="Your spending limits, wallet connections, and privacy preferences."
       />
 
-      {isLoading && (
-        <LoadingState statusText="Loading settings..." cardsCount={2} />
-      )}
+      <section className="space-y-4">
+        <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+          Wallet
+        </h2>
+        <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-4 divide-y divide-white/[0.06]">
+          <div className="flex justify-between items-center text-left first:pt-0">
+            <span className="font-sans text-body text-muted-foreground">Status</span>
+            <span className="font-sans text-body text-foreground">
+              {formattedWalletAddress}
+            </span>
+          </div>
+          <div className="pt-4 flex justify-start">
+            {isConnected ? (
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => void disconnect()}
+              >
+                Disconnect
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                className="rounded-full"
+                onClick={() => void connect()}
+              >
+                Connect wallet
+              </Button>
+            )}
+          </div>
+        </Card>
+      </section>
 
-      {Boolean(error) && (
-        <ErrorState error={error} onRetry={() => void refetch()} />
-      )}
-
-      {!isLoading && !Boolean(error) && policy && (
-        <div className="space-y-6 max-w-2xl">
-          <Card>
-            <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-base font-medium">Spending limits</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="flex justify-between items-center py-1">
-                <span className="text-sm text-muted-foreground">Daily limit</span>
-                <span className="text-sm font-semibold font-mono text-foreground">
+      <section className="space-y-4">
+        <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+          Limits
+        </h2>
+        {isPolicyLoading ? (
+          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </Card>
+        ) : policyError ? (
+          <ErrorState error={policyError} onRetry={() => void refetchPolicy()} />
+        ) : policy ? (
+          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
+            <div className="space-y-4 divide-y divide-white/[0.06]">
+              <div className="flex justify-between items-center py-2 first:pt-0">
+                <span className="font-sans text-body text-muted-foreground">Daily limit</span>
+                <span className="font-display font-medium text-base text-foreground tabular-nums">
                   <AnimatedNumber value={Number(policy.dailyBudgetSats)} /> sats
                 </span>
               </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-sm text-muted-foreground">Per payment limit</span>
-                <span className="text-sm font-semibold font-mono text-foreground">
+              <div className="flex justify-between items-center py-2">
+                <span className="font-sans text-body text-muted-foreground">Per transaction limit</span>
+                <span className="font-display font-medium text-base text-foreground tabular-nums">
                   <AnimatedNumber value={Number(policy.perTxBudgetSats)} /> sats
                 </span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-base font-medium">Allowed scopes</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {policy.scopes.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {policy.scopes.map((scope) => (
-                    <span
-                      key={scope}
-                      className="px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-foreground border border-border/60"
-                    >
-                      {scope}
+            </div>
+            <div className="pt-2">
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button variant="ghost" size="sm" disabled className="w-fit">
+                        Edit limits
+                      </Button>
                     </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No scopes configured.</p>
-              )}
-            </CardContent>
+                  </TooltipTrigger>
+                  <TooltipContent>Editing limits is coming soon.</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </Card>
+        ) : null}
+      </section>
 
-          <Card>
-            <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-base font-medium">Allowed services</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Mints
-                </span>
-                {policy.allowedMints.length > 0 ? (
-                  <div className="space-y-1">
-                    {policy.allowedMints.map((mint) => (
-                      <div
-                        key={mint}
-                        className="text-xs font-mono text-foreground bg-secondary/50 p-2 rounded border border-border/40 break-all"
-                      >
-                        {mint}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No mints configured.</p>
-                )}
-              </div>
+      <section className="space-y-4">
+        <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+          Advanced
+        </h2>
+        <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1 text-left">
+              <span className="font-sans text-body text-foreground font-medium block">
+                Show advanced details
+              </span>
+              <p className="font-sans text-body-sm text-muted-foreground">
+                Advanced mode is coming soon.
+              </p>
+            </div>
+            <div
+              role="switch"
+              aria-checked="false"
+              aria-disabled="true"
+              aria-label="Show advanced details"
+              className="w-11 h-6 rounded-full bg-white/[0.1] p-1 cursor-not-allowed opacity-50 flex items-center shrink-0"
+            >
+              <div className="w-4 h-4 rounded-full bg-white/[0.4]" />
+            </div>
+          </div>
+        </Card>
+      </section>
 
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Relays
-                </span>
-                {policy.allowedRelays.length > 0 ? (
-                  <div className="space-y-1">
-                    {policy.allowedRelays.map((relay) => (
-                      <div
-                        key={relay}
-                        className="text-xs font-mono text-foreground bg-secondary/50 p-2 rounded border border-border/40 break-all"
-                      >
-                        {relay}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No relays configured.</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Esplora Servers
-                </span>
-                {policy.allowedEsplora.length > 0 ? (
-                  <div className="space-y-1">
-                    {policy.allowedEsplora.map((server) => (
-                      <div
-                        key={server}
-                        className="text-xs font-mono text-foreground bg-secondary/50 p-2 rounded border border-border/40 break-all"
-                      >
-                        {server}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No Esplora servers configured.</p>
-                )}
-              </div>
-            </CardContent>
+      <section className="space-y-4">
+        <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+          About
+        </h2>
+        {isConfigLoading ? (
+          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20" />
+            </div>
           </Card>
-        </div>
-      )}
-    </div>
+        ) : configError ? (
+          <ErrorState error={configError} onRetry={() => void refetchConfig()} />
+        ) : (
+          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-4 divide-y divide-white/[0.06]">
+            <div className="flex justify-between items-center py-2 first:pt-0">
+              <span className="font-sans text-body text-muted-foreground">Version</span>
+              <span className="font-mono text-sm text-foreground">
+                {appVersion}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="font-sans text-body text-muted-foreground">Network</span>
+              <span className="font-sans text-sm text-foreground">
+                {appConfig?.network ? networkLabel(appConfig.network) : "Testnet"}
+              </span>
+            </div>
+            {githubUrl ? (
+              <div className="flex justify-between items-center py-2">
+                <span className="font-sans text-body text-muted-foreground">Open source</span>
+                <a
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-sans text-sm text-foreground hover:underline"
+                >
+                  GitHub
+                </a>
+              </div>
+            ) : null}
+          </Card>
+        )}
+      </section>
+    </motion.div>
   );
 };
