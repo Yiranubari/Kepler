@@ -151,4 +151,11 @@ describe('ProofRepository', () => {
 
     expect(results[0].createdAt.getTime()).toBeLessThanOrEqual(results[1].createdAt.getTime());
   });
+
+  it('scenarioExists returns true for a seeded scenario and false for an unknown one', async () => {
+    await expect(repository.scenarioExists(testScenarioId)).resolves.toBe(true);
+    await expect(
+      repository.scenarioExists('test_proof_repo_scenario_missing')
+    ).resolves.toBe(false);
+  });
 });

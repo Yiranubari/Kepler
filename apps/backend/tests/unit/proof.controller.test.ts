@@ -187,7 +187,25 @@ describe('ProofController and Routes', () => {
 
       expect(mockService.listByScenario).toHaveBeenCalledWith('sc-1');
       expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith([sampleBundle.toJSON()]);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        bundles: [sampleBundle.toJSON()]
+      });
+    });
+
+    it('passes NotFoundError to next when scenario is missing', async () => {
+      mockService.listByScenario.mockRejectedValue(
+        new NotFoundError('Scenario not found', { resource: 'Scenario', scenarioId: 'sc-missing' })
+      );
+      mockReq = {
+        params: {
+          scenarioId: 'sc-missing'
+        }
+      };
+
+      await controller.listByScenario(mockReq as Request, mockRes as Response, nextFn);
+
+      expect(nextFn).toHaveBeenCalledWith(expect.any(NotFoundError));
+      expect(mockRes.status).not.toHaveBeenCalled();
     });
   });
 

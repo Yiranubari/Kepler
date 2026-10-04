@@ -3,7 +3,8 @@ import {
   EvidenceBundle,
   EvidenceBundleJSON,
   ClaimVerificationResult,
-  KeplerLogger
+  KeplerLogger,
+  NotFoundError
 } from '@kepler/shared';
 import { ClaimRegistry } from './claims/registry';
 import { ProofRepository } from './proof.repository';
@@ -93,6 +94,14 @@ export class ProofService {
   }
 
   public async listByScenario(scenarioId: string): Promise<EvidenceBundle[]> {
+    const exists = await this.repository.scenarioExists(scenarioId);
+    if (!exists) {
+      throw new NotFoundError('Scenario not found', {
+        resource: 'Scenario',
+        scenarioId
+      });
+    }
+
     const bundles = await this.repository.listByScenario(scenarioId);
     return [...bundles].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }

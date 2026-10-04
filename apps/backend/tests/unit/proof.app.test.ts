@@ -54,13 +54,13 @@ describe('App integration for Proof module', () => {
     expect(res.status).toBe(404);
   });
 
-  it('mounts GET /api/proof/scenario/:scenarioId', async () => {
+  it('mounts GET /api/proof/scenario/:scenarioId and returns 404 for an unknown scenario', async () => {
     const res = await request(app).get('/api/proof/scenario/scenario-empty');
     if ((res.status === 422 || res.status === 500) && res.body?.error?.code === 'PROOF_PERSISTENCE_ERROR') {
       expect(res.body.error.code).toBe('PROOF_PERSISTENCE_ERROR');
     } else {
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
     }
   });
 

@@ -1,4 +1,9 @@
-import { ClaimType, EvidenceBundle, KeplerLogger } from "@kepler/shared";
+import {
+  ClaimType,
+  EvidenceBundle,
+  KeplerLogger,
+  NotFoundError,
+} from "@kepler/shared";
 import { ProofService } from "../../src/modules/proof/proof.service";
 import { ClaimRegistry } from "../../src/modules/proof/claims/registry";
 import { ProofRepository } from "../../src/modules/proof/proof.repository";
@@ -12,11 +17,16 @@ import { PrismaClient } from "@prisma/client";
 class TestProofRepository extends ProofRepository {
   public bundles = new Map<string, EvidenceBundle>();
   public scenarioBundles = new Map<string, EvidenceBundle[]>();
+  public existingScenarioIds = new Set<string>();
   public saveThrows = false;
   public getThrows = false;
 
   constructor() {
     super({} as PrismaClient);
+  }
+
+  public override async scenarioExists(scenarioId: string): Promise<boolean> {
+    return this.existingScenarioIds.has(scenarioId);
   }
 
   public override async saveBundle(
@@ -27,6 +37,7 @@ class TestProofRepository extends ProofRepository {
       throw new Error("Database write failure");
     }
     this.bundles.set(bundle.bundleHash, bundle);
+    this.existingScenarioIds.add(scenarioId);
     const existing = this.scenarioBundles.get(scenarioId) ?? [];
     existing.push(bundle);
     this.scenarioBundles.set(scenarioId, existing);
@@ -295,6 +306,20 @@ describe("ProofService", () => {
       );
       expect(listed[0].createdAt).toEqual(earlierTime);
       expect(listed[1].createdAt).toEqual(laterTime);
+    });
+
+    it("returns an empty list for an existing scenario without bundles", async () => {
+      repository.existingScenarioIds.add("scenario-empty");
+
+      const listed = await service.listByScenario("scenario-empty");
+
+      expect(listed).toEqual([]);
+    });
+
+    it("throws NotFoundError when the scenario does not exist", async () => {
+      await expect(
+        service.listByScenario("scenario-unknown"),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

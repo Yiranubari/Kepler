@@ -118,6 +118,23 @@ export class ProofRepository {
     }
   }
 
+  public async scenarioExists(scenarioId: string): Promise<boolean> {
+    try {
+      const record = await this.prisma.scenario.findUnique({
+        where: { id: scenarioId },
+        select: { id: true },
+      });
+      return record !== null;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new ProofPersistenceError(
+        "Failed to check scenario existence",
+        { bundleId: scenarioId, operation: "scenarioExists", reason },
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
   public async listByScenario(scenarioId: string): Promise<EvidenceBundle[]> {
     try {
       const records = await this.prisma.evidenceRecord.findMany({

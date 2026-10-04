@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   getScenario,
   getTaintGraph,
+  listEvidenceBundles,
   type ScenarioResponse,
   type TaintGraph,
+  type EvidenceBundleWire,
   ClientError
 } from "@/lib/api";
 import { networkLabel } from "@/lib/networkLabel";
@@ -29,6 +31,13 @@ import {
   TaintPathList,
   TaintGraphExplanation
 } from "@/components/graph";
+import {
+  EvidenceClaimCard,
+  EvidenceVerify,
+  EvidenceRawData,
+  EvidenceSteps
+} from "@/components/proof";
+import { claimTypeLabel } from "@/components/proof/EvidenceClaimCard";
 
 const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -51,6 +60,23 @@ const formatRelativeTime = (dateString: string): string => {
     return `${diffInDays}d ago`;
   }
   return date.toLocaleDateString();
+};
+
+interface EvidenceBundleGroupProps {
+  bundle: EvidenceBundleWire;
+}
+
+const EvidenceBundleGroup: React.FC<EvidenceBundleGroupProps> = ({
+  bundle
+}) => {
+  return (
+    <div className="space-y-4">
+      <EvidenceClaimCard bundle={bundle} />
+      <EvidenceVerify bundle={bundle} />
+      <EvidenceRawData refs={bundle.rawDataRefs} />
+      <EvidenceSteps steps={bundle.verificationSteps} />
+    </div>
+  );
 };
 
 export const HistoryDetailPage: React.FC = () => {
@@ -86,6 +112,17 @@ export const HistoryDetailPage: React.FC = () => {
   } = useQuery<TaintGraph | null, ClientError>({
     queryKey: ["taintGraph", scenarioId],
     queryFn: () => getTaintGraph(scenarioId),
+    enabled: Boolean(scenarioId)
+  });
+
+  const {
+    data: bundles,
+    isLoading: isBundlesLoading,
+    error: bundlesError,
+    refetch: refetchBundles
+  } = useQuery<EvidenceBundleWire[], ClientError>({
+    queryKey: ["evidenceBundles", scenarioId],
+    queryFn: () => listEvidenceBundles(scenarioId),
     enabled: Boolean(scenarioId)
   });
 
@@ -337,6 +374,42 @@ export const HistoryDetailPage: React.FC = () => {
                 Click any node to see its details. Hover a path to highlight the nodes on it.
               </p>
             </motion.div>
+          )}
+
+          {isBundlesLoading ? (
+            <Card className="rounded-[12px] border border-white/[0.08] bg-card p-8 shadow-none flex flex-col items-center justify-center space-y-3 min-h-[240px]">
+              <Spinner size="md" className="text-muted-foreground" />
+              <span className="font-sans text-body-sm text-muted-foreground">
+                Loading the evidence bundle...
+              </span>
+            </Card>
+          ) : bundlesError ? (
+            <ErrorState
+              error={bundlesError}
+              onRetry={() => void refetchBundles()}
+            />
+          ) : !bundles || bundles.length === 0 ? (
+            <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none">
+              <EmptyState
+                icon={DotShield}
+                title="No evidence bundle yet"
+                description="The evidence bundle is created when a payment decision is made."
+                className="border-none bg-transparent p-0 my-0 max-w-full"
+              />
+            </Card>
+          ) : bundles.length === 1 ? (
+            <EvidenceBundleGroup bundle={bundles[0]} />
+          ) : (
+            <div className="space-y-24">
+              {bundles.map((bundle) => (
+                <div key={bundle.id} className="space-y-4">
+                  <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+                    {claimTypeLabel(bundle.claim["type"])}
+                  </h2>
+                  <EvidenceBundleGroup bundle={bundle} />
+                </div>
+              ))}
+            </div>
           )}
 
           <div className="pt-2">

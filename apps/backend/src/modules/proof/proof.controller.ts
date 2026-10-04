@@ -107,7 +107,9 @@ export class ProofController {
       }
 
       const bundles = await this.service.listByScenario(scenarioId);
-      res.status(200).json(bundles.map((bundle) => bundle.toJSON()));
+      res.status(200).json({
+        bundles: bundles.map((bundle) => bundle.toJSON())
+      });
     } catch (error) {
       next(error);
     }

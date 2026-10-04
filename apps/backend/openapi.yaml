@@ -411,11 +411,18 @@ paths:
           description: The ID of the scenario
       responses:
         '200':
-          description: List of evidence bundles for scenario
+          description: Evidence bundles for the scenario
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListClaimsResponse'
+                type: object
+                required:
+                  - bundles
+                properties:
+                  bundles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EvidenceBundle'
         '400':
           description: Invalid scenario ID parameter
           content:
@@ -1930,11 +1937,6 @@ components:
       required:
         - valid
         - reason
-
-    ListClaimsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/EvidenceBundle'
 
     PolicyScope:
       type: string

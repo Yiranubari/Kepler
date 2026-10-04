@@ -177,6 +177,35 @@ export interface AIExplainResponse {
   cached: boolean;
 }
 
+export interface EvidenceBundleWire {
+  id: string;
+  claim: { text: string; type: string };
+  rawDataRefs: Array<{
+    source: string;
+    ref: string;
+    payload: unknown;
+    fetchedAt: string;
+  }>;
+  verificationSteps: Array<{
+    name: string;
+    endpoint: string;
+    input: unknown;
+    expected: unknown;
+  }>;
+  confidence: number | null;
+  riskScore: number | null;
+  bundleHash: string;
+  createdAt: string;
+}
+
+export interface VerificationResultWire {
+  valid: boolean;
+  reason: string;
+  failedStep: string | null;
+  expected: unknown;
+  actual: unknown;
+}
+
 export class ApiClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -519,6 +548,26 @@ export const getPolicy = (): Promise<PolicyResponse> => {
     method: "GET"
   });
 };
+
+export async function listEvidenceBundles(
+  scenarioId: string
+): Promise<EvidenceBundleWire[]> {
+  const response = await defaultClient.request<{
+    bundles: EvidenceBundleWire[];
+  }>(`/api/proof/scenario/${encodeURIComponent(scenarioId)}`, {
+    method: "GET"
+  });
+  return response.bundles;
+}
+
+export async function verifyEvidenceBundle(
+  bundle: EvidenceBundleWire
+): Promise<VerificationResultWire> {
+  return defaultClient.request<VerificationResultWire>("/api/proof/verify", {
+    method: "POST",
+    body: JSON.stringify({ bundle })
+  });
+}
 
 export function toScenario(response: ScenarioResponse): Scenario {
   const normalizedKind =
