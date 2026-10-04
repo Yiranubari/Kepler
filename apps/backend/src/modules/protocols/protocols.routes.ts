@@ -30,6 +30,10 @@ export function createProtocolsRoutes(controller: ProtocolsController, limiter: 
     controller.listLightningTransactions(req, res, next).catch(next);
   });
 
+  router.post('/lightning/create', rateLimit(limiter, 'propose'), (req, res, next) => {
+    controller.createLightningInvoice(req, res, next).catch(next);
+  });
+
   router.post('/nostr/event', rateLimit(limiter, 'read'), (req, res, next) => {
     controller.fetchNostrEvent(req, res, next).catch(next);
   });

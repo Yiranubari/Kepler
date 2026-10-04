@@ -428,6 +428,20 @@ export class ApiClient {
     );
   }
 
+  public async createLightningInvoice(
+    amountSats: number,
+    memo = "Kepler testnet funding"
+  ): Promise<{ invoice: string }> {
+    const res = await this.request<{ invoice: string; paymentHash?: string }>(
+      "/api/protocols/lightning/create",
+      {
+        method: "POST",
+        body: JSON.stringify({ amountSats, memo })
+      }
+    );
+    return { invoice: res.invoice };
+  }
+
   public async getMintInfo(mintUrl: string): Promise<CashuMintInfoResponse> {
     return this.request<CashuMintInfoResponse>("/api/protocols/cashu/mint", {
       method: "POST",
@@ -498,6 +512,12 @@ export const decodeLightningInvoice = (
 ): Promise<LightningDecodeResponse> => {
   return defaultClient.decodeLightningInvoice(invoice);
 };
+
+export async function createLightningInvoice(
+  amountSats: number
+): Promise<{ invoice: string }> {
+  return defaultClient.createLightningInvoice(amountSats);
+}
 
 export const getMintInfo = (
   mintUrl: string

@@ -8,6 +8,7 @@ import {
   LightningDecodeRequestSchema,
   LightningLookupRequestSchema,
   LightningListRequestSchema,
+  LightningCreateRequestSchema,
   NostrEventRequestSchema,
   NostrAuthorRequestSchema,
   CashuMintRequestSchema
@@ -110,6 +111,20 @@ export class ProtocolsController {
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         next(new ValidationError('Invalid Lightning list transactions request', { issues: error.issues }));
+        return;
+      }
+      next(error);
+    }
+  }
+
+  public async createLightningInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const parsed = LightningCreateRequestSchema.parse(req.body);
+      const result = await this.service.createLightningInvoice(parsed.amountSats, parsed.memo);
+      res.status(200).json(this.serialize(result));
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        next(new ValidationError('Invalid Lightning invoice creation request', { issues: error.issues }));
         return;
       }
       next(error);

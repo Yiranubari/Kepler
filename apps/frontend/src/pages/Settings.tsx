@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
-import { PolicyEditor } from "@/components/settings";
+import { PolicyEditor, TestnetFaucets } from "@/components/settings";
 import { useAdvancedMode } from "@/store/advancedMode";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/motion";
@@ -72,6 +72,8 @@ export const SettingsPage: React.FC = () => {
         title="Settings"
         subtitle="Your spending limits, wallet connections, and privacy preferences."
       />
+
+      <TestnetFaucets />
 
       <section className="space-y-4">
         <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">

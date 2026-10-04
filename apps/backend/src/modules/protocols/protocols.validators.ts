@@ -40,6 +40,11 @@ export const LightningListRequestSchema = z.object({
   limit: z.coerce.number().int().positive().max(50)
 });
 
+export const LightningCreateRequestSchema = z.object({
+  amountSats: z.coerce.number().int().positive(),
+  memo: z.string().min(1).max(500).optional()
+});
+
 export const NostrEventRequestSchema = z.object({
   eventId: IdentifierString.refine(
     (value) => /^[0-9a-fA-F]{64}$/.test(value),

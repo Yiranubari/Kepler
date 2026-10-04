@@ -1,4 +1,9 @@
+import net from 'node:net';
 import { performance } from 'node:perf_hooks';
+
+if (typeof net.setDefaultAutoSelectFamily === 'function') {
+  net.setDefaultAutoSelectFamily(false);
+}
 import { z } from 'zod';
 import {
   KeplerLogger,
@@ -28,7 +33,8 @@ import {
   LightningPaymentError,
   LightningInvoice,
   LightningPayment,
-  LightningTransaction
+  LightningTransaction,
+  InvoiceCreationResult
 } from '@kepler/lightning';
 import {
   NostrClient,
@@ -52,6 +58,7 @@ import {
   LightningDecodeRequestSchema,
   LightningLookupRequestSchema,
   LightningListRequestSchema,
+  LightningCreateRequestSchema,
   NostrEventRequestSchema,
   NostrAuthorRequestSchema,
   CashuMintRequestSchema
@@ -301,6 +308,18 @@ export class ProtocolsService {
     }
     return this.execute('lightning', 'listLightningTransactions', undefined, async () => {
       return this.lightningClient.listTransactions({ limit: validation.data.limit });
+    });
+  }
+
+  public async createLightningInvoice(amountSats: number, memo?: string): Promise<InvoiceCreationResult> {
+    const validation = LightningCreateRequestSchema.safeParse({ amountSats, memo });
+    if (!validation.success) {
+      throw this.createValidationError('lightning', 'createLightningInvoice', validation.error);
+    }
+    const description = validation.data.memo ?? 'Kepler testnet funding';
+    const amountMsat = BigInt(validation.data.amountSats) * 1000n;
+    return this.execute('lightning', 'createLightningInvoice', undefined, async () => {
+      return this.lightningClient.createInvoice(amountMsat, description);
     });
   }
 

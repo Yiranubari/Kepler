@@ -835,6 +835,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/protocols/lightning/create:
+    post:
+      summary: Create BOLT11 Lightning invoice
+      operationId: createLightningInvoice
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LightningCreateRequest'
+      responses:
+        '200':
+          description: Created invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LightningCreateResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream network error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/protocols/nostr/event:
     post:
       summary: Fetch Nostr event by event ID
@@ -2331,6 +2374,32 @@ components:
           type: integer
           minimum: 1
           maximum: 50
+
+    LightningCreateRequest:
+      type: object
+      required:
+        - amountSats
+      properties:
+        amountSats:
+          type: integer
+          minimum: 1
+          description: Amount in satoshis
+        memo:
+          type: string
+          description: Optional invoice description
+
+    LightningCreateResponse:
+      type: object
+      required:
+        - invoice
+        - paymentHash
+      properties:
+        invoice:
+          type: string
+          description: BOLT11 invoice string
+        paymentHash:
+          type: string
+          description: 64-character lowercase hexadecimal payment hash
 
     LightningDecodeResponse:
       type: object
