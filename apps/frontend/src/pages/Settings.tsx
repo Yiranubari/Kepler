@@ -1,5 +1,5 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   getPolicy,
@@ -15,18 +15,24 @@ import { ErrorState } from "@/components/layout/ErrorState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider
-} from "@/components/ui/tooltip";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import { PolicyEditor } from "@/components/settings";
+import { useAdvancedMode } from "@/store/advancedMode";
+import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/motion";
 
 export const SettingsPage: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const { address, isConnected, connect, disconnect } = useWallet();
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const advancedEnabled = useAdvancedMode((state) => state.enabled);
+  const setAdvancedEnabled = useAdvancedMode((state) => state.setEnabled);
+
+  const handlePolicySaved = (): void => {
+    setIsEditing(false);
+    void queryClient.invalidateQueries({ queryKey: ["policy"] });
+  };
 
   const {
     data: policy,
@@ -119,6 +125,7 @@ export const SettingsPage: React.FC = () => {
         ) : policyError ? (
           <ErrorState error={policyError} onRetry={() => void refetchPolicy()} />
         ) : policy ? (
+          <div className="space-y-4">
           <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
             <div className="space-y-4 divide-y divide-white/[0.06]">
               <div className="flex justify-between items-center py-2 first:pt-0">
@@ -135,20 +142,20 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
             <div className="pt-2">
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button variant="ghost" size="sm" disabled className="w-fit">
-                        Edit limits
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Editing limits is coming soon.</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                variant="primary"
+                size="md"
+                className="rounded-full"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit limits
+              </Button>
             </div>
-          </Card>
+            </Card>
+            {isEditing ? (
+              <PolicyEditor policy={policy} onSaved={handlePolicySaved} />
+            ) : null}
+          </div>
         ) : null}
       </section>
 
@@ -162,19 +169,35 @@ export const SettingsPage: React.FC = () => {
               <span className="font-sans text-body text-foreground font-medium block">
                 Show advanced details
               </span>
-              <p className="font-sans text-body-sm text-muted-foreground">
-                Advanced mode is coming soon.
-              </p>
+              {advancedEnabled && (
+                <p className="font-sans text-body-sm text-muted-foreground">
+                  Raw JSON is now visible on each payment.
+                </p>
+              )}
             </div>
-            <div
+            <button
+              type="button"
               role="switch"
-              aria-checked="false"
-              aria-disabled="true"
+              aria-checked={advancedEnabled}
               aria-label="Show advanced details"
-              className="w-11 h-6 rounded-full bg-white/[0.1] p-1 cursor-not-allowed opacity-50 flex items-center shrink-0"
+              onClick={() => setAdvancedEnabled(!advancedEnabled)}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                advancedEnabled
+                  ? "bg-accent border-accent"
+                  : "bg-white/[0.1] border-transparent"
+              )}
             >
-              <div className="w-4 h-4 rounded-full bg-white/[0.4]" />
-            </div>
+              <motion.span
+                animate={{ x: advancedEnabled ? 24 : 0 }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.15, ease: "easeOut" }
+                }
+                className="block h-4 w-4 rounded-full bg-foreground"
+              />
+            </button>
           </div>
         </Card>
       </section>

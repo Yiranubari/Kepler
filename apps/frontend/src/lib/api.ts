@@ -103,6 +103,15 @@ export interface PolicyResponse {
   updatedAt: string;
 }
 
+export interface UpdatePolicyRequest {
+  dailyBudgetSats: string;
+  perTxBudgetSats: string;
+  scopes: string[];
+  allowedMints: string[];
+  allowedRelays: string[];
+  allowedEsplora: string[];
+}
+
 export interface OnchainFeesResponse {
   fastest: number;
   halfHour: number;
@@ -548,6 +557,15 @@ export const getPolicy = (): Promise<PolicyResponse> => {
     method: "GET"
   });
 };
+
+export async function updatePolicy(
+  input: UpdatePolicyRequest
+): Promise<PolicyResponse> {
+  return defaultClient.request<PolicyResponse>("/api/policy", {
+    method: "PUT",
+    body: JSON.stringify(input)
+  });
+}
 
 export async function listEvidenceBundles(
   scenarioId: string

@@ -24,7 +24,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
 import { DotClock } from "@/components/visual/icons/DotClock";
 import { DotShield } from "@/components/visual/icons/DotShield";
-import { fadeInUp, useReducedMotion } from "@/lib/motion";
+import { fadeIn, fadeInUp, useReducedMotion } from "@/lib/motion";
+import { useAdvancedMode } from "@/store/advancedMode";
 import {
   TaintGraphView,
   TaintNodeDetail,
@@ -79,11 +80,73 @@ const EvidenceBundleGroup: React.FC<EvidenceBundleGroupProps> = ({
   );
 };
 
+interface RawDataSectionProps {
+  title: string;
+  value: unknown;
+}
+
+const RawDataSection: React.FC<RawDataSectionProps> = ({ title, value }) => {
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-4">
+        <span className="font-sans text-body font-medium text-foreground">
+          {title}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded((current) => !current)}
+          aria-expanded={expanded}
+          aria-label={`${expanded ? "Hide" : "Show"} ${title}`}
+          className="w-fit"
+        >
+          {expanded ? "Hide" : "Show"}
+        </Button>
+      </div>
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            variants={fadeIn}
+            initial={shouldReduceMotion ? { opacity: 1 } : "initial"}
+            animate={shouldReduceMotion ? { opacity: 1 } : "animate"}
+            exit={shouldReduceMotion ? { opacity: 0 } : "exit"}
+          >
+            <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all max-h-[400px] overflow-y-auto">
+              {JSON.stringify(value ?? null, null, 2)}
+            </pre>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+interface RawDataCardProps {
+  graph: TaintGraph | null;
+  bundles: EvidenceBundleWire[] | undefined;
+}
+
+const RawDataCard: React.FC<RawDataCardProps> = ({ graph, bundles }) => {
+  return (
+    <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
+      <h2 className="font-display text-heading-2 font-semibold tracking-[-0.01em] text-foreground">
+        Raw data
+      </h2>
+      <RawDataSection title="Graph" value={graph} />
+      <RawDataSection title="Evidence bundles" value={bundles} />
+    </Card>
+  );
+};
+
 export const HistoryDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const scenarioId = id ?? "";
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  const advancedEnabled = useAdvancedMode((state) => state.enabled);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredPathIndex, setHoveredPathIndex] = useState<number | null>(null);
@@ -411,6 +474,10 @@ export const HistoryDetailPage: React.FC = () => {
               ))}
             </div>
           )}
+
+          {advancedEnabled ? (
+            <RawDataCard graph={graph ?? null} bundles={bundles} />
+          ) : null}
 
           <div className="pt-2">
             <Button
