@@ -4,9 +4,8 @@ export function networkLabel(network: string): string {
     case "mainnet":
       return "Mainnet";
     case "testnet":
-      return "Testnet";
     case "testnet4":
-      return "Testnet 4";
+      return "Testnet";
     case "signet":
       return "Signet";
     case "regtest":

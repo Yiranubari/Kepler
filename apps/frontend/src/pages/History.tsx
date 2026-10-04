@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
-import { listScenarios, type ScenarioResponse, type PaymentTargetInput } from "@/lib/api";
+import {
+  listScenarios,
+  getAppConfig,
+  type AppConfigResponse,
+  type ScenarioResponse,
+  type PaymentTargetInput,
+  ClientError
+} from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { LoadingState } from "@/components/layout/LoadingState";
@@ -61,15 +68,29 @@ export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
+  const configQuery = useQuery<AppConfigResponse, ClientError>({
+    queryKey: ["appConfig"],
+    queryFn: getAppConfig
+  });
+
+  const currentNetwork = configQuery.data?.network;
+
   const {
     data: scenarios,
-    isLoading,
-    error,
-    refetch
-  } = useQuery<ScenarioResponse[]>({
-    queryKey: ["scenarios", "history"],
-    queryFn: () => listScenarios(50, 0)
+    isLoading: isScenariosLoading,
+    error: scenariosError,
+    refetch: refetchScenarios
+  } = useQuery<ScenarioResponse[], ClientError>({
+    queryKey: ["scenarios", "history", currentNetwork],
+    queryFn: () => listScenarios(50, 0, currentNetwork)
   });
+
+  const isLoading = isScenariosLoading || configQuery.isLoading;
+  const error = scenariosError ?? configQuery.error;
+  const refetch = (): void => {
+    void refetchScenarios();
+    void configQuery.refetch();
+  };
 
   return (
     <div className="w-full space-y-6">

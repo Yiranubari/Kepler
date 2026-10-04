@@ -23,6 +23,18 @@ export class ClientError extends Error {
   }
 }
 
+export type SupportedNetwork =
+  | "mainnet"
+  | "testnet"
+  | "testnet4"
+  | "signet"
+  | "regtest";
+
+export interface AppConfigResponse {
+  network: SupportedNetwork;
+  updatedAt: string;
+}
+
 export interface PaymentTargetInput {
   kind: "Lightning" | "Bitcoin" | "Cashu" | "lightning" | "bitcoin" | "cashu";
   payload: Record<string, unknown>;
@@ -32,6 +44,7 @@ export interface ScenarioResponse {
   id: string;
   target: PaymentTargetInput;
   status: "Pending" | "Analyzed" | "Decided" | "Executed" | "Failed";
+  network?: SupportedNetwork;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,7 +135,10 @@ export class ApiClient {
     baseUrl: string = import.meta.env.VITE_API_BASE_URL || "",
     timeoutMs = 30000
   ) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.baseUrl =
+      typeof window !== "undefined" && import.meta.env.DEV
+        ? ""
+        : baseUrl.replace(/\/$/, "");
     this.timeoutMs = timeoutMs;
   }
 
@@ -259,8 +275,7 @@ export class ApiClient {
   }
 
   public async getFees(network?: string): Promise<OnchainFeesResponse> {
-    const selectedNetwork =
-      network || import.meta.env.VITE_BITCOIN_NETWORK || "testnet4";
+    const selectedNetwork = network || "testnet4";
     return this.request<OnchainFeesResponse>("/api/onchain/fees", {
       method: "POST",
       body: JSON.stringify({ network: selectedNetwork })
@@ -285,16 +300,43 @@ export class ApiClient {
       body: JSON.stringify({ mintUrl })
     });
   }
+
+  public async getAppConfig(): Promise<AppConfigResponse> {
+    return this.request<AppConfigResponse>("/api/config", {
+      method: "GET"
+    });
+  }
+
+  public async setNetwork(
+    network: SupportedNetwork
+  ): Promise<AppConfigResponse> {
+    return this.request<AppConfigResponse>("/api/config/network", {
+      method: "PUT",
+      body: JSON.stringify({ network })
+    });
+  }
 }
 
 export const api = new ApiClient();
 
+export const getAppConfig = (): Promise<AppConfigResponse> => {
+  return api.getAppConfig();
+};
+
+export const setNetwork = (
+  network: SupportedNetwork
+): Promise<AppConfigResponse> => {
+  return api.setNetwork(network);
+};
+
 export const listScenarios = (
-  limitOrParams?: number | { limit?: number; offset?: number },
-  offsetParam?: number
+  limitOrParams?: number | { limit?: number; offset?: number; network?: SupportedNetwork },
+  offsetParam?: number,
+  network?: SupportedNetwork
 ): Promise<ScenarioResponse[]> => {
   let limit: number | undefined;
   let offset: number | undefined;
+  let selectedNetwork: SupportedNetwork | undefined = network;
 
   if (typeof limitOrParams === "number") {
     limit = limitOrParams;
@@ -302,6 +344,9 @@ export const listScenarios = (
   } else if (limitOrParams) {
     limit = limitOrParams.limit;
     offset = limitOrParams.offset;
+    if (limitOrParams.network !== undefined) {
+      selectedNetwork = limitOrParams.network;
+    }
   }
 
   const searchParams = new URLSearchParams();
@@ -310,6 +355,9 @@ export const listScenarios = (
   }
   if (offset !== undefined) {
     searchParams.set("offset", String(offset));
+  }
+  if (selectedNetwork !== undefined) {
+    searchParams.set("network", selectedNetwork);
   }
   const query = searchParams.toString();
   const path = query ? `/api/scenarios?${query}` : "/api/scenarios";

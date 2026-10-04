@@ -5,8 +5,10 @@ import { Scenario, Policy } from "@kepler/shared";
 import {
   listScenarios,
   getPolicy,
+  getAppConfig,
   toScenario,
   toPolicy,
+  type AppConfigResponse,
   ClientError
 } from "@/lib/api";
 import { useWallet } from "@/lib/wallet";
@@ -23,10 +25,17 @@ export const HomePage: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const { address, isConnected } = useWallet();
 
+  const configQuery = useQuery<AppConfigResponse, ClientError>({
+    queryKey: ["appConfig"],
+    queryFn: getAppConfig
+  });
+
+  const currentNetwork = configQuery.data?.network;
+
   const scenariosQuery = useQuery<Scenario[], ClientError>({
-    queryKey: ["scenarios", 5, 0],
+    queryKey: ["scenarios", 5, 0, currentNetwork],
     queryFn: async () => {
-      const raw = await listScenarios(5, 0);
+      const raw = await listScenarios(5, 0, currentNetwork);
       return raw.map(toScenario);
     }
   });
@@ -39,21 +48,21 @@ export const HomePage: React.FC = () => {
     }
   });
 
-  const configuredNetwork = (
-    import.meta.env.VITE_BITCOIN_NETWORK || "testnet4"
-  ).toLowerCase();
-
   const scenariosServiceDown =
     scenariosQuery.isError &&
     scenariosQuery.error?.code === "SERVICE_UNAVAILABLE";
   const policyServiceDown =
     policyQuery.isError &&
     policyQuery.error?.code === "SERVICE_UNAVAILABLE";
-  const allFailed = scenariosServiceDown && policyServiceDown;
+  const configServiceDown =
+    configQuery.isError &&
+    configQuery.error?.code === "SERVICE_UNAVAILABLE";
+  const allFailed = scenariosServiceDown && policyServiceDown && configServiceDown;
 
   const refetchAll = (): void => {
     void scenariosQuery.refetch();
     void policyQuery.refetch();
+    void configQuery.refetch();
   };
 
   return (
@@ -81,10 +90,10 @@ export const HomePage: React.FC = () => {
           onRetry={() => void policyQuery.refetch()}
         />
         <NetworkCard
-          network={configuredNetwork}
-          isLoading={policyQuery.isLoading}
-          error={allFailed ? null : policyQuery.error}
-          onRetry={() => void policyQuery.refetch()}
+          network={currentNetwork}
+          isLoading={configQuery.isLoading}
+          error={allFailed ? null : configQuery.error}
+          onRetry={() => void configQuery.refetch()}
         />
       </div>
     </motion.div>

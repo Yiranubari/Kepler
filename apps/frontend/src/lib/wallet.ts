@@ -13,6 +13,17 @@ import {
   bitcoinSignet,
   type AppKitNetwork
 } from "@reown/appkit/networks";
+import { type SupportedNetwork } from "@/lib/api";
+
+export class WalletError extends Error {
+  public readonly code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "WalletError";
+    this.code = code;
+  }
+}
 
 export const reownProjectId: string = import.meta.env.VITE_REOWN_PROJECT_ID || "";
 
@@ -20,24 +31,36 @@ if (!reownProjectId) {
   throw new Error("VITE_REOWN_PROJECT_ID is required to initialize the wallet.");
 }
 
-const networkConfig = (
+export const getBitcoinNetwork = (networkName?: string): AppKitNetwork => {
+  const normalized = (networkName || "").toLowerCase();
+  if (normalized === "mainnet" || normalized === "bitcoin") {
+    return bitcoin;
+  }
+  if (normalized === "signet") {
+    return bitcoinSignet;
+  }
+  return bitcoinTestnet;
+};
+
+const fallbackNetwork = (
   import.meta.env.VITE_BITCOIN_NETWORK || "testnet4"
 ).toLowerCase();
 
-export const selectedBitcoinNetwork: AppKitNetwork =
-  networkConfig === "mainnet" || networkConfig === "bitcoin"
-    ? bitcoin
-    : networkConfig === "signet"
-    ? bitcoinSignet
-    : bitcoinTestnet;
+export const selectedBitcoinNetwork: AppKitNetwork = getBitcoinNetwork(fallbackNetwork);
 
 export const bitcoinAdapter = new BitcoinAdapter({
   projectId: reownProjectId
 });
 
+const allSupportedNetworks = [bitcoinTestnet, bitcoin, bitcoinSignet];
+const configuredNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  selectedBitcoinNetwork,
+  ...allSupportedNetworks.filter((n) => n.id !== selectedBitcoinNetwork.id)
+];
+
 export const appKit = createAppKit({
   adapters: [bitcoinAdapter],
-  networks: [selectedBitcoinNetwork],
+  networks: configuredNetworks,
   projectId: reownProjectId,
   metadata: {
     name: "Kepler",
@@ -57,6 +80,7 @@ export interface WalletState {
   isConnecting: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  reconnect: (network: SupportedNetwork) => Promise<void>;
   signPsbt: (psbtBase64: string) => Promise<string>;
 }
 
@@ -78,6 +102,38 @@ export function useWallet(): WalletState {
 
   const disconnect = async (): Promise<void> => {
     await appkitDisconnect();
+  };
+
+  const reconnect = async (network: SupportedNetwork): Promise<void> => {
+    const target = network === "mainnet" ? bitcoin : bitcoinTestnet;
+    try {
+      await disconnect();
+    } catch (_err: unknown) {
+      throw new WalletError(
+        "WALLET_DISCONNECT_FAILED",
+        "We could not disconnect your wallet. Try again."
+      );
+    }
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 300));
+
+    try {
+      await appKit.switchNetwork(target);
+    } catch (_err: unknown) {
+      throw new WalletError(
+        "WALLET_SWITCH_FAILED",
+        "Your wallet could not switch to the new network. Please switch it manually and try again."
+      );
+    }
+
+    try {
+      await connect();
+    } catch (_err: unknown) {
+      throw new WalletError(
+        "WALLET_CONNECT_FAILED",
+        "We could not reconnect your wallet. Please connect it again."
+      );
+    }
   };
 
   const signPsbt = async (psbtBase64: string): Promise<string> => {
@@ -116,6 +172,7 @@ export function useWallet(): WalletState {
     isConnecting,
     connect,
     disconnect,
+    reconnect,
     signPsbt
   };
 }
