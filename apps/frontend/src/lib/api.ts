@@ -6,7 +6,8 @@ import {
   PaymentTargetKind,
   type PaymentTargetPayload,
   ScenarioStatus,
-  PolicyScope
+  PolicyScope,
+  TaintNodeType
 } from "@kepler/shared";
 
 export class ClientError extends Error {
@@ -129,6 +130,51 @@ export interface CashuMintInfoResponse {
   contact?: string[][] | null;
   motd?: string | null;
   nuts: Record<string, unknown>;
+}
+
+export interface TaintEvidenceItem {
+  kind: string;
+  ref: string;
+  description: string;
+  data?: unknown;
+}
+
+export interface TaintEdge {
+  id: string;
+  from: string;
+  to: string;
+  relationship: string;
+  confidence: number;
+  evidence: TaintEvidenceItem[];
+}
+
+export interface EvidencePath {
+  nodes: string[];
+  edges: string[];
+  overallConfidence: number;
+}
+
+export interface TaintNode {
+  id: string;
+  type: TaintNodeType | string;
+  value: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface TaintGraph {
+  id: string;
+  scenarioId: string;
+  nodes: TaintNode[];
+  edges: TaintEdge[];
+  paths: EvidencePath[];
+  createdAt: string;
+}
+
+export interface AIExplainResponse {
+  text: string;
+  model: string;
+  provider: string;
+  cached: boolean;
 }
 
 export class ApiClient {
@@ -257,6 +303,41 @@ export class ApiClient {
     });
   }
 
+  public async getTaintGraph(scenarioId: string): Promise<TaintGraph | null> {
+    try {
+      const data = await this.request<TaintGraph | { graph: TaintGraph | null }>(
+        `/api/graph/${encodeURIComponent(scenarioId)}`,
+        {
+          method: "GET"
+        }
+      );
+      if (!data) {
+        return null;
+      }
+      if ("graph" in data) {
+        return data.graph;
+      }
+      return data;
+    } catch (err: unknown) {
+      if (
+        err instanceof ClientError &&
+        (err.status === 404 || err.code === "NOT_FOUND")
+      ) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  public async explainTaintGraph(
+    scenarioId: string
+  ): Promise<AIExplainResponse> {
+    return this.request<AIExplainResponse>("/api/ai/explain", {
+      method: "POST",
+      body: JSON.stringify({ scenarioId })
+    });
+  }
+
   public async analyzeTaint(
     scenarioId: string,
     ingestDataOrOptions?: Record<string, unknown> | AnalyzeOptions
@@ -343,6 +424,18 @@ export const createScenario = (
 export const getScenario = (id: string): Promise<ScenarioResponse> => {
   return defaultClient.getScenario(id);
 };
+
+export async function getTaintGraph(
+  scenarioId: string
+): Promise<TaintGraph | null> {
+  return defaultClient.getTaintGraph(scenarioId);
+}
+
+export async function explainTaintGraph(
+  scenarioId: string
+): Promise<AIExplainResponse> {
+  return defaultClient.explainTaintGraph(scenarioId);
+}
 
 export const analyzeTaint = (
   scenarioId: string,

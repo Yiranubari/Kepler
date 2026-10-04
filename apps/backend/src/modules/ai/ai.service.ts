@@ -1,4 +1,4 @@
-import { KeplerLogger, TaintNodeType } from '@kepler/shared';
+import { KeplerLogger, TaintNodeType, RELATIONSHIP_LABELS } from '@kepler/shared';
 import {
   AIInputTooLargeError,
   AINoProviderError,
@@ -121,12 +121,17 @@ export class AIService {
 
     const { system, user } = AIPrompt.explainTaintGraph(input);
     const response = await this.complete(system, user);
-    this.cache.set(cacheKey, response);
+    const cleanedText = this.cleanExplanationText(response.text);
+    const cleanedResponse = {
+      ...response,
+      text: cleanedText
+    };
+    this.cache.set(cacheKey, cleanedResponse);
 
     return {
-      text: response.text,
-      model: response.model,
-      provider: response.provider,
+      text: cleanedResponse.text,
+      model: cleanedResponse.model,
+      provider: cleanedResponse.provider,
       cached: false
     };
   }
@@ -218,7 +223,7 @@ export class AIService {
         const response = await provider.complete({
           system,
           user,
-          maxTokens: 512,
+          maxTokens: 2048,
           temperature: 0.2
         });
         return response;
@@ -245,5 +250,25 @@ export class AIService {
     throw new AINoProviderError('All AI providers failed', {
       attempted
     });
+  }
+
+  private cleanExplanationText(text: string): string {
+    let cleaned = text
+      .replace(/\*\*/g, '')
+      .replace(/`/g, '')
+      .replace(/[\u2014\u2013]|--/g, ', ');
+
+    for (const [key, label] of Object.entries(RELATIONSHIP_LABELS)) {
+      if (cleaned.includes(key)) {
+        cleaned = cleaned.split(key).join(label);
+      }
+    }
+
+    cleaned = cleaned.replace(/_/g, ' ').trim();
+
+    if (cleaned.length > 800) {
+      cleaned = cleaned.slice(0, 800).trim();
+    }
+    return cleaned;
   }
 }

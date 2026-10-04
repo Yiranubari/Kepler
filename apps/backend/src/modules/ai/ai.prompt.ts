@@ -1,3 +1,5 @@
+import { relationshipLabel } from '@kepler/shared';
+
 export interface TaintGraphExplanationInput {
   readonly scenarioKind: "Lightning" | "Bitcoin" | "Cashu";
   readonly nodeCount: number;
@@ -45,15 +47,33 @@ export interface RouteSuggestionInput {
 }
 
 export class AIPrompt {
-  private static readonly SYSTEM_PROMPT =
-    "You are a Bitcoin privacy analyst helping a non-technical user understand their wallet's privacy risks. " +
-    "You explain findings in clear, plain language. " +
-    "You never invent numbers. " +
-    "You never claim certainty about ownership. " +
-    'You refer to correlations as "potential links" with the stated confidence. ' +
-    "You do not include em dashes and emojis in your responses. " +
-    "You do not give financial advice. " +
-    "You keep responses under 150 words unless the user asks for detail.";
+  public static readonly SYSTEM_PROMPT =
+    'You are explaining a privacy analysis to someone who has never used a Bitcoin wallet before.\n\n' +
+    'Write for a smart person who does not know any technical terms. Imagine you are explaining this to a friend over coffee.\n\n' +
+    'Strict rules:\n\n' +
+    '- Plain text only. No markdown. No asterisks. No underscores. No backticks. No bullet points. No numbered lists. No headings. Just sentences.\n' +
+    '- No em dashes or en dashes. Use periods, commas, colons, or semicolons.\n' +
+    '- Do not use any internal identifier. Never write a word in all capital letters. Never write a word containing an underscore.\n' +
+    '- Do not use these words: hash, preimage, pubkey, npub, invoice, taint, correlation, propagation, linkage, anonymity set, edge, node, graph, confidence score, identifier, protocol.\n' +
+    '- Instead of "payment hash", say "payment code".\n' +
+    '- Instead of "preimage", say "the secret that proves the payment".\n' +
+    '- Instead of "pubkey" or "npub", say "public key" or "the code that identifies this user".\n' +
+    '- Instead of "invoice", say "payment request".\n' +
+    '- Instead of "taint graph", say "the connections between your payment and other things".\n' +
+    '- Instead of "confidence", say "how sure we are".\n' +
+    '- Instead of "edge", say "link".\n' +
+    '- Instead of "node", say "item".\n\n' +
+    'Structure your answer in three short paragraphs:\n\n' +
+    '1. First paragraph: what the analysis found. One or two sentences. Name the items involved in plain words ("your payment request", "a public note", "the payment code").\n' +
+    '2. Second paragraph: what the links mean. Explain each link in one sentence. Use phrases like "this shows that" or "this suggests that". If a link is strong, say so. If a link is weak, say so.\n' +
+    '3. Third paragraph: what the user should understand. One or two sentences about the practical implication for their privacy. Do not alarm them. Do not use the words "deanonymize", "surveillance", or "exposed". Say things like "someone looking at the public data could connect these two things" or "this makes it easier to see that these payments came from the same person".\n\n' +
+    'Constraints:\n\n' +
+    '- Under 120 words total.\n' +
+    '- No exclamation marks.\n' +
+    '- No financial advice.\n' +
+    '- Never claim to know who owns anything. Always use "could", "might", "appears to", not "is".\n' +
+    '- Do not use the words "we" or "our". The analysis is describing what the data shows, not what Kepler did.\n' +
+    '- Do not end with a suggestion or a call to action. Just explain.';
 
   public static truncateHash(value: string): string {
     const trimmed = value.trim();
@@ -92,32 +112,25 @@ export class AIPrompt {
     user: string;
   } {
     const edges = input.topEdges.slice(0, 5);
-    const paths = input.topPaths.slice(0, 5);
 
-    const edgeLines = edges.map((e, idx) => {
-      const fromId = AIPrompt.truncateHash(e.fromIdTruncated);
-      const toId = AIPrompt.truncateHash(e.toIdTruncated);
-      return `  ${idx + 1}. Relationship: ${e.relationship}, Confidence: ${e.confidence}, From: ${e.fromType} (${fromId}), To: ${e.toType} (${toId})`;
-    });
-
-    const pathLines = paths.map((p, idx) => {
-      return `  ${idx + 1}. Length: ${p.length}, Overall Confidence: ${p.overallConfidence}, Path: ${p.nodeTypes.join(" -> ")}`;
+    const edgeLines = edges.map((e) => {
+      const level =
+        e.confidence >= 0.9 ? 'high' : e.confidence >= 0.6 ? 'medium' : 'low';
+      return `- ${relationshipLabel(e.relationship)}, how sure we are: ${level}`;
     });
 
     const userPrompt = [
       `Scenario Kind: ${input.scenarioKind}`,
-      `Total Nodes: ${input.nodeCount}`,
-      `Total Edges: ${input.edgeCount}`,
-      "Top Identified Connections:",
-      ...(edgeLines.length > 0 ? edgeLines : ["  None"]),
-      "Top Potential Link Paths:",
-      ...(pathLines.length > 0 ? pathLines : ["  None"]),
-      "Please explain the privacy implications of these connections in plain language.",
-    ].join("\n");
+      `Total items: ${input.nodeCount}`,
+      `Total links: ${input.edgeCount}`,
+      'Top connections found:',
+      ...(edgeLines.length > 0 ? edgeLines : ['- None']),
+      'Please explain what these connections mean for privacy in plain language.'
+    ].join('\n');
 
     return {
       system: AIPrompt.SYSTEM_PROMPT,
-      user: userPrompt,
+      user: userPrompt
     };
   }
 

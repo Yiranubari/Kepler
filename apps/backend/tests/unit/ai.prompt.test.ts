@@ -9,14 +9,35 @@ describe('AIPrompt', () => {
   const fullHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
   const fullInvoice = 'lnbc100u1p3x0d47pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgq';
 
-  it('explainTaintGraph truncates hashes and invoices', () => {
+  it('asserts SYSTEM_PROMPT contains none of the raw relationship names', () => {
+    const forbiddenInSystem = [
+      'PUBLISHED_BY',
+      'SAME_PAYMENT_HASH',
+      'SAME_PREIMAGE',
+      'TEMPORAL_WINDOW',
+      'SHARED_MINT',
+      'CASHU_QUOTE_INVOICE',
+      'HASH',
+      'PREIMAGE',
+      'PUBKEY',
+      'NPUB',
+      'TAINT',
+      'EDGE',
+      'NODE'
+    ];
+    for (const term of forbiddenInSystem) {
+      expect(AIPrompt.SYSTEM_PROMPT).not.toContain(term);
+    }
+  });
+
+  it('asserts user prompt built by explainTaintGraph for an edge with relationship SAME_PAYMENT_HASH contains Same payment code', () => {
     const input: TaintGraphExplanationInput = {
       scenarioKind: 'Lightning',
       nodeCount: 2,
       edgeCount: 1,
       topEdges: [
         {
-          relationship: 'pays',
+          relationship: 'SAME_PAYMENT_HASH',
           confidence: 0.95,
           fromType: 'Invoice',
           toType: 'PaymentHash',
@@ -24,24 +45,81 @@ describe('AIPrompt', () => {
           toIdTruncated: fullHash
         }
       ],
-      topPaths: [
-        {
-          length: 2,
-          overallConfidence: 0.95,
-          nodeTypes: ['Invoice', 'PaymentHash']
-        }
-      ]
+      topPaths: []
     };
 
     const prompt = AIPrompt.explainTaintGraph(input);
-    expect(prompt.user).toContain('e3b0c442…7852b855');
-    expect(prompt.user).not.toContain(fullHash);
-    expect(prompt.user).not.toContain(fullInvoice);
+    expect(prompt.user).toContain('Same payment code');
   });
 
-  it('explainTaintGraph includes only the top 5 edges and top 5 paths', () => {
+  it('asserts user prompt contains none of the six raw relationship names in all caps and none of the forbidden technical terms', () => {
+    const input: TaintGraphExplanationInput = {
+      scenarioKind: 'Lightning',
+      nodeCount: 2,
+      edgeCount: 1,
+      topEdges: [
+        {
+          relationship: 'SAME_PAYMENT_HASH',
+          confidence: 0.95,
+          fromType: 'Invoice',
+          toType: 'PaymentHash',
+          fromIdTruncated: fullInvoice,
+          toIdTruncated: fullHash
+        }
+      ],
+      topPaths: []
+    };
+
+    const prompt = AIPrompt.explainTaintGraph(input);
+
+    const forbiddenTerms = [
+      'PUBLISHED_BY',
+      'SAME_PAYMENT_HASH',
+      'SAME_PREIMAGE',
+      'TEMPORAL_WINDOW',
+      'SHARED_MINT',
+      'CASHU_QUOTE_INVOICE',
+      'hash',
+      'preimage',
+      'pubkey',
+      'npub',
+      'taint',
+      'edge',
+      'node'
+    ];
+
+    for (const term of forbiddenTerms) {
+      expect(prompt.user.toLowerCase()).not.toContain(term.toLowerCase());
+    }
+  });
+
+  it('asserts user prompt contains no markdown formatting', () => {
+    const input: TaintGraphExplanationInput = {
+      scenarioKind: 'Lightning',
+      nodeCount: 2,
+      edgeCount: 1,
+      topEdges: [
+        {
+          relationship: 'SAME_PAYMENT_HASH',
+          confidence: 0.95,
+          fromType: 'Invoice',
+          toType: 'PaymentHash',
+          fromIdTruncated: fullInvoice,
+          toIdTruncated: fullHash
+        }
+      ],
+      topPaths: []
+    };
+
+    const prompt = AIPrompt.explainTaintGraph(input);
+    expect(prompt.user).not.toContain('**');
+    expect(prompt.user).not.toContain('__');
+    expect(prompt.user).not.toContain('`');
+  });
+
+  it('explainTaintGraph includes only the top 5 edges and formats them with relationship labels', () => {
     const topEdges = Array.from({ length: 8 }, (_, i) => ({
-      relationship: `rel-${i}`,
+      relationship: i === 0 ? 'SAME_PAYMENT_HASH' : `rel-${i}`,
       confidence: 0.9 - i * 0.05,
       fromType: 'Txid',
       toType: 'Address',
@@ -49,31 +127,21 @@ describe('AIPrompt', () => {
       toIdTruncated: `to-id-${i}`
     }));
 
-    const topPaths = Array.from({ length: 8 }, (_, i) => ({
-      length: 2,
-      overallConfidence: 0.9 - i * 0.05,
-      nodeTypes: ['Txid', 'Address']
-    }));
-
     const input: TaintGraphExplanationInput = {
       scenarioKind: 'Bitcoin',
       nodeCount: 16,
       edgeCount: 8,
       topEdges,
-      topPaths
+      topPaths: []
     };
 
     const prompt = AIPrompt.explainTaintGraph(input);
-    expect(prompt.user).toContain('1. Relationship: rel-0');
-    expect(prompt.user).toContain('5. Relationship: rel-4');
-    expect(prompt.user).not.toContain('6. Relationship: rel-5');
-
-    expect(prompt.user).toContain('1. Length: 2, Overall Confidence: 0.9');
-    expect(prompt.user).toContain('5. Length: 2, Overall Confidence: 0.7');
-    expect(prompt.user).not.toContain('6. Length: 2, Overall Confidence: 0.65');
+    expect(prompt.user).toContain('- Same payment code, how sure we are: high');
+    const edgeLines = prompt.user.split('\n').filter((line) => line.startsWith('- '));
+    expect(edgeLines).toHaveLength(5);
   });
 
-  it('explainTaintGraph never includes a preimage', () => {
+  it('explainTaintGraph never includes a preimage secret value', () => {
     const rawSecret = 'secret_preimage_value_9876543210';
     const input: TaintGraphExplanationInput = {
       scenarioKind: 'Lightning',
@@ -81,21 +149,15 @@ describe('AIPrompt', () => {
       edgeCount: 1,
       topEdges: [
         {
-          relationship: 'reveals',
+          relationship: 'SAME_PREIMAGE',
           confidence: 0.99,
           fromType: 'PaymentHash',
           toType: 'Preimage',
           fromIdTruncated: 'hash12345678',
-          toIdTruncated: 'preimage1234'
+          toIdTruncated: rawSecret
         }
       ],
-      topPaths: [
-        {
-          length: 2,
-          overallConfidence: 0.99,
-          nodeTypes: ['PaymentHash', 'Preimage']
-        }
-      ]
+      topPaths: []
     };
 
     const prompt = AIPrompt.explainTaintGraph(input);

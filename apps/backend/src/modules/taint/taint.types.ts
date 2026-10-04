@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { TaintGraph } from '@kepler/shared';
-import { TaintEngineError } from './taint.errors';
+import { z } from "zod";
+import { TaintGraph } from "@kepler/shared";
+import { TaintEngineError } from "./taint.errors";
 
 export interface TaintConfigParams {
   readonly temporalWindowSeconds?: number;
@@ -22,7 +22,7 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return Number.isInteger(num) && num > 0;
       },
-      { message: 'Must be a positive integer' }
+      { message: "Must be a positive integer" },
     ),
   TAINT_MIN_EDGE_CONFIDENCE: z
     .string()
@@ -34,7 +34,7 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return !Number.isNaN(num) && num >= 0 && num <= 1;
       },
-      { message: 'Must be a number between 0 and 1' }
+      { message: "Must be a number between 0 and 1" },
     ),
   TAINT_MAX_PATH_DEPTH: z
     .string()
@@ -46,7 +46,7 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return Number.isInteger(num) && num >= 1;
       },
-      { message: 'Must be an integer greater than or equal to 1' }
+      { message: "Must be an integer greater than or equal to 1" },
     ),
   TAINT_CO_OCCURRENCE_THRESHOLD: z
     .string()
@@ -58,7 +58,7 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return Number.isInteger(num) && num >= 1;
       },
-      { message: 'Must be an integer greater than or equal to 1' }
+      { message: "Must be an integer greater than or equal to 1" },
     ),
   TAINT_MAX_NODES_PER_GRAPH: z
     .string()
@@ -70,7 +70,7 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return Number.isInteger(num) && num >= 1;
       },
-      { message: 'Must be an integer greater than or equal to 1' }
+      { message: "Must be an integer greater than or equal to 1" },
     ),
   TAINT_MAX_EDGES_PER_GRAPH: z
     .string()
@@ -82,8 +82,8 @@ const taintEnvSchema = z.object({
         const num = Number(val);
         return Number.isInteger(num) && num >= 1;
       },
-      { message: 'Must be an integer greater than or equal to 1' }
-    )
+      { message: "Must be an integer greater than or equal to 1" },
+    ),
 });
 
 export class TaintConfig {
@@ -100,98 +100,105 @@ export class TaintConfig {
     maxPathDepth?: number,
     coOccurrenceThreshold?: number,
     maxNodesPerGraph?: number,
-    maxEdgesPerGraph?: number
+    maxEdgesPerGraph?: number,
   ) {
     let resolvedParams: TaintConfigParams = {};
-    if (typeof paramsOrTemporal === 'number') {
+    if (typeof paramsOrTemporal === "number") {
       resolvedParams = {
         temporalWindowSeconds: paramsOrTemporal,
         minEdgeConfidence,
         maxPathDepth,
         coOccurrenceThreshold,
         maxNodesPerGraph,
-        maxEdgesPerGraph
+        maxEdgesPerGraph,
       };
-    } else if (paramsOrTemporal && typeof paramsOrTemporal === 'object') {
+    } else if (paramsOrTemporal && typeof paramsOrTemporal === "object") {
       resolvedParams = paramsOrTemporal;
     }
 
     const temporalWindowSeconds = resolvedParams.temporalWindowSeconds ?? 3600;
     const resolvedMinEdgeConfidence = resolvedParams.minEdgeConfidence ?? 0.3;
     const resolvedMaxPathDepth = resolvedParams.maxPathDepth ?? 5;
-    const resolvedCoOccurrenceThreshold = resolvedParams.coOccurrenceThreshold ?? 3;
+    const resolvedCoOccurrenceThreshold =
+      resolvedParams.coOccurrenceThreshold ?? 3;
     const resolvedMaxNodesPerGraph = resolvedParams.maxNodesPerGraph ?? 10000;
     const resolvedMaxEdgesPerGraph = resolvedParams.maxEdgesPerGraph ?? 50000;
 
     if (
-      typeof temporalWindowSeconds !== 'number' ||
+      typeof temporalWindowSeconds !== "number" ||
       Number.isNaN(temporalWindowSeconds) ||
       !Number.isInteger(temporalWindowSeconds) ||
       temporalWindowSeconds <= 0
     ) {
-      throw new TaintEngineError('Invalid temporalWindowSeconds configuration', {
-        field: 'temporalWindowSeconds',
-        reason: 'Must be a positive integer'
-      });
+      throw new TaintEngineError(
+        "Invalid temporalWindowSeconds configuration",
+        {
+          field: "temporalWindowSeconds",
+          reason: "Must be a positive integer",
+        },
+      );
     }
 
     if (
-      typeof resolvedMinEdgeConfidence !== 'number' ||
+      typeof resolvedMinEdgeConfidence !== "number" ||
       Number.isNaN(resolvedMinEdgeConfidence) ||
       resolvedMinEdgeConfidence < 0 ||
       resolvedMinEdgeConfidence > 1
     ) {
-      throw new TaintEngineError('Invalid minEdgeConfidence configuration', {
-        field: 'minEdgeConfidence',
-        reason: 'Must be a number between 0 and 1'
+      throw new TaintEngineError("Invalid minEdgeConfidence configuration", {
+        field: "minEdgeConfidence",
+        reason: "Must be a number between 0 and 1",
       });
     }
 
     if (
-      typeof resolvedMaxPathDepth !== 'number' ||
+      typeof resolvedMaxPathDepth !== "number" ||
       Number.isNaN(resolvedMaxPathDepth) ||
       !Number.isInteger(resolvedMaxPathDepth) ||
       resolvedMaxPathDepth < 1
     ) {
-      throw new TaintEngineError('Invalid maxPathDepth configuration', {
-        field: 'maxPathDepth',
-        reason: 'Must be an integer greater than or equal to 1'
+      throw new TaintEngineError("Invalid maxPathDepth configuration", {
+        field: "maxPathDepth",
+        reason: "Must be an integer greater than or equal to 1",
       });
     }
 
     if (
-      typeof resolvedCoOccurrenceThreshold !== 'number' ||
+      typeof resolvedCoOccurrenceThreshold !== "number" ||
       Number.isNaN(resolvedCoOccurrenceThreshold) ||
       !Number.isInteger(resolvedCoOccurrenceThreshold) ||
       resolvedCoOccurrenceThreshold < 1
     ) {
-      throw new TaintEngineError('Invalid coOccurrenceThreshold configuration', {
-        field: 'coOccurrenceThreshold',
-        reason: 'Must be an integer greater than or equal to 1'
-      });
+      throw new TaintEngineError(
+        "Invalid coOccurrenceThreshold configuration",
+        {
+          field: "coOccurrenceThreshold",
+          reason: "Must be an integer greateer than or equal to 1",
+        },
+      );
     }
 
     if (
-      typeof resolvedMaxNodesPerGraph !== 'number' ||
+      typeof resolvedMaxNodesPerGraph !== "number" ||
       Number.isNaN(resolvedMaxNodesPerGraph) ||
       !Number.isInteger(resolvedMaxNodesPerGraph) ||
       resolvedMaxNodesPerGraph < 1
     ) {
-      throw new TaintEngineError('Invalid maxNodesPerGraph configuration', {
-        field: 'maxNodesPerGraph',
-        reason: 'Must be an integer greater than or equal to 1'
+      throw new TaintEngineError("Invalid maxNodesPerGraph configuration", {
+        field: "maxNodesPerGraph",
+        reason: "Must be an integer greater than or equal to 1",
       });
     }
 
     if (
-      typeof resolvedMaxEdgesPerGraph !== 'number' ||
+      typeof resolvedMaxEdgesPerGraph !== "number" ||
       Number.isNaN(resolvedMaxEdgesPerGraph) ||
       !Number.isInteger(resolvedMaxEdgesPerGraph) ||
       resolvedMaxEdgesPerGraph < 1
     ) {
-      throw new TaintEngineError('Invalid maxEdgesPerGraph configuration', {
-        field: 'maxEdgesPerGraph',
-        reason: 'Must be an integer greater than or equal to 1'
+      throw new TaintEngineError("Invalid maxEdgesPerGraph configuration", {
+        field: "maxEdgesPerGraph",
+        reason: "Must be an integer greater than or equal to 1",
       });
     }
 
@@ -205,15 +212,20 @@ export class TaintConfig {
     Object.freeze(this);
   }
 
-  public static fromEnv(env: Record<string, string | undefined> = process.env): TaintConfig {
+  public static fromEnv(
+    env: Record<string, string | undefined> = process.env,
+  ): TaintConfig {
     const result = taintEnvSchema.safeParse(env);
     if (!result.success) {
       const issue = result.error.issues[0];
-      const field = issue && issue.path.length > 0 ? String(issue.path[0]) : 'unknown';
-      const reason = issue ? issue.message : 'Invalid environment variable value';
+      const field =
+        issue && issue.path.length > 0 ? String(issue.path[0]) : "unknown";
+      const reason = issue
+        ? issue.message
+        : "Invalid environment variable value";
       throw new TaintEngineError(`Invalid ${field} configuration`, {
         field,
-        reason
+        reason,
       });
     }
 
@@ -227,22 +239,32 @@ export class TaintConfig {
     } = {};
 
     if (result.data.TAINT_TEMPORAL_WINDOW_SECONDS !== undefined) {
-      configParams.temporalWindowSeconds = Number(result.data.TAINT_TEMPORAL_WINDOW_SECONDS);
+      configParams.temporalWindowSeconds = Number(
+        result.data.TAINT_TEMPORAL_WINDOW_SECONDS,
+      );
     }
     if (result.data.TAINT_MIN_EDGE_CONFIDENCE !== undefined) {
-      configParams.minEdgeConfidence = Number(result.data.TAINT_MIN_EDGE_CONFIDENCE);
+      configParams.minEdgeConfidence = Number(
+        result.data.TAINT_MIN_EDGE_CONFIDENCE,
+      );
     }
     if (result.data.TAINT_MAX_PATH_DEPTH !== undefined) {
       configParams.maxPathDepth = Number(result.data.TAINT_MAX_PATH_DEPTH);
     }
     if (result.data.TAINT_CO_OCCURRENCE_THRESHOLD !== undefined) {
-      configParams.coOccurrenceThreshold = Number(result.data.TAINT_CO_OCCURRENCE_THRESHOLD);
+      configParams.coOccurrenceThreshold = Number(
+        result.data.TAINT_CO_OCCURRENCE_THRESHOLD,
+      );
     }
     if (result.data.TAINT_MAX_NODES_PER_GRAPH !== undefined) {
-      configParams.maxNodesPerGraph = Number(result.data.TAINT_MAX_NODES_PER_GRAPH);
+      configParams.maxNodesPerGraph = Number(
+        result.data.TAINT_MAX_NODES_PER_GRAPH,
+      );
     }
     if (result.data.TAINT_MAX_EDGES_PER_GRAPH !== undefined) {
-      configParams.maxEdgesPerGraph = Number(result.data.TAINT_MAX_EDGES_PER_GRAPH);
+      configParams.maxEdgesPerGraph = Number(
+        result.data.TAINT_MAX_EDGES_PER_GRAPH,
+      );
     }
 
     return new TaintConfig(configParams);
@@ -293,7 +315,7 @@ export interface CashuIngestData {
   }>;
   quotes: Array<{
     quote: string;
-    type: 'mint' | 'melt';
+    type: "mint" | "melt";
     amount: bigint;
     request: string;
     state: string;
@@ -323,5 +345,3 @@ export interface TaintRepository {
   deleteGraph?(scenarioId: string): Promise<void>;
   getLatestGraphByScenarioId?(scenarioId: string): Promise<TaintGraph | null>;
 }
-
-

@@ -1,3 +1,5 @@
+@import "reactflow/dist/style.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -84,3 +86,63 @@
     scroll-behavior: auto !important;
   }
 }
+
+.react-flow__background {
+  background-color: hsl(var(--background));
+}
+.react-flow__edge-path {
+  stroke: hsl(var(--muted-foreground));
+  stroke-opacity: 0.4;
+}
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  top: auto;
+  left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+}
+
+.react-flow__controls-button {
+  background-color: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  width: 28px;
+  height: 28px;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background-color: hsl(var(--secondary));
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+  color: hsl(var(--foreground));
+  width: 12px;
+  height: 12px;
+  max-width: 12px;
+  max-height: 12px;
+}
+
+.react-flow__controls-button:hover svg {
+  color: hsl(var(--foreground));
+}
+
+

@@ -11,7 +11,8 @@ import {
   ClaimType,
   RawDataRef,
   VerificationStep,
-  KeplerLogger
+  KeplerLogger,
+  RELATIONSHIP_LABELS
 } from '@kepler/shared';
 import { TaintConfig } from '../../src/modules/taint/taint.types';
 import { createDefaultRuleRegistry } from '../../src/modules/taint';
@@ -166,6 +167,14 @@ describeOrSkip('AI Integration Tests (Real providers, no mocks)', () => {
         expect(response).toBeDefined();
         expect(typeof response.text).toBe('string');
         expect(response.text.trim().length).toBeGreaterThan(0);
+        expect(response.text).not.toContain('**');
+        expect(response.text).not.toContain('_');
+        for (const rel of Object.keys(RELATIONSHIP_LABELS)) {
+          expect(response.text).not.toContain(rel);
+        }
+        expect(response.text).not.toContain('\u2014');
+        expect(response.text).not.toContain('\u2013');
+        expect(response.text.length).toBeLessThan(800);
         expect(response.provider).toBe('groq');
         expect(response.cached).toBe(false);
 

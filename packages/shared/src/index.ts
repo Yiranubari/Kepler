@@ -78,3 +78,5 @@ export type {
   PaymentTargetJSON,
   ScenarioJSON
 } from './scenario';
+
+export * from './relationshipLabels';

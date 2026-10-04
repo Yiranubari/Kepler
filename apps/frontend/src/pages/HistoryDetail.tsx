@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import { motion } from "motion/react";
-import { getScenario, type ScenarioResponse, ClientError } from "@/lib/api";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  getScenario,
+  getTaintGraph,
+  type ScenarioResponse,
+  type TaintGraph,
+  ClientError
+} from "@/lib/api";
 import { networkLabel } from "@/lib/networkLabel";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -12,10 +18,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Spinner } from "@/components/ui/spinner";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
 import { DotClock } from "@/components/visual/icons/DotClock";
 import { DotShield } from "@/components/visual/icons/DotShield";
 import { fadeInUp, useReducedMotion } from "@/lib/motion";
+import {
+  TaintGraphView,
+  TaintNodeDetail,
+  TaintPathList,
+  TaintGraphExplanation
+} from "@/components/graph";
 
 const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -42,8 +55,12 @@ const formatRelativeTime = (dateString: string): string => {
 
 export const HistoryDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const scenarioId = id ?? "";
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hoveredPathIndex, setHoveredPathIndex] = useState<number | null>(null);
 
   const {
     data: scenario,
@@ -60,6 +77,45 @@ export const HistoryDetailPage: React.FC = () => {
     },
     enabled: Boolean(id)
   });
+
+  const {
+    data: graph,
+    isLoading: isGraphLoading,
+    error: graphError,
+    refetch: refetchGraph
+  } = useQuery<TaintGraph | null, ClientError>({
+    queryKey: ["taintGraph", scenarioId],
+    queryFn: () => getTaintGraph(scenarioId),
+    enabled: Boolean(scenarioId)
+  });
+
+  const highlightedNodeIds = useMemo<Set<string>>(() => {
+    if (
+      hoveredPathIndex === null ||
+      !graph ||
+      !graph.paths ||
+      !graph.paths[hoveredPathIndex]
+    ) {
+      return new Set<string>();
+    }
+    return new Set<string>(graph.paths[hoveredPathIndex].nodes);
+  }, [hoveredPathIndex, graph]);
+
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId || !graph || !graph.nodes) {
+      return null;
+    }
+    return graph.nodes.find((n) => n.id === selectedNodeId) ?? null;
+  }, [selectedNodeId, graph]);
+
+  const connectedEdges = useMemo(() => {
+    if (!selectedNodeId || !graph || !graph.edges) {
+      return [];
+    }
+    return graph.edges.filter(
+      (e) => e.from === selectedNodeId || e.to === selectedNodeId
+    );
+  }, [selectedNodeId, graph]);
 
   const truncatedId = id
     ? id.length > 20
@@ -108,7 +164,7 @@ export const HistoryDetailPage: React.FC = () => {
     <motion.div
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: 0.15, ease: "easeOut" } }}
-      className="w-full space-y-8 md:space-y-12 max-w-3xl"
+      className="w-full space-y-8 md:space-y-12 max-w-3xl lg:max-w-4xl"
     >
       {isLoading ? (
         <div className="space-y-8">
@@ -212,14 +268,76 @@ export const HistoryDetailPage: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none">
-            <EmptyState
-              icon={DotShield}
-              title="Privacy analysis coming soon"
-              description="The taint graph and evidence bundle for this payment will appear here."
-              className="border-none bg-transparent p-0 my-0 max-w-full"
-            />
-          </Card>
+          {isGraphLoading ? (
+            <Card className="rounded-[12px] border border-white/[0.08] bg-card p-8 shadow-none flex flex-col items-center justify-center space-y-3 min-h-[240px]">
+              <Spinner size="md" className="text-muted-foreground" />
+              <span className="font-sans text-body-sm text-muted-foreground">
+                Loading the privacy analysis...
+              </span>
+            </Card>
+          ) : graphError ? (
+            <ErrorState error={graphError} onRetry={() => void refetchGraph()} />
+          ) : !graph ? (
+            <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none">
+              <EmptyState
+                icon={DotShield}
+                description="No privacy analysis yet. Analysis runs when a payment is prepared."
+                className="border-none bg-transparent p-0 my-0 max-w-full"
+              />
+            </Card>
+          ) : (
+            <motion.div
+              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              <div className="relative w-full rounded-[12px] overflow-hidden">
+                <TaintGraphView
+                  graph={graph}
+                  onNodeSelect={(nodeId) => setSelectedNodeId(nodeId)}
+                  selectedNodeId={selectedNodeId}
+                  highlightedNodeIds={highlightedNodeIds}
+                />
+                {graph.nodes.length === 0 && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/60 backdrop-blur-sm">
+                    <EmptyState
+                      icon={DotShield}
+                      description="No privacy analysis yet. Analysis runs when a payment is prepared."
+                      className="border-none bg-transparent p-0 my-0 max-w-full"
+                    />
+                  </div>
+                )}
+                <AnimatePresence>
+                  {selectedNode && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+                        onClick={() => setSelectedNodeId(null)}
+                      />
+                      <TaintNodeDetail
+                        node={selectedNode}
+                        connectedEdges={connectedEdges}
+                        onClose={() => setSelectedNodeId(null)}
+                      />
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <TaintPathList
+                paths={graph.paths || []}
+                graph={graph}
+                onPathHover={setHoveredPathIndex}
+              />
+
+              <TaintGraphExplanation scenarioId={scenarioId} />
+
+              <p className="font-sans text-body-sm text-muted-foreground text-center">
+                Click any node to see its details. Hover a path to highlight the nodes on it.
+              </p>
+            </motion.div>
+          )}
 
           <div className="pt-2">
             <Button

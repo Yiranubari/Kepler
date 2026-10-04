@@ -10,6 +10,7 @@ import {
   FindPathsResponseSchema
 } from './taint.validators';
 import { TaintIngestPayload } from './taint.types';
+import { toPrismaJson } from '../../shared/prismaJson';
 
 export class TaintController {
   private readonly service: TaintService;
@@ -82,7 +83,8 @@ export class TaintController {
         });
       }
 
-      const validatedResponse = GraphResponseSchema.parse(graph.toJSON());
+      const rawGraphJson = toPrismaJson(graph.toJSON());
+      const validatedResponse = GraphResponseSchema.parse(rawGraphJson);
       res.status(200).json(validatedResponse);
     } catch (error) {
       next(error);
