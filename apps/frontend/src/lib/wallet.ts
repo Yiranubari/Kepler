@@ -10,7 +10,6 @@ import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 import {
   bitcoin,
   bitcoinTestnet,
-  bitcoinSignet,
   type AppKitNetwork
 } from "@reown/appkit/networks";
 import { type SupportedNetwork } from "@/lib/api";
@@ -25,51 +24,48 @@ export class WalletError extends Error {
   }
 }
 
-export const reownProjectId: string = import.meta.env.VITE_REOWN_PROJECT_ID || "";
+export const projectId = import.meta.env.VITE_REOWN_PROJECT_ID;
 
-if (!reownProjectId) {
-  throw new Error("VITE_REOWN_PROJECT_ID is required to initialize the wallet.");
+if (!projectId) {
+  throw new Error("VITE_REOWN_PROJECT_ID is not set");
 }
+
+export const reownProjectId = projectId;
 
 export const getBitcoinNetwork = (networkName?: string): AppKitNetwork => {
   const normalized = (networkName || "").toLowerCase();
   if (normalized === "mainnet" || normalized === "bitcoin") {
     return bitcoin;
   }
-  if (normalized === "signet") {
-    return bitcoinSignet;
-  }
   return bitcoinTestnet;
 };
 
-const fallbackNetwork = (
-  import.meta.env.VITE_BITCOIN_NETWORK || "testnet4"
-).toLowerCase();
+export const selectedBitcoinNetwork: AppKitNetwork = bitcoinTestnet;
 
-export const selectedBitcoinNetwork: AppKitNetwork = getBitcoinNetwork(fallbackNetwork);
-
-export const bitcoinAdapter = new BitcoinAdapter({
-  projectId: reownProjectId
-});
-
-const allSupportedNetworks = [bitcoinTestnet, bitcoin, bitcoinSignet];
-const configuredNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
-  selectedBitcoinNetwork,
-  ...allSupportedNetworks.filter((n) => n.id !== selectedBitcoinNetwork.id)
-];
+export const bitcoinAdapter = new BitcoinAdapter({ projectId });
 
 export const appKit = createAppKit({
   adapters: [bitcoinAdapter],
-  networks: configuredNetworks,
-  projectId: reownProjectId,
+  networks: [bitcoin, bitcoinTestnet],
+  defaultNetwork: bitcoinTestnet,
+  projectId,
+  featuredWalletIds: [
+    "2a87d74ae02e10bdd1f51f7ce6c4e1cc53cd5f2c0b6b5ad0d7b3007d2b13de7b",
+    "483afe1df1df63daf313109971ff3ef8356ddf1cc4e45877d205eee0b7893a13",
+    "971e689d0a5be527bac79629b4ee9b925e82208e5168b733496a09c0faed0709"
+  ],
   metadata: {
     name: "Kepler",
-    description: "Kepler agent wallet",
-    url:
-      typeof window !== "undefined"
-        ? window.location.origin
-        : import.meta.env.VITE_API_BASE_URL || "",
+    description: "Private payments for Bitcoin",
+    url: typeof window !== "undefined" ? window.location.origin : "",
     icons: []
+  },
+  features: {
+    analytics: false,
+    email: false,
+    socials: false,
+    swaps: false,
+    onramp: false
   },
   themeMode: "dark"
 });

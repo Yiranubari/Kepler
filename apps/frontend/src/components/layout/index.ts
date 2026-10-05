@@ -5,3 +5,5 @@ export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { LoadingState, type LoadingStateProps } from "./LoadingState";
 export { ErrorState, type ErrorStateProps } from "./ErrorState";
 export { WalletButton, type WalletButtonProps } from "./WalletButton";
+export { NetworkBadge, type NetworkBadgeProps } from "./NetworkBadge";
+export { MainnetBanner, type MainnetBannerProps } from "./MainnetBanner";

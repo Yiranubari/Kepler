@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { AppShell } from "@/components/layout/AppShell";
 import { LandingLayout } from "@/components/layout/LandingLayout";
+import { MainnetBanner } from "@/components/layout/MainnetBanner";
 import { fadeIn, useReducedMotion } from "@/lib/motion";
 import { LandingPage } from "@/pages/Landing";
 import { HomePage } from "@/pages/Home";
@@ -56,6 +57,7 @@ export const App: React.FC = () => {
           path="/app"
           element={
             <AppShell>
+              <MainnetBanner />
               <PageTransition>
                 <HomePage />
               </PageTransition>
@@ -66,6 +68,7 @@ export const App: React.FC = () => {
           path="/app/send"
           element={
             <AppShell>
+              <MainnetBanner />
               <PageTransition>
                 <SendPage />
               </PageTransition>
@@ -76,6 +79,7 @@ export const App: React.FC = () => {
           path="/app/history"
           element={
             <AppShell>
+              <MainnetBanner />
               <PageTransition>
                 <HistoryPage />
               </PageTransition>
@@ -86,6 +90,7 @@ export const App: React.FC = () => {
           path="/app/history/:id"
           element={
             <AppShell>
+              <MainnetBanner />
               <PageTransition>
                 <HistoryDetailPage />
               </PageTransition>
@@ -96,6 +101,7 @@ export const App: React.FC = () => {
           path="/app/settings"
           element={
             <AppShell>
+              <MainnetBanner />
               <PageTransition>
                 <SettingsPage />
               </PageTransition>

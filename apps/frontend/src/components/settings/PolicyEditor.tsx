@@ -11,6 +11,7 @@ import {
   type UpdatePolicyRequest,
   ClientError
 } from "@/lib/api";
+import { useAdvancedMode } from "@/store/advancedMode";
 
 export interface PolicyEditorProps {
   policy: PolicyResponse;
@@ -50,6 +51,7 @@ export const PolicyEditor: React.FC<PolicyEditorProps> = ({
   policy,
   onSaved
 }) => {
+  const { enabled: isAdvanced } = useAdvancedMode();
   const [dailyLimit, setDailyLimit] = useState<string>(policy.dailyBudgetSats);
   const [perTxLimit, setPerTxLimit] = useState<string>(policy.perTxBudgetSats);
   const [scopes, setScopes] = useState<Record<string, boolean>>(() =>
@@ -109,32 +111,47 @@ export const PolicyEditor: React.FC<PolicyEditorProps> = ({
       return;
     }
 
-    const selectedScopes = SCOPE_OPTIONS.filter(
-      (option) => scopes[option.value]
-    ).map((option) => option.value);
+    let payload: UpdatePolicyRequest;
 
-    if (selectedScopes.length === 0) {
-      setValidationError("Turn on at least one scope.");
-      return;
-    }
+    if (isAdvanced) {
+      const selectedScopes = SCOPE_OPTIONS.filter(
+        (option) => scopes[option.value]
+      ).map((option) => option.value);
 
-    setValidationError(null);
-    mutation.mutate(
-      {
+      if (selectedScopes.length === 0) {
+        setValidationError("Turn on at least one scope.");
+        return;
+      }
+
+      payload = {
         dailyBudgetSats: dailyLimit,
         perTxBudgetSats: perTxLimit,
         scopes: selectedScopes,
         allowedMints: toLines(allowedMints),
         allowedRelays: toLines(allowedRelays),
         allowedEsplora: toLines(allowedEsplora)
-      },
-      {
-        onSuccess: () => {
-          toast.success("Saved.");
-          onSaved();
-        }
+      };
+    } else {
+      payload = {
+        dailyBudgetSats: dailyLimit,
+        perTxBudgetSats: perTxLimit,
+        scopes:
+          policy.scopes && policy.scopes.length > 0
+            ? policy.scopes
+            : ["Read", "Propose", "Send", "Publish"],
+        allowedMints: policy.allowedMints,
+        allowedRelays: policy.allowedRelays,
+        allowedEsplora: policy.allowedEsplora
+      };
+    }
+
+    setValidationError(null);
+    mutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success("Saved.");
+        onSaved();
       }
-    );
+    });
   };
 
   const errorMessage =
@@ -143,85 +160,91 @@ export const PolicyEditor: React.FC<PolicyEditorProps> = ({
 
   return (
     <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
-      <div className="divide-y divide-white/[0.06]">
-        <div className="space-y-4 pb-6">
-          <Input
-            label="Daily limit (sats)"
-            inputMode="numeric"
-            value={dailyLimit}
-            onChange={(event) => setDailyLimit(event.target.value)}
-          />
-          <Input
-            label="Per transaction limit (sats)"
-            inputMode="numeric"
-            value={perTxLimit}
-            onChange={(event) => setPerTxLimit(event.target.value)}
-          />
-          <p className="font-sans text-body-sm text-muted-foreground">
-            Amounts are in satoshis.
-          </p>
-        </div>
+      <div className="space-y-4">
+        <Input
+          label="Daily limit (sats)"
+          inputMode="numeric"
+          value={dailyLimit}
+          onChange={(event) => setDailyLimit(event.target.value)}
+        />
+        <Input
+          label="Per transaction limit (sats)"
+          inputMode="numeric"
+          value={perTxLimit}
+          onChange={(event) => setPerTxLimit(event.target.value)}
+        />
+        <p className="font-sans text-body-sm text-muted-foreground">
+          Amounts are in satoshis.
+        </p>
+      </div>
 
-        <div className="space-y-3 py-6">
-          <Label>Scopes</Label>
-          <div className="flex flex-wrap gap-4">
-            {SCOPE_OPTIONS.map((option) => {
-              const checkboxId = `scope-${option.value.toLowerCase()}`;
-              return (
-                <div key={option.value} className="flex items-center gap-2">
-                  <input
-                    id={checkboxId}
-                    type="checkbox"
-                    checked={scopes[option.value]}
-                    onChange={() => toggleScope(option.value)}
-                    className="h-4 w-4 shrink-0 rounded border-border accent-accent"
-                  />
-                  <Label htmlFor={checkboxId}>{option.label}</Label>
-                </div>
-              );
-            })}
+      {isAdvanced && (
+        <div className="border-t border-white/[0.08] pt-6 space-y-6">
+          <p className="font-sans text-body-sm text-muted-foreground">
+            These settings control which services the agent can use. Change them only if you understand the policy engine.
+          </p>
+
+          <div className="space-y-3">
+            <Label>Scopes</Label>
+            <div className="flex flex-wrap gap-4">
+              {SCOPE_OPTIONS.map((option) => {
+                const checkboxId = `scope-${option.value.toLowerCase()}`;
+                return (
+                  <div key={option.value} className="flex items-center gap-2">
+                    <input
+                      id={checkboxId}
+                      type="checkbox"
+                      checked={scopes[option.value]}
+                      onChange={() => toggleScope(option.value)}
+                      className="h-4 w-4 shrink-0 rounded border-border accent-accent"
+                    />
+                    <Label htmlFor={checkboxId}>{option.label}</Label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allowed-mints">Allowed mints</Label>
+            <textarea
+              id="allowed-mints"
+              value={allowedMints}
+              onChange={(event) => setAllowedMints(event.target.value)}
+              className={TEXTAREA_CLASS}
+            />
+            <p className="font-sans text-body-sm text-muted-foreground">
+              One value per line.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allowed-relays">Allowed relays</Label>
+            <textarea
+              id="allowed-relays"
+              value={allowedRelays}
+              onChange={(event) => setAllowedRelays(event.target.value)}
+              className={TEXTAREA_CLASS}
+            />
+            <p className="font-sans text-body-sm text-muted-foreground">
+              One value per line.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allowed-esplora">Allowed Esplora endpoints</Label>
+            <textarea
+              id="allowed-esplora"
+              value={allowedEsplora}
+              onChange={(event) => setAllowedEsplora(event.target.value)}
+              className={TEXTAREA_CLASS}
+            />
+            <p className="font-sans text-body-sm text-muted-foreground">
+              One value per line.
+            </p>
           </div>
         </div>
-
-        <div className="space-y-2 py-6">
-          <Label htmlFor="allowed-mints">Allowed mints</Label>
-          <textarea
-            id="allowed-mints"
-            value={allowedMints}
-            onChange={(event) => setAllowedMints(event.target.value)}
-            className={TEXTAREA_CLASS}
-          />
-          <p className="font-sans text-body-sm text-muted-foreground">
-            One value per line.
-          </p>
-        </div>
-
-        <div className="space-y-2 py-6">
-          <Label htmlFor="allowed-relays">Allowed relays</Label>
-          <textarea
-            id="allowed-relays"
-            value={allowedRelays}
-            onChange={(event) => setAllowedRelays(event.target.value)}
-            className={TEXTAREA_CLASS}
-          />
-          <p className="font-sans text-body-sm text-muted-foreground">
-            One value per line.
-          </p>
-        </div>
-
-        <div className="space-y-2 pt-6">
-          <Label htmlFor="allowed-esplora">Allowed Esplora endpoints</Label>
-          <textarea
-            id="allowed-esplora"
-            value={allowedEsplora}
-            onChange={(event) => setAllowedEsplora(event.target.value)}
-            className={TEXTAREA_CLASS}
-          />
-          <p className="font-sans text-body-sm text-muted-foreground">
-            One value per line.
-          </p>
-        </div>
-      </div>
+      )}
 
       {errorMessage && (
         <p role="alert" className="font-sans text-body-sm text-destructive">

@@ -1,8 +1,11 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { Spinner } from "@/components/ui/spinner";
 import { useWallet } from "@/lib/wallet";
 import { useReducedMotion } from "@/lib/motion";
+import { getAppConfig, type AppConfigResponse, ClientError } from "@/lib/api";
+import { networkLabel } from "@/lib/networkLabel";
 import { cn } from "@/lib/utils";
 
 export interface WalletButtonProps {
@@ -12,6 +15,13 @@ export interface WalletButtonProps {
 export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
   const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
   const shouldReduceMotion = useReducedMotion();
+
+  const { data: appConfig } = useQuery<AppConfigResponse, ClientError>({
+    queryKey: ["appConfig"],
+    queryFn: getAppConfig
+  });
+
+  const networkText = appConfig?.network ? networkLabel(appConfig.network) : "";
 
   const truncateAddress = (addr: string): string => {
     if (addr.length <= 10) return addr;
@@ -32,7 +42,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
       onClick={handleClick}
       disabled={isConnecting}
       className={cn(
-        "relative inline-flex items-center justify-center h-10 px-4 rounded-full text-xs font-medium border border-border/80 bg-secondary/60 hover:bg-secondary hover:border-foreground/20 text-foreground transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70 disabled:pointer-events-none select-none",
+        "relative inline-flex items-center justify-center min-h-[44px] px-4 py-1.5 rounded-full text-xs font-medium border border-border/80 bg-secondary/60 hover:bg-secondary hover:border-foreground/20 text-foreground transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70 disabled:pointer-events-none select-none",
         className
       )}
     >
@@ -49,16 +59,23 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
             <span>Connecting...</span>
           </motion.span>
         ) : isConnected && address ? (
-          <motion.span
+          <motion.div
             key="connected"
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1, transition: { duration: 0.25 } }}
             exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-            className="flex items-center gap-1.5 font-mono"
+            className="flex flex-col items-center justify-center leading-tight text-center"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span>{truncateAddress(address)}</span>
-          </motion.span>
+            <div className="flex items-center gap-1.5 font-mono text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span>{truncateAddress(address)}</span>
+            </div>
+            {networkText && (
+              <span className="font-sans text-body-sm text-muted-foreground">
+                {networkText}
+              </span>
+            )}
+          </motion.div>
         ) : (
           <motion.span
             key="disconnected"

@@ -3,6 +3,7 @@ import { NavLink, Link } from "react-router-dom";
 import { Home, ArrowUpRight, History, Settings } from "lucide-react";
 import { motion } from "motion/react";
 import { WalletButton } from "@/components/layout/WalletButton";
+import { NetworkBadge } from "@/components/layout/NetworkBadge";
 import { cn } from "@/lib/utils";
 
 export interface AppShellProps {
@@ -28,12 +29,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       <header className="sticky top-0 z-40 w-full h-16 border-b border-white/[0.08] bg-black">
         <div className="max-w-[1280px] w-full mx-auto px-6 md:px-12 lg:px-16 h-full flex items-center justify-between gap-4">
           <div className="flex items-center gap-8 h-full">
-            <Link
-              to="/app"
-              className="font-display font-black text-[18px] tracking-[0.08em] uppercase text-foreground hover:opacity-90 transition-opacity"
-            >
-              KEPLER
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/app"
+                className="font-display font-black text-[18px] tracking-[0.08em] uppercase text-foreground hover:opacity-90 transition-opacity"
+              >
+                KEPLER
+              </Link>
+              <NetworkBadge />
+            </div>
             <nav className="hidden sm:flex items-center gap-1 h-full">
               {navItems.map((item) => (
                 <NavLink
