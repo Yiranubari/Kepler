@@ -103,3 +103,40 @@ export const LightningDecodeResponseSchema = z.object({
 });
 
 export type LightningDecodeResponse = z.infer<typeof LightningDecodeResponseSchema>;
+
+export const ProtocolsBalanceRequestSchema = z.object({
+  network: z.enum(['mainnet', 'testnet', 'testnet4', 'signet', 'regtest']),
+  bitcoinAddress: z
+    .string()
+    .min(1)
+    .refine(
+      (value) => /^(bc1|1|3|tb1|m|n|2|bcrt1)/.test(value),
+      { message: 'bitcoinAddress must match a Bitcoin address prefix' }
+    )
+    .optional(),
+  cashuToken: z
+    .string()
+    .min(1)
+    .refine(
+      (value) => value.trim().length > 0,
+      { message: 'cashuToken must be a non-empty string' }
+    )
+    .optional()
+});
+
+export const ProtocolBalanceItemSchema = z.object({
+  connected: z.boolean(),
+  balanceSats: z.string().nullable(),
+  error: z.string().nullable()
+});
+
+export const ProtocolsBalanceResponseSchema = z.object({
+  bitcoin: ProtocolBalanceItemSchema,
+  lightning: ProtocolBalanceItemSchema,
+  cashu: ProtocolBalanceItemSchema
+});
+
+export type ProtocolsBalanceRequest = z.infer<typeof ProtocolsBalanceRequestSchema>;
+export type ProtocolBalanceItem = z.infer<typeof ProtocolBalanceItemSchema>;
+export type ProtocolsBalanceResponse = z.infer<typeof ProtocolsBalanceResponseSchema>;
+

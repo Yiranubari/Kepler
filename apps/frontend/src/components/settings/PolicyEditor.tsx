@@ -25,7 +25,7 @@ const SCOPE_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 const TEXTAREA_CLASS =
-  "flex min-h-[96px] w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-[border-color,box-shadow] duration-150 hover:border-border focus-visible:outline-none focus-visible:border-foreground/50 focus-visible:ring-1 focus-visible:ring-foreground/20";
+  "flex min-h-[96px] w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-[border-color,box-shadow] duration-150 hover:border-border focus-visible:outline-none focus-visible:border-foreground/50 focus-visible:ring-1 focus-visible:ring-foreground/20";
 
 function toLines(value: string): string[] {
   return value

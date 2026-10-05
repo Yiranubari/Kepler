@@ -11,7 +11,8 @@ import {
   LightningCreateRequestSchema,
   NostrEventRequestSchema,
   NostrAuthorRequestSchema,
-  CashuMintRequestSchema
+  CashuMintRequestSchema,
+  ProtocolsBalanceRequestSchema
 } from './protocols.validators';
 
 export class ProtocolsController {
@@ -171,5 +172,23 @@ export class ProtocolsController {
       }
       next(error);
     }
+  }
+
+  public async fetchBalance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const parsed = ProtocolsBalanceRequestSchema.parse(req.body);
+      const result = await this.service.getBalance(parsed);
+      res.status(200).json(this.serialize(result));
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        next(new ValidationError('Invalid balance request', { issues: error.issues }));
+        return;
+      }
+      next(error);
+    }
+  }
+
+  public async getBalance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    return this.fetchBalance(req, res, next);
   }
 }

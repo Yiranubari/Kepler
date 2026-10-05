@@ -46,5 +46,9 @@ export function createProtocolsRoutes(controller: ProtocolsController, limiter: 
     controller.fetchCashuMintInfo(req, res, next).catch(next);
   });
 
+  router.post('/balance', rateLimit(limiter, 'read'), (req, res, next) => {
+    controller.fetchBalance(req, res, next).catch(next);
+  });
+
   return router;
 }

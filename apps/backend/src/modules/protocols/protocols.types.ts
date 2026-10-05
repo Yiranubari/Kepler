@@ -26,6 +26,18 @@ export interface ProtocolsConfig {
   cashuClient: CashuClient;
 }
 
+export interface ProtocolBalanceResult {
+  readonly connected: boolean;
+  readonly balanceSats: string | null;
+  readonly error: string | null;
+}
+
+export interface ProtocolsBalanceResult {
+  readonly bitcoin: ProtocolBalanceResult;
+  readonly lightning: ProtocolBalanceResult;
+  readonly cashu: ProtocolBalanceResult;
+}
+
 export interface OperationLogContext {
   protocol: 'bitcoin' | 'lightning' | 'nostr' | 'cashu';
   operation: string;

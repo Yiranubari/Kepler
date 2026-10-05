@@ -11,7 +11,8 @@ import {
   BitcoinNetworkError,
   BitcoinTransaction,
   BitcoinAddressInfo,
-  BitcoinBlockTip
+  BitcoinBlockTip,
+  Utxo
 } from '@kepler/bitcoin';
 import {
   LightningClient,
@@ -33,7 +34,9 @@ import {
   CashuClient,
   CashuConfig,
   CashuNetworkError,
-  CashuMintInfo
+  CashuMintInfo,
+  CashuTokenCodec,
+  CashuToken
 } from '@kepler/cashu';
 
 describe('ProtocolsController (Unit with stubbed protocol clients)', () => {
@@ -573,6 +576,116 @@ describe('ProtocolsController (Unit with stubbed protocol clients)', () => {
 
       expect(res.status).toBe(502);
       expect(res.body.error.code).toBe('NETWORK_ERROR');
+    });
+  });
+
+  describe('POST /api/protocols/balance', () => {
+    const validBitcoinAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
+    const sampleTokenString = 'cashuAeyJ0b2tlbiI6W3siaWQiOiJtMSIsImFtb3VudCI6MTAwLCJzZWNyZXQiOiJzMSIsIkMiOiJjMSJ9XX0=';
+
+    it('returns 200 with all balances on happy path', async () => {
+      const mockUtxos: Utxo[] = [
+        {
+          txid: '0000000000000000000000000000000000000000000000000000000000000001',
+          vout: 0,
+          value: 40000n,
+          status: { confirmed: true, blockHeight: 800000, blockTime: 1700000000 }
+        }
+      ];
+      const mockCashuToken: CashuToken = {
+        mint: 'https://mint.example.com',
+        unit: 'sat',
+        memo: null,
+        proofs: [
+          { id: '001', amount: 300n, secret: 's1', C: 'c1', witness: null }
+        ]
+      };
+
+      jest.spyOn(bitcoinClient, 'getUtxos').mockResolvedValue(mockUtxos);
+      jest.spyOn(lightningClient, 'getBalance').mockResolvedValue({ balanceMsat: 8000000n });
+      jest.spyOn(CashuTokenCodec, 'decode').mockReturnValue(mockCashuToken);
+
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({
+          network: 'mainnet',
+          bitcoinAddress: validBitcoinAddress,
+          cashuToken: sampleTokenString
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        bitcoin: { connected: true, balanceSats: '40000' },
+        lightning: { connected: true, balanceSats: '8000' },
+        cashu: { connected: true, balanceSats: '300' }
+      });
+    });
+
+    it('returns 200 with disconnected states when optional fields are omitted', async () => {
+      jest.spyOn(lightningClient, 'getBalance').mockResolvedValue({ balanceMsat: 10000n });
+
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({ network: 'testnet' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        bitcoin: { connected: false, balanceSats: null },
+        lightning: { connected: true, balanceSats: '10' },
+        cashu: { connected: false, balanceSats: null }
+      });
+    });
+
+    it('returns 400 with VALIDATION_ERROR on missing network', async () => {
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({ bitcoinAddress: validBitcoinAddress });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with VALIDATION_ERROR on invalid network', async () => {
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({ network: 'unknown-net' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with VALIDATION_ERROR on invalid bitcoinAddress prefix', async () => {
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({ network: 'mainnet', bitcoinAddress: 'invalid_prefix' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with VALIDATION_ERROR on empty cashuToken', async () => {
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({ network: 'mainnet', cashuToken: '' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 502 with PROTOCOL_OPERATION_ERROR on protocol failure', async () => {
+      jest.spyOn(bitcoinClient, 'getUtxos').mockRejectedValue(
+        new BitcoinNetworkError('Connection refused', { url: 'http://test' })
+      );
+
+      const res = await request(app)
+        .post('/api/protocols/balance')
+        .send({
+          network: 'mainnet',
+          bitcoinAddress: validBitcoinAddress
+        });
+
+      expect(res.status).toBe(502);
+      expect(res.body.error.code).toBe('PROTOCOL_OPERATION_ERROR');
     });
   });
 });

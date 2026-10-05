@@ -4,3 +4,4 @@ export { ActivityCard, type ActivityCardProps } from "./ActivityCard";
 export { LimitsCard, type LimitsCardProps } from "./LimitsCard";
 export { NetworkCard, type NetworkCardProps } from "./NetworkCard";
 export { ServiceBanner, type ServiceBannerProps } from "./ServiceBanner";
+export { BalanceStrip, type BalanceStripProps } from "./BalanceStrip";

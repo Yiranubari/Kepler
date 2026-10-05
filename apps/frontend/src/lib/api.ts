@@ -130,6 +130,16 @@ export interface LightningDecodeResponse {
   payeePubkey?: string | null;
 }
 
+export interface LightningPaymentResponse {
+  paymentHash: string;
+  preimage: string | null;
+  amountMsat: string;
+  feeMsat: string;
+  status: "pending" | "succeeded" | "failed" | "expired";
+  createdAt: number;
+  description?: string;
+}
+
 export interface CashuMintInfoResponse {
   name: string;
   pubkey: string;
@@ -139,6 +149,12 @@ export interface CashuMintInfoResponse {
   contact?: string[][] | null;
   motd?: string | null;
   nuts: Record<string, unknown>;
+}
+
+export interface BalanceResponse {
+  bitcoin: { connected: boolean; balanceSats: string | null; error: string | null };
+  lightning: { connected: boolean; balanceSats: string | null; error: string | null };
+  cashu: { connected: boolean; balanceSats: string | null; error: string | null };
 }
 
 export interface TaintEvidenceItem {
@@ -431,15 +447,27 @@ export class ApiClient {
   public async createLightningInvoice(
     amountSats: number,
     memo = "Kepler testnet funding"
-  ): Promise<{ invoice: string }> {
-    const res = await this.request<{ invoice: string; paymentHash?: string }>(
+  ): Promise<{ invoice: string; paymentHash: string }> {
+    const res = await this.request<{ invoice: string; paymentHash: string }>(
       "/api/protocols/lightning/create",
       {
         method: "POST",
         body: JSON.stringify({ amountSats, memo })
       }
     );
-    return { invoice: res.invoice };
+    return { invoice: res.invoice, paymentHash: res.paymentHash };
+  }
+
+  public async lookupLightningInvoice(
+    paymentHash: string
+  ): Promise<LightningPaymentResponse> {
+    return this.request<LightningPaymentResponse>(
+      "/api/protocols/lightning/lookup",
+      {
+        method: "POST",
+        body: JSON.stringify({ paymentHash })
+      }
+    );
   }
 
   public async getMintInfo(mintUrl: string): Promise<CashuMintInfoResponse> {
@@ -461,6 +489,17 @@ export class ApiClient {
     return this.request<AppConfigResponse>("/api/config/network", {
       method: "PUT",
       body: JSON.stringify({ network })
+    });
+  }
+
+  public async getBalance(input: {
+    network: string;
+    bitcoinAddress?: string;
+    cashuToken?: string;
+  }): Promise<BalanceResponse> {
+    return this.request<BalanceResponse>("/api/protocols/balance", {
+      method: "POST",
+      body: JSON.stringify(input)
     });
   }
 }
@@ -515,8 +554,22 @@ export const decodeLightningInvoice = (
 
 export async function createLightningInvoice(
   amountSats: number
-): Promise<{ invoice: string }> {
+): Promise<{ invoice: string; paymentHash: string }> {
   return defaultClient.createLightningInvoice(amountSats);
+}
+
+export async function lookupLightningInvoice(
+  paymentHash: string
+): Promise<LightningPaymentResponse> {
+  return defaultClient.lookupLightningInvoice(paymentHash);
+}
+
+export async function getBalance(input: {
+  network: string;
+  bitcoinAddress?: string;
+  cashuToken?: string;
+}): Promise<BalanceResponse> {
+  return defaultClient.getBalance(input);
 }
 
 export const getMintInfo = (

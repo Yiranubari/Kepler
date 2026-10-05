@@ -25,6 +25,7 @@ import {
   NWCMakeInvoiceResultSchema,
   NWCLookupInvoiceResultSchema,
   NWCGetInfoResultSchema,
+  NWCGetBalanceResultSchema,
   NWCListTransactionsResultSchema
 } from './types';
 
@@ -175,6 +176,28 @@ export class LightningClient {
       blockHeight: data.block_height,
       blockHash: data.block_hash,
       methods: data.methods
+    };
+  }
+
+  public async getBalance(): Promise<{ balanceMsat: bigint }> {
+    if (!this._config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+    const result = await this.executeRequest('get_balance', {}, 5000);
+    const validation = NWCGetBalanceResultSchema.safeParse(result);
+    if (!validation.success) {
+      const err = new LightningInvoiceError('Malformed get_balance response payload', {
+        method: 'get_balance',
+        reason: validation.error.message
+      });
+      this.logAndThrow(err, 'get_balance');
+    }
+
+    return {
+      balanceMsat: BigInt(validation.data.balance)
     };
   }
 
@@ -400,7 +423,7 @@ export class LightningClient {
     });
   }
 
-  private async executeRequest(method: string, params: Record<string, unknown>): Promise<unknown> {
+  private async executeRequest(method: string, params: Record<string, unknown>, timeoutMs?: number): Promise<unknown> {
     if (!this._config.isConfigured || !this._secretBytes || !this._config.walletPubkey || !this._config.relayUrl || !this._clientPubkey) {
       throw new LightningConfigError('NWC is not configured', {
         variable: 'NWC_CONNECTION_STRING',
@@ -411,6 +434,7 @@ export class LightningClient {
     const walletPubkey = this._config.walletPubkey;
     const relayUrl = this._config.relayUrl;
     const clientPubkey = this._clientPubkey;
+    const effectiveTimeoutMs = timeoutMs ?? this._config.requestTimeoutMs;
 
     const startTime = Date.now();
     let subCloser: { close: () => void } | undefined;
@@ -441,11 +465,11 @@ export class LightningClient {
           if (subCloser) {
             subCloser.close();
           }
-          reject(new LightningTimeoutError(`NWC request ${method} timed out after ${this._config.requestTimeoutMs}ms`, {
+          reject(new LightningTimeoutError(`NWC request ${method} timed out after ${effectiveTimeoutMs}ms`, {
             method,
-            timeoutMs: this._config.requestTimeoutMs
+            timeoutMs: effectiveTimeoutMs
           }));
-        }, this._config.requestTimeoutMs);
+        }, effectiveTimeoutMs);
 
         try {
           subCloser = this._pool.subscribeMany(

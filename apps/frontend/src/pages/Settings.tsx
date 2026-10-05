@@ -127,37 +127,36 @@ export const SettingsPage: React.FC = () => {
         ) : policyError ? (
           <ErrorState error={policyError} onRetry={() => void refetchPolicy()} />
         ) : policy ? (
-          <div className="space-y-4">
-          <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
-            <div className="space-y-4 divide-y divide-white/[0.06]">
-              <div className="flex justify-between items-center py-2 first:pt-0">
-                <span className="font-sans text-body text-muted-foreground">Daily limit</span>
-                <span className="font-display font-medium text-base text-foreground tabular-nums">
-                  <AnimatedNumber value={Number(policy.dailyBudgetSats)} /> sats
-                </span>
+          isEditing ? (
+            <PolicyEditor policy={policy} onSaved={handlePolicySaved} />
+          ) : (
+            <Card className="rounded-[12px] border border-white/[0.08] bg-card p-5 md:p-8 shadow-none space-y-6">
+              <div className="space-y-4 divide-y divide-white/[0.06]">
+                <div className="flex justify-between items-center py-2 first:pt-0">
+                  <span className="font-sans text-body text-muted-foreground">Daily limit</span>
+                  <span className="font-display font-medium text-base text-foreground tabular-nums">
+                    <AnimatedNumber value={Number(policy.dailyBudgetSats)} /> sats
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-sans text-body text-muted-foreground">Per transaction limit</span>
+                  <span className="font-display font-medium text-base text-foreground tabular-nums">
+                    <AnimatedNumber value={Number(policy.perTxBudgetSats)} /> sats
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="font-sans text-body text-muted-foreground">Per transaction limit</span>
-                <span className="font-display font-medium text-base text-foreground tabular-nums">
-                  <AnimatedNumber value={Number(policy.perTxBudgetSats)} /> sats
-                </span>
+              <div className="pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="rounded-full"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit limits
+                </Button>
               </div>
-            </div>
-            <div className="pt-2">
-              <Button
-                variant="primary"
-                size="md"
-                className="rounded-full"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit limits
-              </Button>
-            </div>
             </Card>
-            {isEditing ? (
-              <PolicyEditor policy={policy} onSaved={handlePolicySaved} />
-            ) : null}
-          </div>
+          )
         ) : null}
       </section>
 

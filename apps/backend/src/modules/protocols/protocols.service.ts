@@ -14,6 +14,7 @@ import {
 } from '@kepler/shared';
 import {
   BitcoinClient,
+  BitcoinConfigError,
   BitcoinNotFoundError,
   BitcoinNetworkError,
   BitcoinParseError,
@@ -25,6 +26,7 @@ import {
 import {
   LightningClient,
   Bolt11,
+  LightningConfigError,
   LightningTimeoutError,
   LightningNetworkError,
   LightningConnectionError,
@@ -46,11 +48,18 @@ import {
 } from '@kepler/nostr';
 import {
   CashuClient,
+  CashuConfigError,
   CashuNetworkError,
   CashuParseError,
-  CashuMintInfo
+  CashuMintInfo,
+  CashuTokenCodec,
+  CashuTokenError
 } from '@kepler/cashu';
-import { ProtocolsConfig } from './protocols.types';
+import {
+  ProtocolsConfig,
+  ProtocolBalanceResult,
+  ProtocolsBalanceResult
+} from './protocols.types';
 import { ProtocolOperationError } from './protocols.errors';
 import {
   BitcoinTxRequestSchema,
@@ -61,7 +70,9 @@ import {
   LightningCreateRequestSchema,
   NostrEventRequestSchema,
   NostrAuthorRequestSchema,
-  CashuMintRequestSchema
+  CashuMintRequestSchema,
+  ProtocolsBalanceRequestSchema,
+  ProtocolsBalanceRequest
 } from './protocols.validators';
 
 export class ProtocolsService {
@@ -415,5 +426,227 @@ export class ProtocolsService {
     return this.execute('cashu', 'fetchCashuMintInfo', { resource: 'CashuMintInfo', id: normalizedUrl }, async () => {
       return this.cashuClient.getMintInfo(normalizedUrl);
     });
+  }
+
+  private async safeBalance(
+    fn: () => Promise<string | null>,
+    protocol?: 'bitcoin' | 'lightning' | 'cashu'
+  ): Promise<ProtocolBalanceResult> {
+    try {
+      const balanceSats = await fn();
+      return {
+        connected: true,
+        balanceSats,
+        error: null
+      };
+    } catch (err: unknown) {
+      const errName = err instanceof Error ? err.name : '';
+      const isTimeout =
+        err instanceof LightningTimeoutError ||
+        errName.endsWith('TimeoutError') ||
+        (err instanceof Error && err.message.toUpperCase().includes('TIMEOUT'));
+
+      if (isTimeout) {
+        return {
+          connected: true,
+          balanceSats: null,
+          error: 'TIMEOUT'
+        };
+      }
+
+      const isConfig =
+        err instanceof LightningConfigError ||
+        err instanceof BitcoinConfigError ||
+        err instanceof CashuConfigError ||
+        errName.endsWith('ConfigError');
+
+      if (isConfig) {
+        return {
+          connected: false,
+          balanceSats: null,
+          error: 'NOT_CONFIGURED'
+        };
+      }
+
+      const isNotFound =
+        err instanceof BitcoinNotFoundError ||
+        errName === 'LightningNotFoundError' ||
+        errName.endsWith('NotFoundError') ||
+        (err instanceof LightningInvoiceError &&
+          (err.context?.['code'] === 'NOT_FOUND' ||
+            err.context?.['code'] === 'INVOICE_NOT_FOUND' ||
+            (typeof err.message === 'string' && err.message.toLowerCase().includes('not found'))));
+
+      if (isNotFound) {
+        return {
+          connected: true,
+          balanceSats: null,
+          error: null
+        };
+      }
+
+      const isNetwork =
+        err instanceof BitcoinNetworkError ||
+        err instanceof LightningNetworkError ||
+        err instanceof LightningConnectionError ||
+        err instanceof CashuNetworkError ||
+        err instanceof NetworkError ||
+        errName.endsWith('NetworkError') ||
+        errName.endsWith('ConnectionError');
+
+      if (isNetwork) {
+        return {
+          connected: true,
+          balanceSats: null,
+          error: 'NETWORK_ERROR'
+        };
+      }
+
+      const isInvalidOrParse =
+        err instanceof BitcoinInvalidResponseError ||
+        err instanceof BitcoinParseError ||
+        err instanceof CashuParseError ||
+        err instanceof CashuTokenError ||
+        errName.endsWith('ParseError') ||
+        errName.endsWith('InvalidResponseError');
+
+      if (isInvalidOrParse) {
+        return {
+          connected: true,
+          balanceSats: null,
+          error: 'NETWORK_ERROR'
+        };
+      }
+
+      const isUnsupported =
+        (err instanceof LightningInvoiceError && (
+          err.context?.['code'] === 'NOT_IMPLEMENTED' ||
+          err.context?.['code'] === 'UNSUPPORTED' ||
+          err.context?.['code'] === 'NOT_SUPPORTED'
+        )) ||
+        (err instanceof Error && (
+          err.message.toLowerCase().includes('not supported') ||
+          err.message.toLowerCase().includes('not implemented') ||
+          err.message.toLowerCase().includes('unsupported')
+        ));
+
+      if (isUnsupported) {
+        return {
+          connected: true,
+          balanceSats: null,
+          error: 'UNSUPPORTED'
+        };
+      }
+
+      const detectedProtocol =
+        protocol ??
+        (errName.toLowerCase().includes('bitcoin')
+          ? 'bitcoin'
+          : errName.toLowerCase().includes('lightning')
+          ? 'lightning'
+          : errName.toLowerCase().includes('cashu')
+          ? 'cashu'
+          : 'unknown');
+
+      this.logger.warn('Protocol balance failed', {
+        protocol: detectedProtocol,
+        code: 'NETWORK_ERROR'
+      });
+
+      return {
+        connected: false,
+        balanceSats: null,
+        error: 'NETWORK_ERROR'
+      };
+    }
+  }
+
+  private async getBitcoinBalance(address: string): Promise<string> {
+    const startTime = performance.now();
+    const mempoolBaseUrl =
+      (this.bitcoinClient as unknown as { _config?: { mempoolBaseUrl?: string } })._config?.mempoolBaseUrl ??
+      'https://mempool.space/api';
+    const utxos = await this.bitcoinClient.getUtxos(address.trim());
+    const totalSats = utxos.reduce((sum, utxo) => sum + utxo.value, 0n);
+    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+    this.logger.debug('Bitcoin balance fetched', {
+      protocol: 'bitcoin',
+      connected: true,
+      url: mempoolBaseUrl,
+      durationMs
+    });
+    return totalSats.toString();
+  }
+
+  private async getLightningBalance(): Promise<string> {
+    const startTime = performance.now();
+    if (!this.lightningClient.config.isConfigured) {
+      throw new LightningConfigError('NWC is not configured', {
+        variable: 'NWC_CONNECTION_STRING',
+        reason: 'NOT_CONFIGURED'
+      });
+    }
+    const result = await this.lightningClient.getBalance();
+    const balanceSats = (result.balanceMsat / 1000n).toString();
+    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+    this.logger.debug('Lightning balance fetched', {
+      protocol: 'lightning',
+      connected: true,
+      durationMs
+    });
+    return balanceSats;
+  }
+
+  private async getCashuBalance(token: string): Promise<string> {
+    const startTime = performance.now();
+    const decoded = CashuTokenCodec.decode(token.trim());
+    const totalSats = decoded.proofs.reduce((sum, proof) => sum + proof.amount, 0n);
+    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+    this.logger.debug('Cashu balance fetched', {
+      protocol: 'cashu',
+      connected: true,
+      durationMs
+    });
+    return totalSats.toString();
+  }
+
+  public async getBalance(request: ProtocolsBalanceRequest): Promise<ProtocolsBalanceResult> {
+    const validation = ProtocolsBalanceRequestSchema.safeParse(request);
+    if (!validation.success) {
+      throw this.createValidationError('bitcoin', 'getBalance', validation.error);
+    }
+
+    const bitcoinPromise = validation.data.bitcoinAddress
+      ? this.safeBalance(() => this.getBitcoinBalance(validation.data.bitcoinAddress!), 'bitcoin')
+      : Promise.resolve<ProtocolBalanceResult>({
+          connected: false,
+          balanceSats: null,
+          error: 'NOT_CONFIGURED'
+        });
+
+    const lightningPromise = this.safeBalance(
+      () => this.getLightningBalance(),
+      'lightning'
+    );
+
+    const cashuPromise = validation.data.cashuToken
+      ? this.safeBalance(() => this.getCashuBalance(validation.data.cashuToken!), 'cashu')
+      : Promise.resolve<ProtocolBalanceResult>({
+          connected: false,
+          balanceSats: null,
+          error: 'NOT_CONFIGURED'
+        });
+
+    const [bitcoin, lightning, cashu] = await Promise.all([
+      bitcoinPromise,
+      lightningPromise,
+      cashuPromise
+    ]);
+
+    return { bitcoin, lightning, cashu };
+  }
+
+  public async fetchBalance(request: ProtocolsBalanceRequest): Promise<ProtocolsBalanceResult> {
+    return this.getBalance(request);
   }
 }

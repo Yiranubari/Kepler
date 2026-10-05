@@ -18,7 +18,8 @@ import {
   ActivityCard,
   LimitsCard,
   NetworkCard,
-  ServiceBanner
+  ServiceBanner,
+  BalanceStrip
 } from "@/components/dashboard";
 
 export const HomePage: React.FC = () => {
@@ -75,6 +76,11 @@ export const HomePage: React.FC = () => {
       <GreetingRow
         address={address ?? null}
         isConnected={isConnected}
+      />
+      <BalanceStrip
+        bitcoinAddress={address ?? null}
+        cashuToken={null}
+        network={currentNetwork ?? "testnet4"}
       />
       <ActivityCard
         scenarios={scenariosQuery.data}

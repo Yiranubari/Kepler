@@ -1009,6 +1009,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/protocols/balance:
+    post:
+      summary: Fetch wallet balances across protocols
+      operationId: fetchBalance
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProtocolsBalanceRequest'
+      responses:
+        '200':
+          description: Wallet balances across protocols
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProtocolsBalanceResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/onchain/derive:
     post:
       summary: Derive Bitcoin receiving and change addresses from xpub
@@ -2590,6 +2627,46 @@ components:
         nuts:
           type: object
           additionalProperties: true
+
+    ProtocolsBalanceRequest:
+      type: object
+      required:
+        - network
+      properties:
+        network:
+          $ref: '#/components/schemas/SupportedNetwork'
+        bitcoinAddress:
+          type: string
+        cashuToken:
+          type: string
+
+    ProtocolBalanceItem:
+      type: object
+      required:
+        - connected
+        - balanceSats
+        - error
+      properties:
+        connected:
+          type: boolean
+        balanceSats:
+          type: [string, 'null']
+        error:
+          type: [string, 'null']
+
+    ProtocolsBalanceResponse:
+      type: object
+      required:
+        - bitcoin
+        - lightning
+        - cashu
+      properties:
+        bitcoin:
+          $ref: '#/components/schemas/ProtocolBalanceItem'
+        lightning:
+          $ref: '#/components/schemas/ProtocolBalanceItem'
+        cashu:
+          $ref: '#/components/schemas/ProtocolBalanceItem'
 
     OnchainSupportedNetwork:
       type: string
