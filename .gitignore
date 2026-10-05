@@ -14,3 +14,4 @@ AGENTS.md
 .env.test
 docs/demo-script.md
 docs/audit/2026-10-01.md
+pnpm-lock.yaml

@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm install && npm run build -w @kepler/frontend",
+  "outputDirectory": "apps/frontend/dist",
+  "installCommand": "npm install",
+  "framework": null,
+  "rewrites": [{ "source": "\\/(.*)", "destination": "\/index.html" }]
+}
