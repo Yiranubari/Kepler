@@ -24,7 +24,7 @@ let server: http.Server | undefined;
 lifecycle.registerStartupHook("httpServer", async (): Promise<void> => {
   await new Promise<void>((resolve, reject) => {
     server = http.createServer(app);
-    server.listen(env.PORT, () => {
+    server.listen(env.PORT, "0.0.0.0", () => {
       httpLogger.info("http_server_bound", {
         address: server?.address(),
         port: env.PORT,

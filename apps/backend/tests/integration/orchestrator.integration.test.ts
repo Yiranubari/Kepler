@@ -36,7 +36,7 @@ describe('Orchestrator Integration (Real Services, Guarded)', () => {
   };
 
   const hasNwc = Boolean(process.env.NWC_CONNECTION_STRING);
-  const hasCashuMint = Boolean(process.env.CASHU_MINT_URL || process.env.CASHU_MINT);
+  const hasCashuMint = Boolean(process.env.CASHU_MINT_URL);
   const hasNostrKey = Boolean(process.env.NOSTR_PRIVATE_KEY);
   const test1SatInvoice = process.env.TEST_LIGHTNING_INVOICE_1SAT;
 

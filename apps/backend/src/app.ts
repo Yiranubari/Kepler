@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { env } from './config/env';
 import { RATE_LIMIT_WINDOWS_MS } from './config/constants';
@@ -90,6 +91,12 @@ export function createApp(
 ): Express {
   const app = express();
 
+  app.use(
+    cors({
+      origin: (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(","),
+      credentials: true
+    })
+  );
   app.use(requestLogger(logger));
   app.use(express.json());
 
@@ -227,6 +234,10 @@ export function createApp(
   app.use('/api/policy', policyRoutes);
   app.use('/api/orchestrator', orchestratorRoutes);
   app.use('/api/config', configRoutes);
+
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
 
   app.use(errorMiddleware);
 

@@ -12,6 +12,18 @@ servers:
 security:
   - {}
 paths:
+  /api/health:
+    get:
+      summary: Check service health
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/scenarios:
     post:
       summary: Create a new payment scenario
@@ -1551,6 +1563,16 @@ paths:
 
 components:
   schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+      required:
+        - status
+
     PaymentTargetKind:
       type: string
       enum:

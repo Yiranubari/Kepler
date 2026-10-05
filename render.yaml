@@ -1,0 +1,84 @@
+services:
+  - type: web
+    name: kepler-api
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm run build -w @kepler/backend
+    startCommand: npm run start -w @kepler/backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: BITCOIN_NETWORK
+        value: testnet4
+      - key: ESPLORA_URL
+        value: https://mempool.space/testnet4/api
+      - key: ESPLORA_FALLBACK_URL
+        value: https://mempool.space/testnet4/api
+      - key: RELAYS
+        value: wss://nos.lol,wss://relay.primal.net
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: HF_MODEL
+        value: meta-llama/Llama-3.1-8B-Instruct
+      - key: AI_TIMEOUT_MS
+        value: "20000"
+      - key: AI_CACHE_TTL_SECONDS
+        value: "900"
+      - key: AI_MAX_INPUT_CHARS
+        value: "12000"
+      - key: NOSTR_PRIVATE_KEY
+        sync: false
+      - key: NOSTR_RELAYS
+        value: wss://nos.lol,wss://relay.primal.net
+      - key: NOSTR_TIMEOUT_MS
+        value: "15000"
+      - key: NOSTR_PUBLISH_TIMEOUT_MS
+        value: "5000"
+      - key: NOSTR_SUBSCRIPTION_LIMIT
+        value: "500"
+      - key: CASHU_MINT_URL
+        value: https://testnut.cashu.space
+      - key: CASHU_UNIT
+        value: sat
+      - key: CASHU_REQUEST_TIMEOUT_MS
+        value: "15000"
+      - key: NWC_CONNECTION_STRING
+        sync: false
+      - key: NWC_TIMEOUT_MS
+        value: "15000"
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_DIR
+        value: logs
+      - key: RATE_LIMIT_READ_PER_MINUTE
+        value: "120"
+      - key: RATE_LIMIT_PROPOSE_PER_MINUTE
+        value: "60"
+      - key: RATE_LIMIT_SEND_PER_HOUR
+        value: "20"
+      - key: RATE_LIMIT_PUBLISH_PER_HOUR
+        value: "100"
+      - key: TAINT_TEMPORAL_WINDOW_SECONDS
+        value: "3600"
+      - key: TAINT_MIN_EDGE_CONFIDENCE
+        value: "0.3"
+      - key: TAINT_MAX_PATH_DEPTH
+        value: "5"
+      - key: TAINT_CO_OCCURRENCE_THRESHOLD
+        value: "3"
+      - key: TAINT_MAX_NODES_PER_GRAPH
+        value: "10000"
+      - key: TAINT_MAX_EDGES_PER_GRAPH
+        value: "50000"

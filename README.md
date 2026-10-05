@@ -112,6 +112,18 @@ See `docs/architecture.md` for the full picture. Short version: the frontend tal
 - The Reown AppKit Bitcoin adapter does not fully support testnet signing for browser extensions. Kepler works on testnet for read only operations. On chain signing through the browser extension requires mainnet.
 - The balance endpoint never logs an address, a token, or a balance value. It always returns per protocol state, including per protocol errors, so a single failure does not break the strip.
 
+## Deployment
+
+The backend runs on Render from the blueprint in `render.yaml`. The frontend runs on Vercel from `apps/frontend/vercel.json`. The database is hosted on Neon.
+
+1. Create a Neon Postgres database and copy the pooled connection string.
+2. In Render, create a Blueprint from this repository. Render reads `render.yaml` and creates the `kepler-api` web service.
+3. When Render prompts for the `sync: false` variables, provide `DATABASE_URL` (the Neon connection string), `CORS_ORIGIN` (the Vercel frontend origin, for example `https://kepler.vercel.app`), `GROQ_API_KEY`, `HUGGINGFACE_API_KEY`, `NOSTR_PRIVATE_KEY`, `NWC_CONNECTION_STRING`, and any optional values you want.
+4. In Vercel, import this repository and set the root directory to `apps/frontend`. Vercel reads `apps/frontend/vercel.json`. Set `VITE_API_BASE_URL` to the Render service URL and `VITE_REOWN_PROJECT_ID` to your Reown project ID.
+5. After both services are live, confirm `GET /api/health` returns `{ "status": "ok" }` and that the frontend can reach the backend from the browser.
+
+`CORS_ORIGIN` accepts a comma-separated list, so you can allow both the Vercel origin and `http://localhost:5173` during testing.
+
 ## License
 
 MIT.

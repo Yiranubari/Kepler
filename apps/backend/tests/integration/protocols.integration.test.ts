@@ -25,7 +25,7 @@ describe('Protocols Integration (Real services, no mocks)', () => {
 
   const hasEsplora = Boolean(process.env.ESPLORA_URL);
   const hasNostrRelays = Boolean(process.env.NOSTR_RELAYS || process.env.RELAYS);
-  const hasCashuMint = Boolean(process.env.CASHU_MINT_URL || process.env.CASHU_MINT);
+  const hasCashuMint = Boolean(process.env.CASHU_MINT_URL);
 
   let service: ProtocolsService;
   let nostrClient: NostrClient;
@@ -110,7 +110,7 @@ describe('Protocols Integration (Real services, no mocks)', () => {
     const testFn = hasCashuMint ? it : it.skip;
 
     testFn('fetches real mint information from configured mint', async () => {
-      const mintUrl = (process.env.CASHU_MINT_URL || process.env.CASHU_MINT || 'https://testnut.cashu.space').trim();
+      const mintUrl = (process.env.CASHU_MINT_URL || 'https://testnut.cashu.space').trim();
       const mintInfo = await service.fetchCashuMintInfo(mintUrl);
 
       expect(mintInfo).toBeDefined();
