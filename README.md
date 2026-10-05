@@ -127,3 +127,8 @@ The backend runs on Render from the blueprint in `render.yaml`. The frontend run
 ## License
 
 MIT.
+
+## Live
+
+- Live app: https://kepler-azure.vercel.app
+- API: https://kepler-api-pqq2.onrender.com
