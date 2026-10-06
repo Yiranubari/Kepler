@@ -111,6 +111,7 @@ See `docs/architecture.md` for the full picture. Short version: the frontend tal
 - Wallet connectors do not distinguish between testnet variants. Reown AppKit exposes a single Bitcoin testnet constant. When the app runs on testnet4, signet, or regtest, the connected wallet reports itself as testnet regardless.
 - The Reown AppKit Bitcoin adapter does not fully support testnet signing for browser extensions. Kepler works on testnet for read only operations. On chain signing through the browser extension requires mainnet.
 - The balance endpoint never logs an address, a token, or a balance value. It always returns per protocol state, including per protocol errors, so a single failure does not break the strip.
+- The application has no authentication. Every visitor sees the same shared database. This is intentional for the hackathon demo and would be replaced by per-user authentication in a real deployment.
 
 ## Deployment
 
